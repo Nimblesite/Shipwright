@@ -1,8 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/deploy-toolkit-cli",
     "crates/deploy-toolkit-host",
     "crates/deploy-toolkit-manifest",
+    "tools/deploy-stamp",
 ]
 
 [workspace.package]

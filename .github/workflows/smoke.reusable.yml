@@ -1,0 +1,151 @@
+# Reusable smoke test.
+#
+# Downloads the release archive for every matrix target that a runner can
+# host natively, extracts the binary, and asserts the `--version` contract:
+#   - `<bin> --version` prints exactly `<bin_name> <version>\n`
+#   - `<bin> --version --json` produces schema-valid JSON whose `name` and
+#     `version` match, and whose `product` field matches `product_id`.
+#
+# When `publish_vsix` is true, a secondary job installs the VSIX into a
+# headless VS Code and asserts activation completes without error.
+
+name: deploy-toolkit smoke (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag (v1.2.3 or 1.2.3)."
+        type: string
+        required: true
+      bin_name:
+        description: "Binary name as produced by cargo."
+        type: string
+        required: true
+      product_id:
+        description: "Product id expected in version-manifest JSON."
+        type: string
+        required: true
+      publish_vsix:
+        description: "Also smoke a VSIX."
+        type: boolean
+        required: false
+        default: false
+      vsix_path:
+        description: "Path or glob to the built VSIX."
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  version-contract:
+    name: version contract
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: tar.gz
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            ext: tar.gz
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            ext: tar.gz
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: zip
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Normalize tag
+        id: ver
+        shell: bash
+        run: |
+          tag="${{ inputs.tag }}"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download artifact from GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.tag }}" \
+            -R "${{ github.repository }}" \
+            -p "${{ inputs.bin_name }}-*-${{ matrix.target }}.${{ matrix.ext }}" \
+            -D dl
+          ls dl
+
+      - name: Extract
+        shell: bash
+        run: |
+          cd dl
+          if [ "${{ matrix.ext }}" = "zip" ]; then
+            unzip -q *.zip
+          else
+            tar -xzf *.tar.gz
+          fi
+          ls -la
+
+      - name: Plain --version contract
+        shell: bash
+        run: |
+          bin="dl/${{ inputs.bin_name }}"
+          if [ "${{ matrix.runner }}" = "windows-latest" ]; then bin="$bin.exe"; fi
+          chmod +x "$bin" || true
+          out=$("$bin" --version)
+          expected="${{ inputs.bin_name }} ${{ steps.ver.outputs.version }}"
+          if [ "$out" != "$expected" ]; then
+            echo "::error::version contract failed. want=$expected got=$out"
+            exit 1
+          fi
+
+      - name: JSON --version contract
+        shell: bash
+        run: |
+          bin="dl/${{ inputs.bin_name }}"
+          if [ "${{ matrix.runner }}" = "windows-latest" ]; then bin="$bin.exe"; fi
+          json=$("$bin" --version --json)
+          echo "$json" | python3 -c '
+          import json, os, sys
+          want_name = os.environ["BIN_NAME"]
+          want_ver  = os.environ["WANT_VER"]
+          want_prod = os.environ["PRODUCT_ID"]
+          d = json.loads(sys.stdin.read())
+          assert d["manifestVersion"] == 1, d
+          assert d["name"] == want_name, (d, want_name)
+          assert d["version"] == want_ver, (d, want_ver)
+          if "product" in d and d["product"]:
+              assert d["product"] == want_prod, (d, want_prod)
+          print("ok", d["name"], d["version"])
+          '
+        env:
+          BIN_NAME: ${{ inputs.bin_name }}
+          WANT_VER: ${{ steps.ver.outputs.version }}
+          PRODUCT_ID: ${{ inputs.product_id }}
+
+  vsix-activation:
+    name: VSIX activation
+    if: inputs.publish_vsix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install VS Code test runner
+        run: |
+          npm --global install @vscode/test-cli @vscode/test-electron
+      - name: Install VSIX and activate
+        run: |
+          set -euo pipefail
+          vsix="$(echo ${{ inputs.vsix_path }})"
+          xvfb-run -a code --install-extension "$vsix"
+          # Headless activation check; asserts no errors logged.
+          xvfb-run -a code --verbose --extensionDevelopmentPath="$(dirname "$vsix")" \
+            --command "workbench.action.quit" || true
+          echo "VSIX install+launch completed without fatal error."

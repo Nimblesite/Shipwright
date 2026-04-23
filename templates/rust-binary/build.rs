@@ -1,0 +1,72 @@
+// Emits compile-time env vars consumed by deploy_toolkit_cli::BuildInfo.
+// Copy verbatim into your repo as `build.rs`.
+
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-env-changed=DEPLOY_TOOLKIT_GIT_SHA");
+
+    let sha = read_env_or_cmd("DEPLOY_TOOLKIT_GIT_SHA", &["git", "rev-parse", "--short=10", "HEAD"])
+        .unwrap_or_else(|| "unknown".into());
+    println!("cargo:rustc-env=DEPLOY_TOOLKIT_GIT_SHA={sha}");
+
+    let dirty = Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false);
+    println!("cargo:rustc-env=DEPLOY_TOOLKIT_GIT_DIRTY={}", if dirty { "true" } else { "false" });
+
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    println!("cargo:rustc-env=DEPLOY_TOOLKIT_BUILD_TIME={}", rfc3339_from_secs(secs));
+
+    if let Ok(target) = std::env::var("TARGET") {
+        println!("cargo:rustc-env=DEPLOY_TOOLKIT_TARGET={target}");
+    }
+
+    let tc = Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    println!("cargo:rustc-env=DEPLOY_TOOLKIT_TOOLCHAIN={tc}");
+}
+
+fn read_env_or_cmd(env: &str, cmd: &[&str]) -> Option<String> {
+    if let Ok(v) = std::env::var(env) {
+        return Some(v);
+    }
+    let out = Command::new(cmd.first()?).args(&cmd[1..]).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8(out.stdout).ok()?.trim().to_string())
+}
+
+fn rfc3339_from_secs(secs: u64) -> String {
+    let days = secs / 86_400;
+    let secs_of_day = secs % 86_400;
+    let h = secs_of_day / 3600;
+    let m = (secs_of_day % 3600) / 60;
+    let s = secs_of_day % 60;
+    let (y, mo, d) = epoch_days_to_ymd(days as i64);
+    format!("{y:04}-{mo:02}-{d:02}T{h:02}:{m:02}:{s:02}Z")
+}
+
+fn epoch_days_to_ymd(mut days: i64) -> (i32, u32, u32) {
+    days += 719_468;
+    let era = if days >= 0 { days / 146_097 } else { (days - 146_096) / 146_097 };
+    let doe = (days - era * 146_097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = y + if m <= 2 { 1 } else { 0 };
+    (y as i32, m as u32, d as u32)
+}

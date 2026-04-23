@@ -1,0 +1,188 @@
+# Reusable release orchestrator.
+#
+# Products invoke this on tag push; it stitches stamping, multi-platform
+# binary build, brew tap + scoop bucket publish, and an optional VSIX smoke
+# test together. Each leg is itself a reusable workflow in this repo:
+#
+#   - templates/gh-actions/release-binary-multiplatform.yml
+#   - templates/gh-actions/publish-brew-tap.yml
+#   - templates/gh-actions/publish-scoop-bucket.yml
+#   - .github/workflows/smoke.reusable.yml
+#
+# Example caller (products/release.yml):
+#
+#   on:
+#     push:
+#       tags: ['v*.*.*']
+#   jobs:
+#     release:
+#       uses: nimblesite/deployment_toolkit/.github/workflows/release.reusable.yml@v1
+#       with:
+#         tag: ${{ github.ref_name }}
+#         bin_name: my-tool
+#         crate_name: my-tool
+#         product_id: my-tool
+#         tap_repo: my-org/homebrew-tap
+#         bucket_repo: my-org/scoop-bucket
+#         publish_vsix: false
+#       secrets:
+#         publish_token: ${{ secrets.PUBLISH_TOKEN }}
+
+name: deploy-toolkit release (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag (v1.2.3 or 1.2.3)."
+        type: string
+        required: true
+      bin_name:
+        description: "Binary name as produced by cargo (argv[0])."
+        type: string
+        required: true
+      crate_name:
+        description: "Cargo package name (defaults to bin_name)."
+        type: string
+        required: false
+        default: ""
+      product_id:
+        description: "Product id from deployment-toolkit.json (kebab-case)."
+        type: string
+        required: true
+      targets:
+        description: "JSON array of Rust target triples to build."
+        type: string
+        required: false
+        default: '["x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","x86_64-apple-darwin","aarch64-apple-darwin","x86_64-pc-windows-msvc"]'
+      tap_repo:
+        description: "owner/repo for the Homebrew tap (e.g. my-org/homebrew-tap)."
+        type: string
+        required: false
+        default: ""
+      formula_name:
+        description: "Formula filename without extension (defaults to bin_name)."
+        type: string
+        required: false
+        default: ""
+      bucket_repo:
+        description: "owner/repo for the Scoop bucket."
+        type: string
+        required: false
+        default: ""
+      manifest_name:
+        description: "Scoop manifest filename without extension (defaults to bin_name)."
+        type: string
+        required: false
+        default: ""
+      publish_vsix:
+        description: "When true, the smoke leg runs a VSIX activation check."
+        type: boolean
+        required: false
+        default: false
+      vsix_path:
+        description: "Glob or relative path for the built VSIX (required if publish_vsix)."
+        type: string
+        required: false
+        default: ""
+    secrets:
+      publish_token:
+        description: "Token authorized to commit to tap_repo / bucket_repo."
+        required: false
+
+concurrency:
+  group: deploy-toolkit-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 1) Stamp the tag into every language's version field and upload the
+  #    build-info.json artifact. Cheap; runs once.
+  stamp:
+    name: stamp versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.normalize.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build deploy-stamp
+        working-directory: tools/deploy-stamp
+        run: cargo build --release --locked || cargo build --release
+
+      - id: normalize
+        name: Normalize tag
+        shell: bash
+        run: |
+          tag="${{ inputs.tag }}"
+          ver="${tag#v}"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp
+        run: ./target/release/deploy-stamp --tag ${{ inputs.tag }} --root .
+
+      - name: Upload build-info
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: build-info.json
+
+  # 2) Multi-platform Rust binary build. Delegated to the reusable workflow
+  #    authored alongside this one; it produces archives + SHA256SUMS and
+  #    uploads them to the GitHub Release.
+  build:
+    name: build binaries
+    needs: stamp
+    uses: ./templates/gh-actions/release-binary-multiplatform.yml
+    with:
+      tag: ${{ inputs.tag }}
+      bin_name: ${{ inputs.bin_name }}
+      crate_name: ${{ inputs.crate_name }}
+      targets: ${{ inputs.targets }}
+
+  # 3) Smoke the built binaries (and, optionally, the VSIX). Runs in parallel
+  #    with the publishers so a failure can still block brew/scoop pushes if
+  #    you add `needs: smoke` below.
+  smoke:
+    name: smoke
+    needs: build
+    uses: ./.github/workflows/smoke.reusable.yml
+    with:
+      tag: ${{ inputs.tag }}
+      bin_name: ${{ inputs.bin_name }}
+      product_id: ${{ inputs.product_id }}
+      publish_vsix: ${{ inputs.publish_vsix }}
+      vsix_path: ${{ inputs.vsix_path }}
+
+  # 4a) Publish Homebrew tap (Linux + macOS). Optional.
+  publish-brew:
+    name: publish brew tap
+    if: inputs.tap_repo != ''
+    needs: smoke
+    uses: ./templates/gh-actions/publish-brew-tap.yml
+    with:
+      tap_repo: ${{ inputs.tap_repo }}
+      formula_name: ${{ inputs.formula_name != '' && inputs.formula_name || inputs.bin_name }}
+      release_tag: ${{ inputs.tag }}
+      bin_name: ${{ inputs.bin_name }}
+    secrets:
+      tap_push_token: ${{ secrets.publish_token }}
+
+  # 4b) Publish Scoop bucket (Windows). Optional.
+  publish-scoop:
+    name: publish scoop bucket
+    if: inputs.bucket_repo != ''
+    needs: smoke
+    uses: ./templates/gh-actions/publish-scoop-bucket.yml
+    with:
+      bucket_repo: ${{ inputs.bucket_repo }}
+      manifest_name: ${{ inputs.manifest_name != '' && inputs.manifest_name || inputs.bin_name }}
+      release_tag: ${{ inputs.tag }}
+      bin_name: ${{ inputs.bin_name }}
+    secrets:
+      bucket_push_token: ${{ secrets.publish_token }}

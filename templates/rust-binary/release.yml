@@ -1,0 +1,21 @@
+# Place at `.github/workflows/release.yml` in the consuming repo.
+# Triggers on semver tag push; delegates the whole pipeline to the
+# deployment_toolkit reusable orchestrator.
+
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  release:
+    uses: nimblesite/deployment_toolkit/.github/workflows/release.reusable.yml@v1
+    with:
+      tag: ${{ github.ref_name }}
+      bin_name: "{{BINARY_NAME}}"
+      product_id: "{{PRODUCT_ID}}"
+      tap_repo: "{{ORG}}/homebrew-tap"
+      bucket_repo: "{{ORG}}/scoop-bucket"
+    secrets:
+      publish_token: ${{ secrets.PUBLISH_TOKEN }}
