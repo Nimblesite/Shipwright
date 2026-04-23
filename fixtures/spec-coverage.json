@@ -1,0 +1,63 @@
+{
+  "manifestVersion": 1,
+  "docs/specs/binary-version-contract.md": {
+    "defaultTicket": "DTK-SPEC-001",
+    "fixtures": [
+      "fixtures/version-outputs/rust/deslop.txt",
+      "fixtures/version-outputs/rust/deslop.json",
+      "fixtures/version-outputs/rust/deslop-lsp.txt",
+      "fixtures/version-outputs/rust/deslop-lsp.json",
+      "fixtures/version-outputs/rust/deslop-mcp.txt",
+      "fixtures/version-outputs/rust/deslop-mcp.json",
+      "fixtures/version-outputs/dotnet/forge-sidecar-csharp.txt",
+      "fixtures/version-outputs/dotnet/forge-sidecar-csharp.json",
+      "fixtures/version-outputs/node/tmc-server.txt",
+      "fixtures/version-outputs/node/tmc-server.json",
+      "fixtures/version-outputs/dart/dart-mutant.txt",
+      "fixtures/version-outputs/dart/dart-mutant.json"
+    ]
+  },
+  "docs/specs/ide-extension-deployment.md": {
+    "defaultTicket": "DTK-SPEC-002",
+    "fixtures": [
+      "fixtures/manifests/deslop.json",
+      "fixtures/manifests/basilisk.json",
+      "fixtures/manifests/forge.json",
+      "fixtures/manifests/too-many-cooks.json"
+    ]
+  },
+  "docs/specs/library-architecture.md": {
+    "defaultTicket": "DTK-SPEC-003",
+    "fixtures": [
+      "tools/validate-manifest/package.json",
+      "tools/validate-manifest/index.mjs",
+      "pnpm-workspace.yaml"
+    ]
+  },
+  "docs/specs/repo-survey.md": {
+    "defaultTicket": "DTK-SPEC-004",
+    "fixtures": [
+      "fixtures/manifests/deslop.json",
+      "fixtures/manifests/basilisk.json",
+      "fixtures/manifests/forge.json",
+      "fixtures/manifests/too-many-cooks.json",
+      "fixtures/manifests/dart-mutant.json"
+    ]
+  },
+  "docs/specs/compatibility-matrix.md": {
+    "defaultTicket": "DTK-SPEC-005",
+    "fixtures": [
+      "schemas/compatibility-matrix.json",
+      "fixtures/platforms/platform-ids.json"
+    ]
+  },
+  "docs/specs/acceptance-gates.md": {
+    "defaultTicket": "DTK-SPEC-006",
+    "fixtures": [
+      "examples/ci/github-actions.yml",
+      "templates/gh-actions/release-binary-multiplatform.yml",
+      "templates/gh-actions/publish-brew-tap.yml",
+      "templates/gh-actions/publish-scoop-bucket.yml"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "dart-mutant",
+    "displayName": "dart_mutant",
+    "version": "0.1.0",
+    "repository": "https://github.com/Nimblesite/dart_mutant"
+  },
+  "components": [
+    {
+      "id": "dart-mutant-cli",
+      "kind": "cli",
+      "language": "dart",
+      "binaryName": "dart-mutant",
+      "expectedVersion": "0.1.0",
+      "platforms": ["all"],
+      "sources": ["path", "github-release"],
+      "githubRelease": {
+        "repo": "Nimblesite/dart_mutant",
+        "assetPattern": "dart-mutant-${version}.tar.gz"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag-json",
+      "required": true
+    }
+  ],
+  "hosts": {
+    "cli": {
+      "artifact": "archive",
+      "activationVerifies": ["dart-mutant-cli"],
+      "onMismatch": "error"
+    }
+  }
+}

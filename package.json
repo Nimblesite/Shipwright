@@ -1,0 +1,12 @@
+{
+  "name": "deployment-toolkit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.10.0",
+  "scripts": {
+    "test": "node --test tests/fixtures.test.mjs",
+    "validate:fixtures": "node --test tests/fixtures.test.mjs",
+    "validate:manifest": "node tools/validate-manifest/index.mjs"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "invalid-fixture",
+    "version": "0.1.0"
+  },
+  "components": [
+    {
+      "id": "invalid-fixture",
+      "kind": "cli",
+      "binaryName": "invalid-fixture",
+      "expectedVersion": "0.1.0",
+      "platforms": ["freebsd-x64"],
+      "sources": ["path"]
+    }
+  ]
+}

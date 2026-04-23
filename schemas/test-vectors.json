@@ -1,0 +1,298 @@
+{
+  "$comment": "Authoritative resolver test vectors. Every host-library port (Rust, TS, Kotlin, C#, Dart) MUST run these through its resolver and produce the expected outcome. Names mirror the 10 sources declared in deployment-toolkit.schema.json. Probe results are virtual (the harness feeds them in) — no real file system access is performed.",
+  "manifestVersion": 1,
+  "vectors": [
+    {
+      "id": "user-setting-match",
+      "description": "Explicit user setting with matching version is accepted.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["user-setting", "env", "path", "bundled"],
+        "userSettingPath": "/opt/custom/deslop-lsp",
+        "env": {},
+        "path": [],
+        "bundledDir": "/ext/bin/darwin-arm64",
+        "probe": {
+          "/opt/custom/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": "user-setting",
+        "path": "/opt/custom/deslop-lsp",
+        "version": "0.4.2",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "user-setting-mismatch-is-hard-error",
+      "description": "User setting with wrong version must NOT silently fall through. Error surfaces expected vs found.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["user-setting", "env", "path", "bundled"],
+        "userSettingPath": "/opt/custom/deslop-lsp",
+        "env": {},
+        "path": ["/opt/correct/deslop-lsp"],
+        "bundledDir": "/ext/bin/darwin-arm64",
+        "probe": {
+          "/opt/custom/deslop-lsp": { "name": "deslop-lsp", "version": "0.3.0" },
+          "/opt/correct/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" },
+          "/ext/bin/darwin-arm64/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": null,
+        "path": null,
+        "version": null,
+        "status": "error",
+        "errorCode": "user-setting-version-mismatch",
+        "errorDetails": { "expected": "0.4.2", "found": "0.3.0", "at": "/opt/custom/deslop-lsp" }
+      }
+    },
+    {
+      "id": "env-path-wins-over-env-dir",
+      "description": "<TOOL>_BINARY_PATH file wins over <TOOL>_BINARY_DIR when both are set.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["env", "path", "bundled"],
+        "env": {
+          "DESLOP_BINARY_PATH": "/dev/build/deslop-lsp",
+          "DESLOP_BINARY_DIR": "/other/dir"
+        },
+        "probe": {
+          "/dev/build/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" },
+          "/other/dir/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" }
+        },
+        "envConfig": { "pathVar": "DESLOP_BINARY_PATH", "dirVar": "DESLOP_BINARY_DIR" }
+      },
+      "expect": {
+        "source": "env",
+        "path": "/dev/build/deslop-lsp",
+        "version": "0.4.2",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "env-accepts-unconditional-warns-on-mismatch",
+      "description": "Env var overrides accept mismatched versions but emit a warning (developer override).",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["env", "path", "bundled"],
+        "env": { "DESLOP_BINARY_PATH": "/dev/build/deslop-lsp" },
+        "probe": {
+          "/dev/build/deslop-lsp": { "name": "deslop-lsp", "version": "0.5.0-dev" }
+        },
+        "envConfig": { "pathVar": "DESLOP_BINARY_PATH" }
+      },
+      "expect": {
+        "source": "env",
+        "path": "/dev/build/deslop-lsp",
+        "version": "0.5.0-dev",
+        "status": "ok-with-warning",
+        "warningCode": "env-version-mismatch"
+      }
+    },
+    {
+      "id": "path-accepted-only-on-exact-match",
+      "description": "A PATH hit is accepted only if --version equals expected.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["path", "bundled"],
+        "env": {},
+        "path": ["/usr/local/bin/deslop-lsp"],
+        "bundledDir": "/ext/bin/darwin-arm64",
+        "probe": {
+          "/usr/local/bin/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" },
+          "/ext/bin/darwin-arm64/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": "path",
+        "path": "/usr/local/bin/deslop-lsp",
+        "version": "0.4.2",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "path-rejected-on-mismatch-falls-to-bundled",
+      "description": "PATH binary with wrong version is skipped; bundled wins.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["path", "bundled"],
+        "env": {},
+        "path": ["/usr/local/bin/deslop-lsp"],
+        "bundledDir": "/ext/bin/darwin-arm64",
+        "probe": {
+          "/usr/local/bin/deslop-lsp": { "name": "deslop-lsp", "version": "0.3.9" },
+          "/ext/bin/darwin-arm64/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": "bundled",
+        "path": "/ext/bin/darwin-arm64/deslop-lsp",
+        "version": "0.4.2",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "bundled-accepted-unconditionally",
+      "description": "Bundled binary is accepted even if its version diverges from expected (the host logs but does not fail).",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["bundled"],
+        "env": {},
+        "path": [],
+        "bundledDir": "/ext/bin/darwin-arm64",
+        "probe": {
+          "/ext/bin/darwin-arm64/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.1" }
+        }
+      },
+      "expect": {
+        "source": "bundled",
+        "path": "/ext/bin/darwin-arm64/deslop-lsp",
+        "version": "0.4.1",
+        "status": "ok-with-warning",
+        "warningCode": "bundled-version-drift"
+      }
+    },
+    {
+      "id": "no-source-available-is-error",
+      "description": "No source resolves. Host returns an actionable error.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["user-setting", "env", "path", "bundled"],
+        "env": {},
+        "path": [],
+        "bundledDir": null,
+        "probe": {}
+      },
+      "expect": {
+        "source": null,
+        "status": "error",
+        "errorCode": "no-source-resolved"
+      }
+    },
+    {
+      "id": "pkgmgr-prompts-on-missing",
+      "description": "Product declares pkgmgr source; binary missing → host returns a prompt action, never auto-installs.",
+      "input": {
+        "expectedVersion": "1.0.3",
+        "sources": ["path", "pkgmgr"],
+        "env": {},
+        "path": [],
+        "pkgmgr": { "brew": "example/tap/forge-lsp", "scoop": "example/forge-lsp" },
+        "probe": {}
+      },
+      "expect": {
+        "source": null,
+        "status": "prompt",
+        "action": {
+          "kind": "pkgmgr-install",
+          "commands": {
+            "darwin-arm64": "brew install example/tap/forge-lsp",
+            "darwin-x64": "brew install example/tap/forge-lsp",
+            "linux-x64": "brew install example/tap/forge-lsp",
+            "win32-x64": "scoop install example/forge-lsp"
+          }
+        }
+      }
+    },
+    {
+      "id": "dotnet-tool-version-mismatch-prompts-update",
+      "description": "dotnet tool installed at wrong version → prompt with explicit update command.",
+      "input": {
+        "expectedVersion": "1.0.3",
+        "sources": ["dotnet-tool"],
+        "env": {},
+        "dotnetTool": { "package": "Forge.Sidecar.CSharp", "command": "forge-sidecar-csharp" },
+        "probe": {
+          "forge-sidecar-csharp": { "name": "forge-sidecar-csharp", "version": "1.0.2" }
+        }
+      },
+      "expect": {
+        "source": null,
+        "status": "prompt",
+        "action": {
+          "kind": "dotnet-tool-update",
+          "command": "dotnet tool update -g Forge.Sidecar.CSharp --version 1.0.3"
+        }
+      }
+    },
+    {
+      "id": "lsp-initialize-fallback-for-zed",
+      "description": "Zed cannot spawn --version; host defers version check to LSP initialize. Resolver returns the best-effort path and marks status 'deferred'.",
+      "input": {
+        "expectedVersion": "0.2.0",
+        "sources": ["user-setting", "env", "cargo-bin", "github-release", "lsp-initialize"],
+        "userSettingPath": null,
+        "env": {},
+        "cargoBin": "/home/u/.cargo/bin/basilisk-lsp",
+        "probe": {},
+        "$comment": "probe is empty because Zed host cannot execute subprocess"
+      },
+      "expect": {
+        "source": "cargo-bin",
+        "path": "/home/u/.cargo/bin/basilisk-lsp",
+        "version": null,
+        "status": "deferred",
+        "deferredCheck": "lsp-initialize"
+      }
+    },
+    {
+      "id": "sources-filter-skips-disabled",
+      "description": "If `bundled` is not in `sources`, resolver does NOT try the bundled dir even if it exists.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "sources": ["user-setting", "env", "path"],
+        "env": {},
+        "path": [],
+        "bundledDir": "/ext/bin/darwin-arm64",
+        "probe": {
+          "/ext/bin/darwin-arm64/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": null,
+        "status": "error",
+        "errorCode": "no-source-resolved"
+      }
+    },
+    {
+      "id": "name-mismatch-is-rejection",
+      "description": "A binary that returns the wrong name in --version is rejected.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "expectedName": "deslop-lsp",
+        "sources": ["path"],
+        "env": {},
+        "path": ["/usr/local/bin/deslop-lsp"],
+        "probe": {
+          "/usr/local/bin/deslop-lsp": { "name": "imposter-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": null,
+        "status": "error",
+        "errorCode": "binary-name-mismatch"
+      }
+    },
+    {
+      "id": "windows-exe-suffix-applied",
+      "description": "On win32-x64 the resolver appends .exe to the binary name in bundled and PATH probes.",
+      "input": {
+        "expectedVersion": "0.4.2",
+        "platform": "win32-x64",
+        "sources": ["bundled"],
+        "bundledDir": "C:/ext/bin/win32-x64",
+        "probe": {
+          "C:/ext/bin/win32-x64/deslop-lsp.exe": { "name": "deslop-lsp", "version": "0.4.2" }
+        }
+      },
+      "expect": {
+        "source": "bundled",
+        "path": "C:/ext/bin/win32-x64/deslop-lsp.exe",
+        "version": "0.4.2",
+        "status": "ok"
+      }
+    }
+  ]
+}

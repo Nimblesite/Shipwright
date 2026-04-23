@@ -1,0 +1,16 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "invalid-fixture",
+    "version": "latest"
+  },
+  "components": [
+    {
+      "id": "invalid-fixture",
+      "kind": "cli",
+      "binaryName": "invalid-fixture",
+      "expectedVersion": "0.1.0",
+      "sources": ["path"]
+    }
+  ]
+}

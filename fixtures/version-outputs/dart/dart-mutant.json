@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 1,
+  "name": "dart-mutant",
+  "version": "0.1.0",
+  "kind": "cli",
+  "language": "dart",
+  "buildTime": "2026-01-01T00:00:00Z",
+  "gitSha": "abc1234",
+  "gitDirty": false,
+  "target": "all",
+  "toolchain": "dart 3.8",
+  "capabilities": ["version-flag", "version-flag-json"],
+  "product": "dart-mutant"
+}

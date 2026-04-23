@@ -1,0 +1,84 @@
+name: publish-scoop-bucket
+
+on:
+  workflow_call:
+    inputs:
+      bucket_repo:
+        required: true
+        type: string
+      manifest_name:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      url:
+        required: true
+        type: string
+      sha256:
+        required: true
+        type: string
+      bin:
+        required: true
+        type: string
+      homepage:
+        required: true
+        type: string
+      description:
+        required: true
+        type: string
+    secrets:
+      bucket_token:
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.bucket_repo }}
+          token: ${{ secrets.bucket_token }}
+          path: bucket
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Write Scoop manifest
+        working-directory: bucket
+        run: |
+          node - <<'NODE'
+          const { mkdirSync, writeFileSync } = require("node:fs");
+          const manifest = {
+            version: process.env.VERSION,
+            description: process.env.DESCRIPTION,
+            homepage: process.env.HOMEPAGE,
+            license: "MIT",
+            architecture: {
+              "64bit": {
+                url: process.env.URL,
+                hash: process.env.SHA256
+              }
+            },
+            bin: process.env.BIN
+          };
+          mkdirSync("bucket", { recursive: true });
+          writeFileSync(`bucket/${process.env.MANIFEST_NAME}.json`, `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+        env:
+          MANIFEST_NAME: ${{ inputs.manifest_name }}
+          VERSION: ${{ inputs.version }}
+          URL: ${{ inputs.url }}
+          SHA256: ${{ inputs.sha256 }}
+          BIN: ${{ inputs.bin }}
+          HOMEPAGE: ${{ inputs.homepage }}
+          DESCRIPTION: ${{ inputs.description }}
+      - name: Commit manifest
+        shell: bash
+        working-directory: bucket
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "bucket/${{ inputs.manifest_name }}.json"
+          git commit -m "Update ${{ inputs.manifest_name }} to ${{ inputs.version }}" || exit 0
+          git push

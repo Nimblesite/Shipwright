@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 1,
+  "name": "tmc-server",
+  "version": "0.5.0",
+  "kind": "mcp",
+  "language": "typescript",
+  "buildTime": "2026-01-01T00:00:00Z",
+  "gitSha": "abc1234",
+  "gitDirty": false,
+  "target": "all",
+  "toolchain": "node 24",
+  "capabilities": ["version-flag", "version-flag-json", "mcp-server-info-version"],
+  "product": "too-many-cooks"
+}

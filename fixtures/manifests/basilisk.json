@@ -1,0 +1,89 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "basilisk",
+    "displayName": "Basilisk",
+    "version": "0.1.0",
+    "repository": "https://github.com/Nimblesite/Basilisk"
+  },
+  "components": [
+    {
+      "id": "basilisk-cli",
+      "kind": "cli",
+      "language": "rust",
+      "binaryName": "basilisk",
+      "expectedVersion": "0.1.0",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64"],
+      "sources": ["path", "pkgmgr", "cargo-bin", "github-release"],
+      "githubRelease": {
+        "repo": "Nimblesite/Basilisk",
+        "assetPattern": "basilisk-${version}-${platform}.tar.gz"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    },
+    {
+      "id": "basilisk-lsp",
+      "kind": "lsp",
+      "language": "rust",
+      "binaryName": "basilisk-lsp",
+      "expectedVersion": "0.1.0",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64"],
+      "bundled": {
+        "bundlePath": "bin/${platform}/${binaryName}${exe}",
+        "perPlatformArtifact": true
+      },
+      "sources": ["user-setting", "env", "bundled", "path", "cargo-bin", "github-release", "lsp-initialize"],
+      "userSetting": "basilisk.lspPath",
+      "env": {
+        "pathVar": "BASILISK_LSP_PATH",
+        "dirVar": "BASILISK_BINARY_DIR"
+      },
+      "githubRelease": {
+        "repo": "Nimblesite/Basilisk",
+        "assetPattern": "basilisk-lsp-${version}-${platform}.tar.gz"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    },
+    {
+      "id": "basilisk-profiler-helper",
+      "kind": "sidecar",
+      "language": "dotnet",
+      "binaryName": "basilisk-profiler-helper",
+      "expectedVersion": "0.1.0",
+      "platforms": ["all"],
+      "sources": ["user-setting", "env", "dotnet-tool", "path"],
+      "userSetting": "basilisk.profilerHelperPath",
+      "env": {
+        "pathVar": "BASILISK_PROFILER_HELPER_PATH"
+      },
+      "dotnetTool": {
+        "package": "Nimblesite.Basilisk.ProfilerHelper",
+        "command": "basilisk-profiler-helper"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag-json",
+      "required": false
+    }
+  ],
+  "hosts": {
+    "vscode": {
+      "artifact": "vsix-per-platform",
+      "activationVerifies": ["basilisk-lsp", "basilisk-profiler-helper"],
+      "onMismatch": "error"
+    },
+    "zed": {
+      "artifact": "zed-wasm",
+      "activationVerifies": ["basilisk-lsp"],
+      "onMismatch": "prompt-reinstall"
+    },
+    "cli": {
+      "artifact": "archive",
+      "activationVerifies": ["basilisk-cli"],
+      "onMismatch": "error"
+    }
+  }
+}

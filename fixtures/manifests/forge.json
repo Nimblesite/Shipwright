@@ -1,0 +1,97 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "forge",
+    "displayName": "Forge",
+    "version": "0.1.0",
+    "repository": "https://github.com/Nimblesite/forge"
+  },
+  "components": [
+    {
+      "id": "forge-lsp",
+      "kind": "lsp",
+      "language": "rust",
+      "binaryName": "forge-lsp",
+      "expectedVersion": "0.1.0",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64"],
+      "bundled": {
+        "bundlePath": "bin/${platform}/${binaryName}${exe}",
+        "perPlatformArtifact": true
+      },
+      "sources": ["user-setting", "env", "bundled", "path", "pkgmgr", "github-release", "lsp-initialize"],
+      "userSetting": "forge.lspPath",
+      "env": {
+        "pathVar": "FORGE_LSP_PATH",
+        "dirVar": "FORGE_BINARY_DIR"
+      },
+      "pkgmgr": {
+        "brew": "Nimblesite/tap/forge-lsp",
+        "scoop": "Nimblesite/forge-lsp"
+      },
+      "githubRelease": {
+        "repo": "Nimblesite/forge",
+        "assetPattern": "forge-lsp-${version}-${platform}.tar.gz"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    },
+    {
+      "id": "forge-sidecar-csharp",
+      "kind": "sidecar",
+      "language": "dotnet",
+      "binaryName": "forge-sidecar-csharp",
+      "expectedVersion": "0.1.0",
+      "platforms": ["all"],
+      "sources": ["user-setting", "env", "dotnet-tool", "path"],
+      "userSetting": "forge.csharpSidecarPath",
+      "env": {
+        "pathVar": "FORGE_CSHARP_SIDECAR_PATH"
+      },
+      "dotnetTool": {
+        "package": "Nimblesite.Forge.Sidecar.CSharp",
+        "command": "forge-sidecar-csharp"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag-json",
+      "required": true
+    },
+    {
+      "id": "forge-sidecar-fsharp",
+      "kind": "sidecar",
+      "language": "dotnet",
+      "binaryName": "forge-sidecar-fsharp",
+      "expectedVersion": "0.1.0",
+      "platforms": ["all"],
+      "sources": ["user-setting", "env", "dotnet-tool", "path"],
+      "userSetting": "forge.fsharpSidecarPath",
+      "env": {
+        "pathVar": "FORGE_FSHARP_SIDECAR_PATH"
+      },
+      "dotnetTool": {
+        "package": "Nimblesite.Forge.Sidecar.FSharp",
+        "command": "forge-sidecar-fsharp"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag-json",
+      "required": true
+    }
+  ],
+  "hosts": {
+    "vscode": {
+      "artifact": "vsix-per-platform",
+      "activationVerifies": ["forge-lsp", "forge-sidecar-csharp", "forge-sidecar-fsharp"],
+      "onMismatch": "error"
+    },
+    "jetbrains": {
+      "artifact": "intellij-jar",
+      "activationVerifies": ["forge-lsp", "forge-sidecar-csharp", "forge-sidecar-fsharp"],
+      "onMismatch": "error"
+    },
+    "zed": {
+      "artifact": "zed-wasm",
+      "activationVerifies": ["forge-lsp"],
+      "onMismatch": "prompt-reinstall"
+    }
+  }
+}
