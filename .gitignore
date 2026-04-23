@@ -79,3 +79,7 @@ build/
 bin/
 obj/
 *.nupkg
+
+
+
+.dart_tool/

@@ -76,6 +76,20 @@
       "verifyStartup": true,
       "versionCheckStrategy": "version-flag",
       "required": true
+    },
+    {
+      "id": "deslop-vscode",
+      "kind": "extension-vscode",
+      "language": "typescript",
+      "expectedVersion": "0.1.0",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64"]
+    },
+    {
+      "id": "deslop-jetbrains",
+      "kind": "extension-jetbrains",
+      "language": "kotlin",
+      "expectedVersion": "0.1.0",
+      "platforms": ["all"]
     }
   ],
   "hosts": {

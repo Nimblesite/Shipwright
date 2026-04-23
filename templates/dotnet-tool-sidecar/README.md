@@ -31,6 +31,11 @@ sed -e "s/{{PRODUCT_ID}}/$PRODUCT_ID/g" \
     -e "s/{{COMMAND_NAME}}/$COMMAND_NAME/g" \
     -e "s/{{PACKAGE_ID}}/$PACKAGE_ID/g" \
     Sidecar.csproj.tpl > "$PACKAGE_ID.csproj"
+sed -e "s/{{PRODUCT_ID}}/$PRODUCT_ID/g" \
+    -e "s/{{VERSION}}/$VERSION/g" \
+    -e "s/{{COMPONENT_ID}}/$COMPONENT_ID/g" \
+    Program.cs > Program.cs.tmp
+mv Program.cs.tmp Program.cs
 rm Sidecar.csproj.tpl
 ```
 

@@ -1,12 +1,20 @@
+using System.Reflection;
 using DeployToolkit;
 
-var spec = VersionSpec.FromAssembly(
-    componentId: "{{COMPONENT_ID}}",
-    productId: "{{PRODUCT_ID}}",
-    kind: "sidecar",
-    language: "dotnet");
+var version = typeof(Program)
+    .Assembly
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+    ?.InformationalVersion
+    .Split('+', 2)[0] ?? "{{VERSION}}";
 
-if (VersionCommand.TryHandle(args, spec, Console.Out))
+var spec = new VersionSpec(
+    Name: "{{COMPONENT_ID}}",
+    Version: version,
+    Kind: "sidecar",
+    Language: "dotnet",
+    Product: "{{PRODUCT_ID}}");
+
+if (VersionManifest.WriteTo(Console.Out, args, spec))
 {
     return 0;
 }

@@ -1,32 +1,9 @@
-# Reusable release orchestrator.
+# Reusable Rust release orchestrator.
 #
-# Products invoke this on tag push; it stitches stamping, multi-platform
-# binary build, brew tap + scoop bucket publish, and an optional VSIX smoke
-# test together. Each leg is itself a reusable workflow in this repo:
-#
-#   - templates/gh-actions/release-binary-multiplatform.yml
-#   - templates/gh-actions/publish-brew-tap.yml
-#   - templates/gh-actions/publish-scoop-bucket.yml
-#   - .github/workflows/smoke.reusable.yml
-#
-# Example caller (products/release.yml):
-#
-#   on:
-#     push:
-#       tags: ['v*.*.*']
-#   jobs:
-#     release:
-#       uses: nimblesite/deployment_toolkit/.github/workflows/release.reusable.yml@v1
-#       with:
-#         tag: ${{ github.ref_name }}
-#         bin_name: my-tool
-#         crate_name: my-tool
-#         product_id: my-tool
-#         tap_repo: my-org/homebrew-tap
-#         bucket_repo: my-org/scoop-bucket
-#         publish_vsix: false
-#       secrets:
-#         publish_token: ${{ secrets.PUBLISH_TOKEN }}
+# Product repos invoke this on tag push. The workflow stamps the release
+# version when the product repo carries tools/deploy-stamp, builds platform
+# archives, publishes them to the GitHub Release, runs the deploy-toolkit
+# smoke workflow, and optionally updates Homebrew/Scoop metadata.
 
 name: deploy-toolkit release (reusable)
 
@@ -50,13 +27,23 @@ on:
         description: "Product id from deployment-toolkit.json (kebab-case)."
         type: string
         required: true
+      manifest_path:
+        description: "Path to deployment-toolkit.json in the product repo."
+        type: string
+        required: false
+        default: "deployment-toolkit.json"
       targets:
         description: "JSON array of Rust target triples to build."
         type: string
         required: false
         default: '["x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","x86_64-apple-darwin","aarch64-apple-darwin","x86_64-pc-windows-msvc"]'
+      artifact_prefix:
+        description: "Release asset prefix (defaults to bin_name)."
+        type: string
+        required: false
+        default: ""
       tap_repo:
-        description: "owner/repo for the Homebrew tap (e.g. my-org/homebrew-tap)."
+        description: "owner/repo for the Homebrew tap."
         type: string
         required: false
         default: ""
@@ -75,6 +62,16 @@ on:
         type: string
         required: false
         default: ""
+      homepage:
+        description: "Homepage written to package-manager metadata."
+        type: string
+        required: false
+        default: ""
+      description:
+        description: "Description written to package-manager metadata."
+        type: string
+        required: false
+        default: ""
       publish_vsix:
         description: "When true, the smoke leg runs a VSIX activation check."
         type: boolean
@@ -87,16 +84,17 @@ on:
         default: ""
     secrets:
       publish_token:
-        description: "Token authorized to commit to tap_repo / bucket_repo."
+        description: "Token authorized to publish releases and package-manager repos."
         required: false
 
 concurrency:
   group: deploy-toolkit-release-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
-  # 1) Stamp the tag into every language's version field and upload the
-  #    build-info.json artifact. Cheap; runs once.
   stamp:
     name: stamp versions
     runs-on: ubuntu-latest
@@ -108,49 +106,202 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build deploy-stamp
-        working-directory: tools/deploy-stamp
-        run: cargo build --release --locked || cargo build --release
-
       - id: normalize
         name: Normalize tag
         shell: bash
         run: |
+          set -euo pipefail
           tag="${{ inputs.tag }}"
-          ver="${tag#v}"
-          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Stamp
-        run: ./target/release/deploy-stamp --tag ${{ inputs.tag }} --root .
+      - name: Install stable toolchain
+        if: hashFiles('tools/deploy-stamp/Cargo.toml') != ''
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Stamp product versions
+        if: hashFiles('tools/deploy-stamp/Cargo.toml') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --manifest-path tools/deploy-stamp/Cargo.toml -- --tag "${{ inputs.tag }}" --root .
 
       - name: Upload build-info
+        if: hashFiles('build-info.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: build-info
           path: build-info.json
 
-  # 2) Multi-platform Rust binary build. Delegated to the reusable workflow
-  #    authored alongside this one; it produces archives + SHA256SUMS and
-  #    uploads them to the GitHub Release.
-  build:
-    name: build binaries
-    needs: stamp
-    uses: ./templates/gh-actions/release-binary-multiplatform.yml
-    with:
-      tag: ${{ inputs.tag }}
-      bin_name: ${{ inputs.bin_name }}
-      crate_name: ${{ inputs.crate_name }}
-      targets: ${{ inputs.targets }}
+  target-matrix:
+    name: plan release targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        shell: bash
+        env:
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
 
-  # 3) Smoke the built binaries (and, optionally, the VSIX). Runs in parallel
-  #    with the publishers so a failure can still block brew/scoop pushes if
-  #    you add `needs: smoke` below.
+          definitions = {
+              "aarch64-apple-darwin": {
+                  "platform": "darwin-arm64",
+                  "rust_target": "aarch64-apple-darwin",
+                  "os": "macos-15",
+                  "cross": False,
+              },
+              "x86_64-apple-darwin": {
+                  "platform": "darwin-x64",
+                  "rust_target": "x86_64-apple-darwin",
+                  "os": "macos-13",
+                  "cross": False,
+              },
+              "x86_64-unknown-linux-gnu": {
+                  "platform": "linux-x64",
+                  "rust_target": "x86_64-unknown-linux-gnu",
+                  "os": "ubuntu-latest",
+                  "cross": False,
+              },
+              "aarch64-unknown-linux-gnu": {
+                  "platform": "linux-arm64",
+                  "rust_target": "aarch64-unknown-linux-gnu",
+                  "os": "ubuntu-latest",
+                  "cross": True,
+              },
+              "x86_64-pc-windows-msvc": {
+                  "platform": "win32-x64",
+                  "rust_target": "x86_64-pc-windows-msvc",
+                  "os": "windows-latest",
+                  "cross": False,
+              },
+          }
+          requested = json.loads(os.environ["TARGETS"])
+          missing = [target for target in requested if target not in definitions]
+          if missing:
+              raise SystemExit(f"unsupported release targets: {', '.join(missing)}")
+          include = [definitions[target] for target in requested]
+          if not include:
+              raise SystemExit("at least one release target is required")
+          matrix = json.dumps({"include": include}, separators=(",", ":"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"matrix={matrix}", file=output)
+          PY
+
+  build:
+    name: build ${{ matrix.platform }}
+    needs: [stamp, target-matrix]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.target-matrix.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --locked --version 0.2.5
+
+      - uses: actions/setup-node@v4
+        if: hashFiles('tools/validate-manifest/package.json') != ''
+        with:
+          node-version: 24
+          cache-dependency-path: tools/validate-manifest/package-lock.json
+
+      - name: Install manifest validator deps
+        if: hashFiles('tools/validate-manifest/package.json') != ''
+        working-directory: tools/validate-manifest
+        run: npm install --no-audit --no-fund
+
+      - name: Validate deployment manifest
+        if: hashFiles('tools/validate-manifest/index.mjs') != ''
+        shell: bash
+        run: node tools/validate-manifest/index.mjs "${{ inputs.manifest_path }}"
+
+      - name: Build binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="${{ inputs.crate_name }}"
+          if [ -z "$package" ]; then package="${{ inputs.bin_name }}"; fi
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --locked --target "${{ matrix.rust_target }}" -p "$package" --bin "${{ inputs.bin_name }}"
+          else
+            cargo build --release --locked --target "${{ matrix.rust_target }}" -p "$package" --bin "${{ inputs.bin_name }}"
+          fi
+
+      - name: Verify binary version
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=""
+          if [ "${{ runner.os }}" = "Windows" ]; then exe=".exe"; fi
+          bin="target/${{ matrix.rust_target }}/release/${{ inputs.bin_name }}${exe}"
+          "$bin" --version | grep -Fx "${{ inputs.bin_name }} ${{ needs.stamp.outputs.version }}"
+
+      - name: Package archive (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="${{ inputs.artifact_prefix }}"
+          if [ -z "$prefix" ]; then prefix="${{ inputs.bin_name }}"; fi
+          stage="${prefix}-${{ needs.stamp.outputs.version }}-${{ matrix.platform }}"
+          mkdir -p dist
+          tar -czf "dist/$stage.tar.gz" -C "target/${{ matrix.rust_target }}/release" "${{ inputs.bin_name }}"
+          shasum -a 256 "dist/$stage.tar.gz" | awk '{print $1"  "$2}' | sed "s|dist/||" > "dist/$stage.tar.gz.sha256"
+
+      - name: Package archive (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $prefix = '${{ inputs.artifact_prefix }}'
+          if ($prefix -eq '') { $prefix = '${{ inputs.bin_name }}' }
+          $stage = "$prefix-${{ needs.stamp.outputs.version }}-${{ matrix.platform }}"
+          New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+          Compress-Archive -Path "target/${{ matrix.rust_target }}/release/${{ inputs.bin_name }}.exe" -DestinationPath "dist/$stage.zip"
+          $hash = (Get-FileHash -Algorithm SHA256 "dist/$stage.zip").Hash.ToLower()
+          "$hash  $stage.zip" | Out-File -FilePath "dist/$stage.zip.sha256" -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.bin_name }}-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  release-assets:
+    name: publish release assets
+    needs: [stamp, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: ${{ inputs.bin_name }}-*
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: dist/*
+
   smoke:
     name: smoke
-    needs: build
+    needs: [stamp, release-assets]
     uses: ./.github/workflows/smoke.reusable.yml
     with:
       tag: ${{ inputs.tag }}
@@ -159,30 +310,162 @@ jobs:
       publish_vsix: ${{ inputs.publish_vsix }}
       vsix_path: ${{ inputs.vsix_path }}
 
-  # 4a) Publish Homebrew tap (Linux + macOS). Optional.
   publish-brew:
     name: publish brew tap
     if: inputs.tap_repo != ''
-    needs: smoke
-    uses: ./templates/gh-actions/publish-brew-tap.yml
-    with:
-      tap_repo: ${{ inputs.tap_repo }}
-      formula_name: ${{ inputs.formula_name != '' && inputs.formula_name || inputs.bin_name }}
-      release_tag: ${{ inputs.tag }}
-      bin_name: ${{ inputs.bin_name }}
-    secrets:
-      tap_push_token: ${{ secrets.publish_token }}
+    needs: [stamp, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Compute formula inputs
+        id: meta
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          prefix="${{ inputs.artifact_prefix }}"
+          if [ -z "$prefix" ]; then prefix="${{ inputs.bin_name }}"; fi
+          version="${{ needs.stamp.outputs.version }}"
+          asset="$prefix-$version-darwin-arm64.tar.gz"
+          mkdir -p meta
+          gh release download "${{ inputs.tag }}" -R "${{ github.repository }}" -p "$asset.sha256" -D meta
+          sha="$(awk '{print $1}' "meta/$asset.sha256")"
+          homepage="${{ inputs.homepage }}"
+          if [ -z "$homepage" ]; then homepage="https://github.com/${{ github.repository }}"; fi
+          description="${{ inputs.description }}"
+          if [ -z "$description" ]; then description="${{ inputs.bin_name }}"; fi
+          {
+            echo "asset_url=https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag }}/$asset"
+            echo "sha256=$sha"
+            echo "homepage=$homepage"
+            echo "description=$description"
+          } >> "$GITHUB_OUTPUT"
 
-  # 4b) Publish Scoop bucket (Windows). Optional.
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.tap_repo }}
+          token: ${{ secrets.publish_token }}
+          path: tap
+
+      - name: Write formula
+        shell: bash
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          formula="${{ inputs.formula_name != '' && inputs.formula_name || inputs.bin_name }}"
+          class_name="$(ruby -e 'puts ARGV[0].split(/[-_]/).map(&:capitalize).join' "$formula")"
+          mkdir -p Formula
+          cat > "Formula/$formula.rb" <<FORMULA
+          class ${class_name} < Formula
+            desc "${{ steps.meta.outputs.description }}"
+            homepage "${{ steps.meta.outputs.homepage }}"
+            url "${{ steps.meta.outputs.asset_url }}"
+            version "${{ needs.stamp.outputs.version }}"
+            sha256 "${{ steps.meta.outputs.sha256 }}"
+
+            def install
+              bin.install "${{ inputs.bin_name }}"
+            end
+
+            test do
+              assert_match "${{ needs.stamp.outputs.version }}", shell_output("#{bin}/${{ inputs.bin_name }} --version")
+            end
+          end
+          FORMULA
+
+      - name: Commit formula
+        shell: bash
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          formula="${{ inputs.formula_name != '' && inputs.formula_name || inputs.bin_name }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "Formula/$formula.rb"
+          git commit -m "Update $formula to ${{ needs.stamp.outputs.version }}" || exit 0
+          git push
+
   publish-scoop:
     name: publish scoop bucket
     if: inputs.bucket_repo != ''
-    needs: smoke
-    uses: ./templates/gh-actions/publish-scoop-bucket.yml
-    with:
-      bucket_repo: ${{ inputs.bucket_repo }}
-      manifest_name: ${{ inputs.manifest_name != '' && inputs.manifest_name || inputs.bin_name }}
-      release_tag: ${{ inputs.tag }}
-      bin_name: ${{ inputs.bin_name }}
-    secrets:
-      bucket_push_token: ${{ secrets.publish_token }}
+    needs: [stamp, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Compute Scoop inputs
+        id: meta
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          prefix="${{ inputs.artifact_prefix }}"
+          if [ -z "$prefix" ]; then prefix="${{ inputs.bin_name }}"; fi
+          version="${{ needs.stamp.outputs.version }}"
+          asset="$prefix-$version-win32-x64.zip"
+          mkdir -p meta
+          gh release download "${{ inputs.tag }}" -R "${{ github.repository }}" -p "$asset.sha256" -D meta
+          sha="$(awk '{print $1}' "meta/$asset.sha256")"
+          homepage="${{ inputs.homepage }}"
+          if [ -z "$homepage" ]; then homepage="https://github.com/${{ github.repository }}"; fi
+          description="${{ inputs.description }}"
+          if [ -z "$description" ]; then description="${{ inputs.bin_name }}"; fi
+          {
+            echo "url=https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag }}/$asset"
+            echo "sha256=$sha"
+            echo "homepage=$homepage"
+            echo "description=$description"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.bucket_repo }}
+          token: ${{ secrets.publish_token }}
+          path: bucket-repo
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Write Scoop manifest
+        working-directory: bucket-repo
+        run: |
+          node - <<'NODE'
+          const { mkdirSync, writeFileSync } = require("node:fs");
+          const manifest = {
+            version: process.env.VERSION,
+            description: process.env.DESCRIPTION,
+            homepage: process.env.HOMEPAGE,
+            license: "MIT",
+            architecture: {
+              "64bit": {
+                url: process.env.URL,
+                hash: process.env.SHA256
+              }
+            },
+            bin: process.env.BIN
+          };
+          mkdirSync("bucket", { recursive: true });
+          writeFileSync(`bucket/${process.env.MANIFEST_NAME}.json`, `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+        env:
+          MANIFEST_NAME: ${{ inputs.manifest_name != '' && inputs.manifest_name || inputs.bin_name }}
+          VERSION: ${{ needs.stamp.outputs.version }}
+          URL: ${{ steps.meta.outputs.url }}
+          SHA256: ${{ steps.meta.outputs.sha256 }}
+          BIN: ${{ inputs.bin_name }}.exe
+          HOMEPAGE: ${{ steps.meta.outputs.homepage }}
+          DESCRIPTION: ${{ steps.meta.outputs.description }}
+
+      - name: Commit manifest
+        shell: bash
+        working-directory: bucket-repo
+        run: |
+          set -euo pipefail
+          manifest="${{ inputs.manifest_name != '' && inputs.manifest_name || inputs.bin_name }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "bucket/$manifest.json"
+          git commit -m "Update $manifest to ${{ needs.stamp.outputs.version }}" || exit 0
+          git push
