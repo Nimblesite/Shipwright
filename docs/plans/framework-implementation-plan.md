@@ -143,7 +143,7 @@ Recommended order:
 
 - [ ] Keep detailed library implementation steps in `docs/plans/libs-implementation-plan.md`.
 - [ ] Review `docs/plans/libs-implementation-plan.md` for overlap before either plan is marked accepted.
-- [ ] Create the initial manifest schema and golden fixtures in this repo.
+- [ ] IN PROGRESS: Create the initial manifest schema and golden fixtures in this repo. `DepToolkitOpus` currently owns `schemas/deployment-toolkit.schema.json`; `DepToolkitCodex` is implementing fixtures, validator, compatibility matrix, and CI examples around it.
 - [ ] Add a failing contract test in Deslop proving `deslop-lsp --version` must exit with `deslop-lsp 0.1.0`.
 - [ ] Add a failing contract test in TMC proving MCP `serverInfo.version` must match npm package version `0.5.0`.
 - [ ] Define the VSIX package contents check for bundled binaries under `bin/<platform>`.

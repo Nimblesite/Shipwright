@@ -1,0 +1,63 @@
+{
+  "$comment": "Canonical platform identifiers used by deployment-toolkit. Every `bundlePath` token `${platform}` resolves to one of these. Node's process.platform + process.arch and Rust's target_triple are mapped here.",
+  "manifestVersion": 1,
+  "platforms": [
+    {
+      "id": "darwin-arm64",
+      "node": { "platform": "darwin", "arch": "arm64" },
+      "rustTarget": "aarch64-apple-darwin",
+      "dotnetRid": "osx-arm64",
+      "exe": "",
+      "vsceTarget": "darwin-arm64"
+    },
+    {
+      "id": "darwin-x64",
+      "node": { "platform": "darwin", "arch": "x64" },
+      "rustTarget": "x86_64-apple-darwin",
+      "dotnetRid": "osx-x64",
+      "exe": "",
+      "vsceTarget": "darwin-x64"
+    },
+    {
+      "id": "linux-x64",
+      "node": { "platform": "linux", "arch": "x64" },
+      "rustTarget": "x86_64-unknown-linux-gnu",
+      "dotnetRid": "linux-x64",
+      "exe": "",
+      "vsceTarget": "linux-x64"
+    },
+    {
+      "id": "linux-arm64",
+      "node": { "platform": "linux", "arch": "arm64" },
+      "rustTarget": "aarch64-unknown-linux-gnu",
+      "dotnetRid": "linux-arm64",
+      "exe": "",
+      "vsceTarget": "linux-arm64"
+    },
+    {
+      "id": "win32-x64",
+      "node": { "platform": "win32", "arch": "x64" },
+      "rustTarget": "x86_64-pc-windows-msvc",
+      "dotnetRid": "win-x64",
+      "exe": ".exe",
+      "vsceTarget": "win32-x64"
+    },
+    {
+      "id": "win32-arm64",
+      "node": { "platform": "win32", "arch": "arm64" },
+      "rustTarget": "aarch64-pc-windows-msvc",
+      "dotnetRid": "win-arm64",
+      "exe": ".exe",
+      "vsceTarget": "win32-arm64"
+    },
+    {
+      "id": "all",
+      "$comment": "Used for platform-agnostic artifacts: pure Node (tmc-server), dotnet tools (net9.0), intellij JAR.",
+      "node": null,
+      "rustTarget": null,
+      "dotnetRid": null,
+      "exe": "",
+      "vsceTarget": null
+    }
+  ]
+}

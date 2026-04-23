@@ -1,0 +1,83 @@
+{
+  "$comment": "Which verification checks each host can and must perform. Read by host libraries AND by the acceptance test runner to decide which tests apply per host.",
+  "manifestVersion": 1,
+  "hosts": {
+    "vscode": {
+      "canSpawnSubprocess": true,
+      "canReadExtensionRoot": true,
+      "canBundleNativeBinaries": true,
+      "artifactModel": "vsix-per-platform",
+      "supportedSources": ["user-setting", "env", "path", "bundled", "pkgmgr", "dotnet-tool", "npm-global"],
+      "requiredChecks": [
+        "component-version-matches",
+        "bundled-binary-exists",
+        "mismatch-blocks-activation",
+        "user-setting-mismatch-is-hard-error",
+        "path-accepted-only-on-match"
+      ]
+    },
+    "jetbrains": {
+      "canSpawnSubprocess": true,
+      "canReadExtensionRoot": true,
+      "canBundleNativeBinaries": false,
+      "$comment-bundling": "JetBrains Marketplace does not host per-platform plugin variants. Bundling native binaries would force a fat plugin and fail marketplace review.",
+      "artifactModel": "intellij-jar",
+      "supportedSources": ["user-setting", "env", "path", "pkgmgr", "dotnet-tool"],
+      "requiredChecks": [
+        "component-version-matches",
+        "mismatch-blocks-lsp-startup",
+        "missing-binary-shows-install-prompt",
+        "user-setting-mismatch-is-hard-error"
+      ]
+    },
+    "zed": {
+      "canSpawnSubprocess": false,
+      "$comment-subprocess": "Zed extensions run in WASM and cannot spawn --version pre-launch for the LSP they are about to start.",
+      "canReadExtensionRoot": false,
+      "canBundleNativeBinaries": false,
+      "artifactModel": "zed-wasm",
+      "supportedSources": ["user-setting", "env", "cargo-bin", "github-release", "lsp-initialize"],
+      "requiredChecks": [
+        "lsp-initialize-version-matches",
+        "download-sha256-verified",
+        "cached-binary-version-tracked",
+        "user-setting-wins-when-present"
+      ]
+    },
+    "cli": {
+      "canSpawnSubprocess": true,
+      "canReadExtensionRoot": false,
+      "canBundleNativeBinaries": false,
+      "artifactModel": "archive",
+      "supportedSources": ["path", "pkgmgr"],
+      "requiredChecks": [
+        "version-flag-matches-tag",
+        "version-flag-json-conforms-to-schema"
+      ]
+    },
+    "pkgmgr": {
+      "canSpawnSubprocess": false,
+      "canReadExtensionRoot": false,
+      "canBundleNativeBinaries": false,
+      "artifactModel": "brew-formula+scoop-manifest",
+      "supportedSources": ["pkgmgr"],
+      "requiredChecks": [
+        "formula-points-at-tag",
+        "sha256-matches-release-asset",
+        "scoop-manifest-version-matches-formula"
+      ]
+    }
+  },
+  "components": {
+    "cli":     { "versionCheckStrategy": "version-flag", "hosts": ["cli", "pkgmgr"] },
+    "lsp":     { "versionCheckStrategy": "version-flag", "hosts": ["vscode", "jetbrains", "zed"], "zedFallback": "lsp-initialize" },
+    "mcp":     { "versionCheckStrategy": "version-flag", "hosts": ["vscode", "cli"] },
+    "sidecar": { "versionCheckStrategy": "version-flag", "hosts": ["vscode", "jetbrains"] },
+    "dap":     { "versionCheckStrategy": "version-flag", "hosts": ["vscode", "jetbrains"] },
+    "tool":    { "versionCheckStrategy": "version-flag", "hosts": ["cli", "vscode", "jetbrains"] },
+    "extension-vscode":    { "versionCheckStrategy": "manifest", "hosts": ["vscode"] },
+    "extension-jetbrains": { "versionCheckStrategy": "manifest", "hosts": ["jetbrains"] },
+    "extension-zed":       { "versionCheckStrategy": "manifest", "hosts": ["zed"] },
+    "asset":   { "versionCheckStrategy": "content-hash", "hosts": ["vscode", "jetbrains", "zed"] }
+  }
+}
