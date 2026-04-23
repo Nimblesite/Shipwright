@@ -66,5 +66,5 @@ deploy-toolkit verify-extension-package --manifest deployment-toolkit.json --pac
 
 ## Tickets
 
-- DTK-SPEC-006: Implement `deploy-toolkit verify-binaries` after the manifest validator is stable.
-- DTK-SPEC-007: Implement `deploy-toolkit verify-extension-package` after the first VSIX pilot ships.
+- DTK-SPEC-ACCEPTANCE-VERIFY-BINARIES: Implement `deploy-toolkit verify-binaries` after the manifest validator is stable.
+- DTK-SPEC-ACCEPTANCE-VERIFY-PACKAGE: Implement `deploy-toolkit verify-extension-package` after the first VSIX pilot ships.

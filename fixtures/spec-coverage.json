@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "docs/specs/binary-version-contract.md": {
-    "defaultTicket": "DTK-SPEC-001",
+    "defaultTicket": "DTK-SPEC-BINARY-VERSION",
     "fixtures": [
       "fixtures/version-outputs/rust/deslop.txt",
       "fixtures/version-outputs/rust/deslop.json",
@@ -18,7 +18,7 @@
     ]
   },
   "docs/specs/ide-extension-deployment.md": {
-    "defaultTicket": "DTK-SPEC-002",
+    "defaultTicket": "DTK-SPEC-IDE-EXTENSION-DEPLOYMENT",
     "fixtures": [
       "fixtures/manifests/deslop.json",
       "fixtures/manifests/basilisk.json",
@@ -27,7 +27,7 @@
     ]
   },
   "docs/specs/library-architecture.md": {
-    "defaultTicket": "DTK-SPEC-003",
+    "defaultTicket": "DTK-SPEC-LIBRARY-ARCHITECTURE",
     "fixtures": [
       "tools/validate-manifest/package.json",
       "tools/validate-manifest/index.mjs",
@@ -35,7 +35,7 @@
     ]
   },
   "docs/specs/repo-survey.md": {
-    "defaultTicket": "DTK-SPEC-004",
+    "defaultTicket": "DTK-SPEC-REPO-SURVEY",
     "fixtures": [
       "fixtures/manifests/deslop.json",
       "fixtures/manifests/basilisk.json",
@@ -45,7 +45,7 @@
     ]
   },
   "docs/specs/source-projects.md": {
-    "defaultTicket": "DTK-SPEC-004",
+    "defaultTicket": "DTK-SPEC-SOURCE-PROJECTS",
     "fixtures": [
       "fixtures/manifests/deslop.json",
       "fixtures/manifests/basilisk.json",
@@ -55,14 +55,14 @@
     ]
   },
   "docs/specs/compatibility-matrix.md": {
-    "defaultTicket": "DTK-SPEC-005",
+    "defaultTicket": "DTK-SPEC-COMPATIBILITY-MATRIX",
     "fixtures": [
       "schemas/compatibility-matrix.json",
       "fixtures/platforms/platform-ids.json"
     ]
   },
   "docs/specs/acceptance-gates.md": {
-    "defaultTicket": "DTK-SPEC-006",
+    "defaultTicket": "DTK-SPEC-ACCEPTANCE-GATES",
     "fixtures": [
       "examples/ci/github-actions.yml",
       "templates/gh-actions/release-binary-multiplatform.yml",

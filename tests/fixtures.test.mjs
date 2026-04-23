@@ -10,9 +10,11 @@ const goldenDir = join(root, "fixtures", "manifests");
 const invalidDir = join(root, "fixtures", "invalid-manifests");
 const versionOutputDir = join(root, "fixtures", "version-outputs");
 const specDir = join(root, "docs", "specs");
+const workflowDir = join(root, ".github", "workflows");
 const semverPattern = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const namePattern = /^[a-z0-9][a-z0-9-]{1,63}$/;
-const ticketPattern = /^DTK-[A-Z]+-\d+$/;
+const trackedIdPattern = /^DTK-[A-Z]+(?:-[A-Z]+)+$/;
+const illegalNumericTrackedIdPattern = /\bDTK-[A-Z]+-\d+\b/g;
 const validKinds = new Set(["cli", "lsp", "mcp", "sidecar", "dap", "tool"]);
 const validLanguages = new Set(["rust", "dotnet", "dart", "typescript", "kotlin", "javascript"]);
 
@@ -55,6 +57,28 @@ test("all golden manifests pass schema validation", () => {
     const result = runValidator(manifest);
     assert.equal(result.status, 0, `${manifest}\n${result.stderr}`);
   }
+});
+
+test("Deslop manifest covers VS Code and JetBrains pilots", () => {
+  const manifest = json(join(goldenDir, "deslop.json"));
+  const components = new Map(manifest.components.map((component) => [component.id, component]));
+
+  assert.equal(components.get("deslop-vscode")?.kind, "extension-vscode");
+  assert.equal(components.get("deslop-jetbrains")?.kind, "extension-jetbrains");
+  assert.deepEqual(manifest.hosts.vscode.activationVerifies, ["deslop-lsp", "deslop-mcp"]);
+  assert.deepEqual(manifest.hosts.jetbrains.activationVerifies, ["deslop-lsp"]);
+});
+
+test("release reusable workflow owns release orchestration", () => {
+  const releaseWorkflow = readFileSync(join(workflowDir, "release.reusable.yml"), "utf8");
+  const smokeWorkflow = readFileSync(join(workflowDir, "smoke.reusable.yml"), "utf8");
+
+  assert.equal(releaseWorkflow.includes("templates/gh-actions"), false);
+  assert.equal(releaseWorkflow.includes("tap_push_token"), false);
+  assert.equal(releaseWorkflow.includes("bucket_push_token"), false);
+  assert.equal(releaseWorkflow.includes("  target-matrix:"), true);
+  assert.equal(smokeWorkflow.includes("matrix.platform"), true);
+  assert.equal(smokeWorkflow.includes("matrix.target"), false);
 });
 
 test("all invalid manifests fail schema validation", () => {
@@ -114,7 +138,7 @@ test("each spec file has fixture coverage or a tracked ticket id", () => {
 
   for (const specFile of specFiles) {
     const entry = coverage[specFile];
-    assert.ok(ticketPattern.test(entry.defaultTicket), `${specFile}: missing tracked ticket id`);
+    assert.ok(trackedIdPattern.test(entry.defaultTicket), `${specFile}: missing semantic tracked ticket id`);
     assert.ok(entry.fixtures.length > 0, `${specFile}: missing fixture references`);
     for (const fixture of entry.fixtures) {
       assert.ok(existsSync(join(root, fixture)), `${specFile}: missing coverage fixture ${fixture}`);
@@ -127,4 +151,19 @@ test("each spec file has fixture coverage or a tracked ticket id", () => {
 
     assert.ok(actionableLines.length > 0, `${specFile}: no spec lines found`);
   }
+});
+
+test("tracked DTK ids do not use numeric suffixes", () => {
+  const files = [
+    ...walkFiles(join(root, "docs", "plans")).filter((file) => file.endsWith(".md")),
+    ...walkFiles(specDir).filter((file) => file.endsWith(".md")),
+    join(root, "fixtures", "spec-coverage.json")
+  ];
+
+  const illegalIds = files.flatMap((file) => {
+    const text = readFileSync(file, "utf8");
+    return [...text.matchAll(illegalNumericTrackedIdPattern)].map((match) => `${relative(root, file)}: ${match[0]}`);
+  });
+
+  assert.deepEqual(illegalIds, []);
 });

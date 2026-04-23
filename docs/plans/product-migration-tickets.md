@@ -4,7 +4,7 @@ Status: Draft
 
 These tickets are Nimblesite-specific because they track the first product migrations. The reusable libraries they adopt must keep generic package names.
 
-## DTK-MIG-001: dart_mutant CLI Pilot
+## DTK-MIG-DART-MUTANT-CLI: dart_mutant CLI Pilot
 
 Goal:
 
@@ -21,7 +21,7 @@ Exit criteria:
 
 - CLI release fails on manifest/version drift.
 
-## DTK-MIG-002: Forge Multi-Binary Pilot
+## DTK-MIG-FORGE-MULTI-BINARY: Forge Multi-Binary Pilot
 
 Goal:
 
@@ -39,7 +39,7 @@ Exit criteria:
 
 - Forge CI fails if any sidecar reports a different version from the extension manifest.
 
-## DTK-MIG-003: Deslop VS Code and JetBrains Pilot
+## DTK-MIG-DESLOP-IDE: Deslop VS Code and JetBrains Pilot
 
 Goal:
 
@@ -56,7 +56,7 @@ Exit criteria:
 
 - Activation fails visibly when a configured or bundled binary reports the wrong version.
 
-## DTK-MIG-004: Basilisk VS Code and Zed Pilot
+## DTK-MIG-BASILISK-IDE: Basilisk VS Code and Zed Pilot
 
 Goal:
 
@@ -73,7 +73,7 @@ Exit criteria:
 
 - Zed reports expected/found version when initialize metadata mismatches.
 
-## DTK-MIG-005: Too Many Cooks Node/MCP Pilot
+## DTK-MIG-TMC-NODE-MCP: Too Many Cooks Node/MCP Pilot
 
 Goal:
 

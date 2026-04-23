@@ -253,5 +253,5 @@ Do not do this:
 - [IDE Extension Deployment](docs/specs/ide-extension-deployment.md)
 - [Acceptance Gates](docs/specs/acceptance-gates.md)
 - [Library Architecture](docs/specs/library-architecture.md)
-- [Framework Implementation Plan](docs/plans/framework-implementation-plan.md)
+- [Product Migration Tickets](docs/plans/product-migration-tickets.md)
 - [AI Agent Product Adoption Guide](docs/agents/product-repo-adoption-guide.md)

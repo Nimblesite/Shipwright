@@ -35,7 +35,7 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 - **Heavy structured logging everywhere.** See Logging below.
 - **No linter suppressions.** Fix the code.
 - **Pure functions over statements.**
-- **Spec IDs are hierarchical, non-numeric: `[GROUP-TOPIC]` / `[GROUP-TOPIC-DETAIL]`** (e.g., `[AUTH-TOKEN-VERIFY]`, `[CI-TIMEOUT]`). Same-group sections sit adjacent in the TOC. NO sequential numbers (`[SPEC-001]`). Code/tests/docs that implement a spec section MUST reference its ID in a comment so `grep [AUTH-` finds spec → code → tests in one shot.
+- **Spec IDs are hierarchical, non-numeric: `[GROUP-TOPIC]` / `[GROUP-TOPIC-DETAIL]` or `DTK-GROUP-TOPIC` / `DTK-GROUP-TOPIC-DETAIL`** (e.g., `[AUTH-TOKEN-VERIFY]`, `[CI-TIMEOUT]`, `DTK-MIG-DESLOP-IDE`). Same-group sections sit adjacent in the TOC. NO sequential numbers (`[SPEC-001]`, `DTK-SPEC-001`, `DTK-MIG-003`). Code/tests/docs that implement a spec section MUST reference its ID in a comment so `grep [AUTH-` finds spec → code → tests in one shot.
 
 ## Logging Standards
 

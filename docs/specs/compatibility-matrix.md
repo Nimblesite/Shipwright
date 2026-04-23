@@ -30,4 +30,4 @@ The platform fixture at `fixtures/platforms/platform-ids.json` must stay aligned
 
 ## Tickets
 
-- DTK-SPEC-005: Generate language bindings from `schemas/compatibility-matrix.json` after the first host library lands.
+- DTK-SPEC-COMPATIBILITY-BINDINGS: Generate language bindings from `schemas/compatibility-matrix.json` after the first host library lands.
