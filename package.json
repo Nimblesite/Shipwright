@@ -5,7 +5,10 @@
   "type": "module",
   "packageManager": "pnpm@10.10.0",
   "scripts": {
-    "test": "node --test tests/fixtures.test.mjs",
+    "test": "pnpm test:fixtures && pnpm test:ts-core && pnpm test:rust-manifest",
+    "test:fixtures": "node --test tests/fixtures.test.mjs",
+    "test:ts-core": "pnpm --filter @deploy-toolkit/core test",
+    "test:rust-manifest": "cargo test -p deploy-toolkit-manifest",
     "validate:fixtures": "node --test tests/fixtures.test.mjs",
     "validate:manifest": "node tools/validate-manifest/index.mjs"
   }

@@ -4,26 +4,26 @@ Status: Draft
 
 ## Purpose
 
-This repo will provide shared libraries and tooling for deploying Nimblesite binaries and IDE extensions. Product repos should stop maintaining bespoke version parsers, platform directory conventions, package manifests, and startup checks.
+This repo will provide shared libraries and tooling for deploying Nimblesite binaries and IDE extensions. The reusable libraries must use generic public package names so the framework can be released as public crates, npm packages, NuGet packages, and host integrations. Product repos should stop maintaining bespoke version parsers, platform directory conventions, package manifests, and startup checks.
 
 ## Libraries
 
 ### Rust
 
-`deployment-toolkit-version`
+`deploy-toolkit-cli`
 
 - Adds a standard `--version` implementation for Rust binaries.
 - Exposes plain text and JSON version metadata.
 - Provides helpers for Clap-based CLIs and manual argument parsing.
 - Reads `CARGO_PKG_NAME`, `CARGO_PKG_VERSION`, target triple, and optional git metadata.
 
-`deployment-toolkit-manifest`
+`deploy-toolkit-manifest`
 
 - Defines the product deployment manifest data model.
 - Validates component ids, versions, platform names, checksums, and required flags.
 - Generates target-specific asset names.
 
-`deployment-toolkit-release`
+`deploy-toolkit-release`
 
 - Builds release manifests from product build outputs.
 - Verifies every produced binary reports the expected version.
@@ -31,7 +31,7 @@ This repo will provide shared libraries and tooling for deploying Nimblesite bin
 
 ### TypeScript
 
-`@nimblesite/deployment-toolkit-vscode`
+`@deploy-toolkit/vscode`
 
 - Loads `deployment-toolkit.json` from a VS Code extension.
 - Resolves configured, bundled, cached, and PATH binaries.
@@ -39,13 +39,13 @@ This repo will provide shared libraries and tooling for deploying Nimblesite bin
 - Prepends matching bundled directories to the extension process PATH when needed.
 - Returns structured diagnostics and user-facing messages.
 
-`@nimblesite/deployment-toolkit-common`
+`@deploy-toolkit/core`
 
 - Owns JSON schemas, platform ids, error types, and manifest parsing shared by VS Code and build scripts.
 
 ### Kotlin / JetBrains
 
-`deployment-toolkit-jetbrains`
+`deploy-toolkit-jetbrains`
 
 - Loads plugin-root manifests.
 - Resolves user-configured, bundled, and PATH binaries.
@@ -55,7 +55,7 @@ This repo will provide shared libraries and tooling for deploying Nimblesite bin
 
 ### .NET
 
-`Nimblesite.DeploymentToolkit.Versioning`
+`DeployToolkit`
 
 - Adds `--version` handling to .NET sidecars and global tools.
 - Reads package version from assembly metadata.
@@ -63,7 +63,7 @@ This repo will provide shared libraries and tooling for deploying Nimblesite bin
 
 ### Node
 
-`@nimblesite/deployment-toolkit-node`
+`@deploy-toolkit/node`
 
 - Adds `--version` handling for npm binaries.
 - Generates MCP server `serverInfo.version` from package metadata.
@@ -119,6 +119,6 @@ Product repos should integrate in this order:
 
 ## TODO
 
-- [ ] Agree final crate, npm package, Kotlin module, and NuGet package names with `deployment_toolkit_open`.
+- [ ] Agree final crate, npm package, Kotlin module, and NuGet package names with `DepToolkitOpus`.
 - [ ] Define the first JSON schema and generate bindings for Rust and TypeScript.
 - [ ] Decide whether the CLI should be Rust-first or Node-first for fastest integration with VSIX packaging.

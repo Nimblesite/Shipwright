@@ -44,6 +44,16 @@
       "fixtures/manifests/dart-mutant.json"
     ]
   },
+  "docs/specs/source-projects.md": {
+    "defaultTicket": "DTK-SPEC-004",
+    "fixtures": [
+      "fixtures/manifests/deslop.json",
+      "fixtures/manifests/basilisk.json",
+      "fixtures/manifests/forge.json",
+      "fixtures/manifests/too-many-cooks.json",
+      "fixtures/manifests/dart-mutant.json"
+    ]
+  },
   "docs/specs/compatibility-matrix.md": {
     "defaultTicket": "DTK-SPEC-005",
     "fixtures": [

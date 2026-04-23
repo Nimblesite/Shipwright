@@ -93,12 +93,13 @@
     },
     {
       "id": "path-accepted-only-on-exact-match",
-      "description": "A PATH hit is accepted only if --version equals expected.",
+      "description": "A PATH hit is accepted only if --version equals expected. `path` entries are directories; the resolver joins with binaryName.",
       "input": {
         "expectedVersion": "0.4.2",
+        "expectedName": "deslop-lsp",
         "sources": ["path", "bundled"],
         "env": {},
-        "path": ["/usr/local/bin/deslop-lsp"],
+        "path": ["/usr/local/bin"],
         "bundledDir": "/ext/bin/darwin-arm64",
         "probe": {
           "/usr/local/bin/deslop-lsp": { "name": "deslop-lsp", "version": "0.4.2" },
@@ -117,9 +118,10 @@
       "description": "PATH binary with wrong version is skipped; bundled wins.",
       "input": {
         "expectedVersion": "0.4.2",
+        "expectedName": "deslop-lsp",
         "sources": ["path", "bundled"],
         "env": {},
-        "path": ["/usr/local/bin/deslop-lsp"],
+        "path": ["/usr/local/bin"],
         "bundledDir": "/ext/bin/darwin-arm64",
         "probe": {
           "/usr/local/bin/deslop-lsp": { "name": "deslop-lsp", "version": "0.3.9" },
@@ -191,7 +193,9 @@
             "darwin-arm64": "brew install example/tap/forge-lsp",
             "darwin-x64": "brew install example/tap/forge-lsp",
             "linux-x64": "brew install example/tap/forge-lsp",
-            "win32-x64": "scoop install example/forge-lsp"
+            "linux-arm64": "brew install example/tap/forge-lsp",
+            "win32-x64": "scoop install example/forge-lsp",
+            "win32-arm64": "scoop install example/forge-lsp"
           }
         }
       }
@@ -264,7 +268,7 @@
         "expectedName": "deslop-lsp",
         "sources": ["path"],
         "env": {},
-        "path": ["/usr/local/bin/deslop-lsp"],
+        "path": ["/usr/local/bin"],
         "probe": {
           "/usr/local/bin/deslop-lsp": { "name": "imposter-lsp", "version": "0.4.2" }
         }

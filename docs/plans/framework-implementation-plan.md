@@ -141,13 +141,13 @@ Recommended order:
 
 ## TODO
 
-- [ ] Keep detailed library implementation steps in `docs/plans/libs-implementation-plan.md`.
-- [ ] Review `docs/plans/libs-implementation-plan.md` for overlap before either plan is marked accepted.
-- [ ] IN PROGRESS: Create the initial manifest schema and golden fixtures in this repo. `DepToolkitOpus` currently owns `schemas/deployment-toolkit.schema.json`; `DepToolkitCodex` is implementing fixtures, validator, compatibility matrix, and CI examples around it.
-- [ ] Add a failing contract test in Deslop proving `deslop-lsp --version` must exit with `deslop-lsp 0.1.0`.
-- [ ] Add a failing contract test in TMC proving MCP `serverInfo.version` must match npm package version `0.5.0`.
-- [ ] Define the VSIX package contents check for bundled binaries under `bin/<platform>`.
-- [ ] Define the JetBrains plugin contents check for bundled binaries under plugin-root `bin/<platform>`.
-- [ ] Define the Zed initialize-version check for hosts that cannot run `--version` before startup.
-- [ ] Create product migration tickets for dart_mutant, Forge, Deslop, Basilisk, and Too Many Cooks.
-- [ ] Add CI gate examples that fail on manifest/binary drift.
+- [x] Keep detailed library implementation steps in `docs/plans/libs-implementation-plan.md`.
+- [x] Review `docs/plans/libs-implementation-plan.md` for overlap before either plan is marked accepted.
+- [x] Create the initial manifest schema and golden fixtures in this repo. Schema files are present; `pnpm test` validates golden manifests, invalid manifests, version-output fixtures, and spec coverage.
+- [x] Add a failing contract test in Deslop proving `deslop-lsp --version` must exit with `deslop-lsp 0.1.0`. Added `crates/deslop-lsp/tests/cli.rs`; current failure: command exits 0 but stdout is empty because `--version` is treated as a workspace root.
+- [x] Add a failing contract test in TMC proving MCP `serverInfo.version` must match npm package version `0.5.0`. Added `packages/too-many-cooks/test/server_version_contract_test.ts`; current failure: `serverInfo.version` is `0.1.0`, package version is `0.5.0`.
+- [x] Define the VSIX package contents check for bundled binaries under `bin/<platform>`.
+- [x] Define the JetBrains plugin contents check for bundled binaries under plugin-root `bin/<platform>`.
+- [x] Define the Zed initialize-version check for hosts that cannot run `--version` before startup.
+- [x] Create product migration tickets for dart_mutant, Forge, Deslop, Basilisk, and Too Many Cooks.
+- [x] Add CI gate examples that fail on manifest/binary drift.
