@@ -26,21 +26,25 @@ describe("resolve", () => {
 });
 
 function toResolveInput(input: Record<string, unknown>, probeMap: Record<string, ProbedVersion>): ResolveInput {
-  return {
-    binaryName: deriveBinaryName(input.expectedName as string | undefined, probeMap),
-    expectedName: input.expectedName as string | undefined,
+  const expectedName = input.expectedName as string | undefined;
+  const resolved: ResolveInput = {
+    binaryName: deriveBinaryName(expectedName, probeMap),
     expectedVersion: input.expectedVersion as string,
     sources: input.sources as ResolveInput["sources"],
-    platform: input.platform as ResolveInput["platform"],
-    userSettingPath: input.userSettingPath as string | null | undefined,
-    env: (input.env ?? {}) as Record<string, string>,
-    envConfig: input.envConfig as ResolveInput["envConfig"],
-    path: input.path as string[] | undefined,
-    bundledDir: input.bundledDir as string | null | undefined,
-    cargoBin: input.cargoBin as string | undefined,
-    pkgmgr: input.pkgmgr as ResolveInput["pkgmgr"],
-    dotnetTool: input.dotnetTool as ResolveInput["dotnetTool"]
+    env: (input.env ?? {}) as Record<string, string>
   };
+
+  if (expectedName !== undefined) resolved.expectedName = expectedName;
+  if (input.platform !== undefined) resolved.platform = input.platform as NonNullable<ResolveInput["platform"]>;
+  if (input.userSettingPath !== undefined) resolved.userSettingPath = input.userSettingPath as string | null;
+  if (input.envConfig !== undefined) resolved.envConfig = input.envConfig as NonNullable<ResolveInput["envConfig"]>;
+  if (input.path !== undefined) resolved.path = input.path as string[];
+  if (input.bundledDir !== undefined) resolved.bundledDir = input.bundledDir as string | null;
+  if (input.cargoBin !== undefined) resolved.cargoBin = input.cargoBin as string;
+  if (input.pkgmgr !== undefined) resolved.pkgmgr = input.pkgmgr as NonNullable<ResolveInput["pkgmgr"]>;
+  if (input.dotnetTool !== undefined) resolved.dotnetTool = input.dotnetTool as NonNullable<ResolveInput["dotnetTool"]>;
+
+  return resolved;
 }
 
 function deriveBinaryName(expectedName: string | undefined, probeMap: Record<string, ProbedVersion>): string {

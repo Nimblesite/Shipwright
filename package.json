@@ -5,12 +5,13 @@
   "type": "module",
   "packageManager": "pnpm@10.10.0",
   "scripts": {
-    "test": "pnpm test:fixtures && pnpm test:ts-core && pnpm test:ts-vscode && pnpm test:ts-node && pnpm test:cli && pnpm test:rust-manifest",
+    "test": "pnpm test:fixtures && pnpm test:ts-core && pnpm test:ts-vscode && pnpm test:ts-node && pnpm test:cli && pnpm test:rust-workspace",
     "test:fixtures": "node --test tests/fixtures.test.mjs",
     "test:ts-core": "pnpm --filter @deploy-toolkit/core test",
     "test:ts-vscode": "pnpm --filter @deploy-toolkit/vscode test",
     "test:ts-node": "pnpm --filter @deploy-toolkit/node test",
     "test:cli": "pnpm --filter deploy-toolkit test",
+    "test:rust-workspace": "cargo test --workspace",
     "test:rust-manifest": "cargo test -p deploy-toolkit-manifest",
     "validate:fixtures": "node --test tests/fixtures.test.mjs",
     "validate:manifest": "node tools/validate-manifest/index.mjs"

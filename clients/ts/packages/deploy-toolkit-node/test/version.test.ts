@@ -14,9 +14,13 @@ const spec: VersionSpec = {
   version: "0.5.0",
   kind: "mcp",
   language: "typescript",
-  capabilities: ["mcp"],
+  buildTime: "2026-01-01T00:00:00Z",
+  capabilities: ["version-flag", "version-flag-json", "mcp-server-info-version"],
+  gitDirty: false,
+  gitSha: "abc1234",
   product: "too-many-cooks",
-  target: "all"
+  target: "all",
+  toolchain: "node 24"
 };
 
 describe("@deploy-toolkit/node", () => {
@@ -40,9 +44,13 @@ describe("@deploy-toolkit/node", () => {
       version: "0.5.0",
       kind: "mcp",
       language: "typescript",
-      capabilities: ["mcp"],
+      buildTime: "2026-01-01T00:00:00Z",
+      capabilities: ["version-flag", "version-flag-json", "mcp-server-info-version"],
+      gitDirty: false,
+      gitSha: "abc1234",
       product: "too-many-cooks",
-      target: "all"
+      target: "all",
+      toolchain: "node 24"
     });
   });
 

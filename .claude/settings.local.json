@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__too-many-cooks__register",
+      "mcp__too-many-cooks__lock",
+      "mcp__too-many-cooks__message",
+      "Bash(cargo test *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo fmt *)"
+    ]
+  },
+  "autoMemoryEnabled": false
+}

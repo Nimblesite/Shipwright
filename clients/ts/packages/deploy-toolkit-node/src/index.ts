@@ -67,7 +67,7 @@ export function createMcpServerInfo(metadata: PackageMetadata, componentName?: s
 
 export function createVersionManifest(spec: VersionSpec): Result<VersionManifest> {
   const validation = validateSpec(spec);
-  if (!validation.ok) return validation;
+  if (!validation.ok) return err(validation.error ?? "invalid version spec");
 
   const manifest: VersionManifest = {
     manifestVersion: 1,
@@ -90,7 +90,7 @@ export function createVersionManifest(spec: VersionSpec): Result<VersionManifest
 
 export function formatPlainVersion(spec: VersionSpec): Result<string> {
   const validation = validateSpec(spec);
-  if (!validation.ok) return validation;
+  if (!validation.ok) return err(validation.error ?? "invalid version spec");
   return ok(`${spec.name} ${spec.version}\n`);
 }
 

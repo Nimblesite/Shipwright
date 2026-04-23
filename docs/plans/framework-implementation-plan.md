@@ -172,8 +172,8 @@ in the repo and passing CI:
 ## Implementation status (pending)
 
 - [x] `clients/ts/packages/deploy-toolkit-vscode` — package.json + tsconfig + probe.ts / activate.ts / index.ts all in repo.
-- [ ] `clients/kotlin/deploy-toolkit-intellij` — delegated (in flight).
-- [ ] `clients/dotnet/DeployToolkit` + `DeployToolkit.Tool` — delegated (in flight).
+- [x] `clients/kotlin/deploy-toolkit-intellij` — Kotlin/JVM resolver port with shared conformance test. Local validation note: no `gradle` binary or wrapper is available in this checkout.
+- [x] `clients/dotnet/DeployToolkit` + `DeployToolkit.Tool` — NuGet helper, resolver conformance tests, and dotnet global tool version contract are green.
 - [x] `clients/dart/deploy_toolkit` — 14/14 conformance vectors green.
 - [x] `crates/deploy-toolkit-zed` — resolve_for_zed + verify_lsp_initialize, 4 tests green.
 - [x] All templates: `rust-binary`, `vscode-extension`, `zed-extension`, `intellij-plugin`, `dotnet-tool-sidecar`, `gh-actions/*`.
@@ -187,4 +187,4 @@ in the repo and passing CI:
 
 ## Final status
 
-All framework deliverables (schema → pure resolver → 3 language ports → binary-side helper → deploy-stamp → release/smoke workflows → 5 templates → 5 product manifests) are in the repo and passing their tests. `cargo test --workspace` is green. Remaining work is the two pending ports (C#, Kotlin) and the codex-owned docs.
+All framework deliverables (schema → pure resolver → language ports → binary-side helpers → deploy-stamp → release/smoke workflows → 5 templates → 5 product manifests → verify CLI) are in the repo. Local validation is green for Rust, TypeScript, Node, .NET, fixtures, and the `deploy-toolkit` verifier. Kotlin has source and conformance tests in place; local execution needs Gradle or a wrapper.

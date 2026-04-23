@@ -134,9 +134,9 @@ Exit gate:
 - [x] Add reusable GitHub Actions workflow templates for binary release, Brew, and Scoop.
 - [x] Scaffold `deploy-toolkit-manifest` with version-output types and formatter tests.
 - [x] Implement `@deploy-toolkit/core` resolver conformance against `schemas/test-vectors.json`.
-- [ ] Implement `deploy-toolkit-cli` Rust helpers.
+- [x] Implement `deploy-toolkit-cli` Rust helpers.
 - [x] Implement `@deploy-toolkit/vscode` activation helper.
-- [ ] Implement `@deploy-toolkit/node` MCP version helper.
-- [ ] Implement `DeployToolkit` .NET version helper.
-- [ ] Implement `deploy-toolkit verify-binaries`.
-- [ ] Implement `deploy-toolkit verify-extension-package`.
+- [x] Implement `@deploy-toolkit/node` MCP version helper.
+- [x] Implement `DeployToolkit` .NET version helper.
+- [x] Implement `deploy-toolkit verify-binaries`.
+- [x] Implement `deploy-toolkit verify-extension-package`.
