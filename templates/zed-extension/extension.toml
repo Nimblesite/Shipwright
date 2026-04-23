@@ -1,0 +1,10 @@
+id = "{{EXT_NAME}}"
+name = "{{EXT_NAME}}"
+description = "{{EXT_NAME}} Zed extension."
+version = "{{VERSION}}"
+authors = ["{{PRODUCT_ID}} team"]
+repository = ""
+
+[language_servers.{{BINARY_NAME}}]
+name = "{{BINARY_NAME}}"
+languages = ["Python", "Rust"]

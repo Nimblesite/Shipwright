@@ -237,8 +237,9 @@ function envPath(input: ResolveInput, platform: Platform): string | undefined {
   if (config.pathVar && env[config.pathVar]) {
     return env[config.pathVar];
   }
-  if (config.dirVar && env[config.dirVar]) {
-    return joinBinary(env[config.dirVar], input.binaryName, platform);
+  const configuredDir = config.dirVar ? env[config.dirVar] : undefined;
+  if (configuredDir) {
+    return joinBinary(configuredDir, input.binaryName, platform);
   }
   return undefined;
 }

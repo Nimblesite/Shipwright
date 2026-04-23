@@ -259,7 +259,8 @@ pub struct Resolution {
 
 impl Resolution {
     /// Construct an `Ok` result.
-    fn ok(source: Source, path: String, version: String) -> Self {
+    #[must_use]
+    pub fn ok(source: Source, path: String, version: String) -> Self {
         Self {
             source: Some(source),
             path: Some(path),
@@ -273,14 +274,16 @@ impl Resolution {
         }
     }
     /// Construct an `OkWithWarning` result.
-    fn ok_warn(source: Source, path: String, version: String, code: WarningCode) -> Self {
+    #[must_use]
+    pub fn ok_warn(source: Source, path: String, version: String, code: WarningCode) -> Self {
         let mut r = Self::ok(source, path, version);
         r.status = Status::OkWithWarning;
         r.warning_code = Some(code);
         r
     }
     /// Construct an `Error` result.
-    fn error(code: ErrorCode, details: Option<ErrorDetails>) -> Self {
+    #[must_use]
+    pub fn error(code: ErrorCode, details: Option<ErrorDetails>) -> Self {
         Self {
             source: None,
             path: None,
@@ -294,7 +297,8 @@ impl Resolution {
         }
     }
     /// Construct a `Prompt` result.
-    fn prompt(action: PromptAction) -> Self {
+    #[must_use]
+    pub fn prompt(action: PromptAction) -> Self {
         Self {
             source: None,
             path: None,
@@ -308,7 +312,8 @@ impl Resolution {
         }
     }
     /// Construct a `Deferred` result.
-    fn deferred(source: Source, path: String, check: DeferredCheck) -> Self {
+    #[must_use]
+    pub fn deferred(source: Source, path: String, check: DeferredCheck) -> Self {
         Self {
             source: Some(source),
             path: Some(path),

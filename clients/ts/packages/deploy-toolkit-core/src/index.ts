@@ -4,6 +4,7 @@ export type {
   EnvConfig,
   ErrorCode,
   Platform,
+  PkgmgrConfig,
   Probe,
   ProbedVersion,
   PromptAction,

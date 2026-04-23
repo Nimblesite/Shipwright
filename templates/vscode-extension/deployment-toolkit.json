@@ -1,0 +1,59 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "{{PRODUCT_ID}}",
+    "displayName": "{{DISPLAY_NAME}}",
+    "version": "{{VERSION}}"
+  },
+  "components": [
+    {
+      "id": "{{LSP_COMPONENT_ID}}",
+      "kind": "lsp",
+      "language": "rust",
+      "binaryName": "{{LSP_BINARY_NAME}}",
+      "expectedVersion": "${PRODUCT_VERSION}",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
+      "bundled": {
+        "bundlePath": "bin/${platform}/${binaryName}${exe}",
+        "perPlatformArtifact": true
+      },
+      "sources": ["user-setting", "env", "bundled", "path", "pkgmgr"],
+      "userSetting": "{{PRODUCT_ID}}.binaries.{{LSP_COMPONENT_ID}}",
+      "env": {
+        "pathVar": "{{LSP_COMPONENT_ID}}_PATH",
+        "dirVar": "{{PRODUCT_ID}}_BINARY_DIR"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    },
+    {
+      "id": "{{MCP_COMPONENT_ID}}",
+      "kind": "mcp",
+      "language": "rust",
+      "binaryName": "{{MCP_BINARY_NAME}}",
+      "expectedVersion": "${PRODUCT_VERSION}",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
+      "bundled": {
+        "bundlePath": "bin/${platform}/${binaryName}${exe}",
+        "perPlatformArtifact": true
+      },
+      "sources": ["user-setting", "env", "bundled", "path", "pkgmgr"],
+      "userSetting": "{{PRODUCT_ID}}.binaries.{{MCP_COMPONENT_ID}}",
+      "env": {
+        "pathVar": "{{MCP_COMPONENT_ID}}_PATH",
+        "dirVar": "{{PRODUCT_ID}}_BINARY_DIR"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    }
+  ],
+  "hosts": {
+    "vscode": {
+      "artifact": "vsix-per-platform",
+      "activationVerifies": ["{{LSP_COMPONENT_ID}}", "{{MCP_COMPONENT_ID}}"],
+      "onMismatch": "error"
+    }
+  }
+}

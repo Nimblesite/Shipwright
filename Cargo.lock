@@ -58,6 +58,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "deploy-toolkit-zed"
+version = "0.1.0"
+dependencies = [
+ "deploy-toolkit-host",
+ "serde_json",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

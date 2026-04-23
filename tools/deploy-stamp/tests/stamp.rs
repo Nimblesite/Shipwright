@@ -77,7 +77,11 @@ fn stamps_every_manifest_kind() {
         .arg(root)
         .output()
         .unwrap();
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 
     assert!(read(root, "Cargo.toml").contains("version = \"1.2.3\""));
     assert!(read(root, "clients/ts/packages/core/package.json").contains("\"version\": \"1.2.3\""));

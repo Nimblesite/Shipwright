@@ -1,0 +1,33 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "{{PRODUCT_ID}}",
+    "displayName": "{{DISPLAY_NAME}}",
+    "version": "{{VERSION}}"
+  },
+  "components": [
+    {
+      "id": "{{LSP_COMPONENT_ID}}",
+      "kind": "lsp",
+      "language": "rust",
+      "binaryName": "{{LSP_BINARY_NAME}}",
+      "expectedVersion": "${PRODUCT_VERSION}",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
+      "sources": ["github-release", "lsp-initialize"],
+      "githubRelease": {
+        "repo": "{{ORG}}/{{PRODUCT_ID}}",
+        "assetPattern": "{{LSP_BINARY_NAME}}-${version}-${platform}.tar.gz"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "lsp-initialize",
+      "required": true
+    }
+  ],
+  "hosts": {
+    "zed": {
+      "artifact": "zed-wasm",
+      "activationVerifies": ["{{LSP_COMPONENT_ID}}"],
+      "onMismatch": "error"
+    }
+  }
+}

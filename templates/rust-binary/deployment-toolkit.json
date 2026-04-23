@@ -1,5 +1,4 @@
 {
-  "$schema": "https://deployment-toolkit.dev/schemas/deployment-toolkit/v1.json",
   "manifestVersion": 1,
   "product": {
     "id": "{{PRODUCT_ID}}",
@@ -26,6 +25,6 @@
   ],
   "hosts": {
     "cli": { "artifact": "archive", "activationVerifies": ["{{BINARY_NAME}}"], "onMismatch": "error" },
-    "pkgmgr": { "artifact": "brew-formula+scoop-manifest" }
+    "pkgmgr": { "artifact": "brew-formula" }
   }
 }

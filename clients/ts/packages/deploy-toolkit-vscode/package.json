@@ -1,0 +1,30 @@
+{
+  "name": "@deploy-toolkit/vscode",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "VS Code glue for deploy-toolkit: reads deployment-toolkit.json, resolves each component, surfaces prompts to the user.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "vscode": "*"
+  },
+  "peerDependenciesMeta": {
+    "vscode": { "optional": true }
+  },
+  "dependencies": {
+    "@deploy-toolkit/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  }
+}

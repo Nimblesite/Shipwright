@@ -1,0 +1,14 @@
+import * as vscode from "vscode";
+import { activateDeploymentToolkit } from "@deploy-toolkit/vscode";
+
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  const deployment = await activateDeploymentToolkit(context, { vscode });
+  if (!deployment.ok) {
+    return;
+  }
+
+  // Start the real LSP, MCP, commands, and webviews here. Use
+  // deployment.diagnostics to read the resolved binary paths.
+}
+
+export function deactivate(): void {}

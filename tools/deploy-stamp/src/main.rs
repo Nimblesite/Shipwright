@@ -176,10 +176,7 @@ fn is_semver(s: &str) -> bool {
     if !is_dec_digits(maj) || !is_dec_digits(min) {
         return false;
     }
-    let patch = rest
-        .split(['-', '+'])
-        .next()
-        .unwrap_or(rest);
+    let patch = rest.split(['-', '+']).next().unwrap_or(rest);
     is_dec_digits(patch)
 }
 
@@ -204,7 +201,12 @@ struct Summary {
 }
 
 /// Rewrite `Cargo.toml` workspace/package version.
-fn stamp_cargo(root: &Path, version: &str, dry_run: bool, mut s: Summary) -> Result<Summary, StampError> {
+fn stamp_cargo(
+    root: &Path,
+    version: &str,
+    dry_run: bool,
+    mut s: Summary,
+) -> Result<Summary, StampError> {
     let path = root.join("Cargo.toml");
     if !path.is_file() {
         return Ok(s);
@@ -292,7 +294,10 @@ fn replace_package_json_version(src: &str, version: &str) -> Result<Option<Strin
     if !obj.contains_key("version") {
         return Ok(None);
     }
-    let _ = obj.insert("version".to_string(), serde_json::Value::String(version.to_string()));
+    let _ = obj.insert(
+        "version".to_string(),
+        serde_json::Value::String(version.to_string()),
+    );
     let mut out = serde_json::to_string_pretty(&value)?;
     if src.ends_with('\n') && !out.ends_with('\n') {
         out.push('\n');
@@ -518,7 +523,12 @@ fn rfc3339_from_secs(secs: u64) -> String {
 }
 
 /// Howard Hinnant's `civil_from_days` algorithm (public domain).
-#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap, clippy::cast_sign_loss, clippy::arithmetic_side_effects)]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::arithmetic_side_effects
+)]
 fn epoch_days_to_ymd(mut days: i64) -> (i32, u32, u32) {
     days += 719_468;
     let era = if days >= 0 {

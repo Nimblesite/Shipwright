@@ -1,0 +1,38 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "{{PRODUCT_ID}}",
+    "displayName": "{{DISPLAY_NAME}}",
+    "version": "{{VERSION}}"
+  },
+  "components": [
+    {
+      "id": "{{COMPONENT_ID}}",
+      "kind": "sidecar",
+      "language": "dotnet",
+      "binaryName": "{{COMMAND_NAME}}",
+      "expectedVersion": "${PRODUCT_VERSION}",
+      "platforms": ["all"],
+      "sources": ["user-setting", "env", "dotnet-tool", "path", "pkgmgr"],
+      "userSetting": "{{PRODUCT_ID}}.binaries.{{COMPONENT_ID}}",
+      "env": {
+        "pathVar": "{{COMPONENT_ID}}_PATH",
+        "dirVar": "{{PRODUCT_ID}}_BINARY_DIR"
+      },
+      "dotnetTool": {
+        "package": "{{PACKAGE_ID}}",
+        "command": "{{COMMAND_NAME}}"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    }
+  ],
+  "hosts": {
+    "cli": {
+      "artifact": "nuget",
+      "activationVerifies": ["{{COMPONENT_ID}}"],
+      "onMismatch": "error"
+    }
+  }
+}

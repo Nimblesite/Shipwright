@@ -48,7 +48,10 @@ build:
 test:
 	@echo "==> Testing (fail-fast + coverage + threshold)..."
 	rustup component add llvm-tools-preview 2>/dev/null || true
-	cargo llvm-cov --workspace --all-targets --fail-fast --lcov --output-path lcov.info
+	# Stable cargo test is fail-fast at the binary level by default (omits
+	# --no-fail-fast). Per-test --fail-fast requires nightly -Z unstable-options;
+	# install cargo-nextest for true intra-binary fail-fast on stable.
+	cargo llvm-cov --workspace --all-targets --lcov --output-path lcov.info
 	cd tools/validate-manifest && npm install --no-audit --no-fund
 	node --test tests/fixtures.test.mjs
 	$(MAKE) _coverage_check

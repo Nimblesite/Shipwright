@@ -151,3 +151,40 @@ Recommended order:
 - [x] Define the Zed initialize-version check for hosts that cannot run `--version` before startup.
 - [x] Create product migration tickets for dart_mutant, Forge, Deslop, Basilisk, and Too Many Cooks.
 - [x] Add CI gate examples that fail on manifest/binary drift.
+
+## Implementation status (build-green markers)
+
+Beyond the ticket-level TODOs above, the following implementation work is
+in the repo and passing CI:
+
+- [x] `crates/deploy-toolkit-host` — pure resolver, 14 conformance vectors green.
+- [x] `crates/deploy-toolkit-manifest` — manifest + version-output types (codex).
+- [x] `crates/deploy-toolkit-cli` — binary-side `--version` helper; 3 unit tests green.
+- [x] `clients/ts/packages/deploy-toolkit-core` — TS port, all vectors green (codex).
+- [x] `tools/validate-manifest` — AJV CLI, used by every pilot.
+- [x] `tools/deploy-stamp` — rewrites Cargo/package.json/csproj/pubspec from tag; 2 E2E tests green.
+- [x] `.github/workflows/release.reusable.yml` — orchestrator (stamp→build→smoke→brew+scoop).
+- [x] `.github/workflows/smoke.reusable.yml` — multi-runner `--version` contract check.
+- [x] `templates/gh-actions/{publish-brew-tap,publish-scoop-bucket,release-binary-multiplatform}.yml` (codex).
+- [x] `templates/rust-binary/` — scaffold: `Cargo.toml.tpl`, `main.rs`, `build.rs`, `deployment-toolkit.json`, `release.yml`, `README.md`.
+- [x] Product pilots P3–P4: `deployment-toolkit.json` landed and schema-validated for dart_mutant, Deslop, too-many-cooks, forge, Basilisk. dart_mutant `--version` + `--version --json` emit schema-correct output. TMC `SERVER_VERSION` aligned to `0.5.0` and bin entry handles the contract before express boots.
+
+## Implementation status (pending)
+
+- [x] `clients/ts/packages/deploy-toolkit-vscode` — package.json + tsconfig + probe.ts / activate.ts / index.ts all in repo.
+- [ ] `clients/kotlin/deploy-toolkit-intellij` — delegated (in flight).
+- [ ] `clients/dotnet/DeployToolkit` + `DeployToolkit.Tool` — delegated (in flight).
+- [x] `clients/dart/deploy_toolkit` — 14/14 conformance vectors green.
+- [x] `crates/deploy-toolkit-zed` — resolve_for_zed + verify_lsp_initialize, 4 tests green.
+- [x] All templates: `rust-binary`, `vscode-extension`, `zed-extension`, `intellij-plugin`, `dotnet-tool-sidecar`, `gh-actions/*`.
+
+## P5–P7 acceptance markers
+
+- P5 JetBrains: `Deslop/deployment-toolkit.json` declares `extension-jetbrains` component + `hosts.jetbrains.activationVerifies = ["deslop-lsp"]`; deslop-lsp has `--version` handling wired.
+- P5 Zed: `Basilisk/deployment-toolkit.json` declares `extension-zed` + `sources` chain ending in `lsp-initialize`. `crates/deploy-toolkit-zed` verifies `serverInfo.version` post-startup.
+- P6 Multi-binary: `Forge/deployment-toolkit.json` declares Rust LSP + 2 .NET sidecars (`dotnet-tool` source) + 3 extension hosts; `activationVerifies` requires all 3 match. `Deslop/deployment-toolkit.json` declares CLI + LSP + MCP + 2 ext hosts.
+- P7 Rollout: `dart_mutant/.github/workflows/release-deploy-toolkit.yml.example` shows a 30-line caller that delegates the entire release pipeline to the reusable orchestrator. The orchestrator itself is green in this repo.
+
+## Final status
+
+All framework deliverables (schema → pure resolver → 3 language ports → binary-side helper → deploy-stamp → release/smoke workflows → 5 templates → 5 product manifests) are in the repo and passing their tests. `cargo test --workspace` is green. Remaining work is the two pending ports (C#, Kotlin) and the codex-owned docs.

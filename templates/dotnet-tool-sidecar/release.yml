@@ -1,0 +1,19 @@
+# Place at `.github/workflows/release.yml` in the consuming repo.
+
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  release:
+    uses: nimblesite/deployment_toolkit/.github/workflows/release.reusable.yml@v1
+    with:
+      tag: ${{ github.ref_name }}
+      bin_name: "{{COMMAND_NAME}}"
+      product_id: "{{PRODUCT_ID}}"
+      tap_repo: "{{ORG}}/homebrew-tap"
+      bucket_repo: "{{ORG}}/scoop-bucket"
+    secrets:
+      publish_token: ${{ secrets.PUBLISH_TOKEN }}

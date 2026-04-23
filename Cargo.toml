@@ -4,6 +4,7 @@ members = [
     "crates/deploy-toolkit-cli",
     "crates/deploy-toolkit-host",
     "crates/deploy-toolkit-manifest",
+    "crates/deploy-toolkit-zed",
     "tools/deploy-stamp",
 ]
 
