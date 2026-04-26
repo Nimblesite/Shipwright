@@ -50,11 +50,13 @@ Tasks:
 - Add the Deslop product manifest from `fixtures/manifests/deslop.json`.
 - Add contract tests for `deslop`, `deslop-lsp`, and `deslop-mcp` version output.
 - Add VSIX package checks for bundled `deslop-lsp` and `deslop-mcp`.
+- Add VSIX extension tests that remove PATH installs and assert bundled resolver sources.
 - Add JetBrains startup checks for `deslop-lsp`.
 
 Exit criteria:
 
 - Activation fails visibly when a configured or bundled binary reports the wrong version.
+- VSIX tests fail if they resolve `deslop-lsp` or `deslop-mcp` from PATH or build output.
 
 ## DTK-MIG-BASILISK-IDE: Basilisk VS Code and Zed Pilot
 

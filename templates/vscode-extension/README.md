@@ -45,3 +45,9 @@ rm package.json.tpl
 Bundle binaries at `bin/<platform>/<binaryName>` before packaging the VSIX.
 The extension can only continue activation after every component listed in
 `hosts.vscode.activationVerifies` reports the manifest version.
+
+Extension tests must use those staged bundle binaries. Do not point tests at
+`target/release`, a cargo install, npm global install, Homebrew, Scoop, or any
+other PATH-visible binary. Clear binary override environment variables, remove
+PATH-installed product binaries before the test command, and assert the
+resolved source is `bundled`.

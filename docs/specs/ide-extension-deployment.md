@@ -48,6 +48,27 @@ JetBrains packages can use the same layout inside the plugin root.
 
 Zed extensions may download and cache release assets when marketplace packaging prevents bundling native binaries. In that case, the extension MUST validate the server version from LSP initialize before enabling product features.
 
+## Extension Test Isolation
+
+Extension tests MUST prove the installed-package path, not a developer
+machine fallback.
+
+Required test behavior:
+
+1. Stage required binaries inside the extension package or extension
+   development directory before activation.
+2. Clear binary override environment variables such as
+   `PRODUCT_BINARY_DIR`, `PRODUCT_LSP_PATH`, and `PRODUCT_MCP_PATH`.
+3. Remove known locally installed product binaries from PATH before tests.
+4. Fail before activation if a required product binary still resolves on PATH.
+5. Assert that the accepted resolver source for every bundled required
+   component is `bundled`.
+
+Tests MUST NOT point an IDE extension at `target/release`, `~/.cargo/bin`,
+Homebrew, Scoop, npm-global, dotnet tools, or any other external install. A
+missing or stale extension bundle must fail the test instead of being masked by
+a binary installed on the developer or CI runner machine.
+
 ## User Override Settings
 
 Every IDE extension MUST provide a user setting for external binaries.

@@ -101,6 +101,9 @@ VS Code:
 - Bundle native binaries under `bin/<platform>/<binaryName><exe>`.
 - Bundle platform-agnostic tools under `bin/all/<binaryName>`.
 - Surface mismatch errors with expected version, found version, and selected path.
+- Extension tests must stage binaries inside the extension bundle, clear binary
+  override environment variables, remove PATH-installed product binaries, and
+  assert the accepted resolver source is `bundled`.
 
 JetBrains:
 
@@ -130,6 +133,7 @@ VSIX must prove:
 - each required bundled native binary exists under `bin/<platform>/`
 - no unmanifested binary is present for the target platform
 - bundled binary reports `expectedVersion`
+- extension activation tests use the bundled binaries, not `target/release` or PATH
 
 JetBrains must prove:
 

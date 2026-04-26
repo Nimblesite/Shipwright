@@ -37,6 +37,22 @@ Required checks:
 - Zed packages declare `lsp-initialize` for components that cannot be preflighted by subprocess.
 - Package contents include only manifest-listed binaries for the target platform.
 
+## `verify-extension-tests`
+
+Inputs:
+
+- Product test command for the IDE extension.
+- Product `deployment-toolkit.json`.
+- Target platform id.
+
+Required checks:
+
+- The test command stages required binaries inside the extension bundle.
+- Override variables for binary path and binary directory are cleared.
+- Product binaries installed on PATH are removed or cause an immediate failure.
+- Tests assert that every bundled required component resolves from `bundled`.
+- Tests do not use build-output directories such as `target/release` as a resolver source.
+
 ## Startup Contract
 
 Every host library must exercise these resolver cases:
