@@ -5,7 +5,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:deploy_toolkit/deploy_toolkit.dart';
+import 'package:shipwright/shipwright.dart';
 import 'package:test/test.dart';
 
 void main() {

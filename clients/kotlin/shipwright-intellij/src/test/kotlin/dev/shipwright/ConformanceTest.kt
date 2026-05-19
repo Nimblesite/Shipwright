@@ -1,6 +1,6 @@
 /// Runs every vector from `schemas/test-vectors.json` through [resolve].
 
-package dev.deploytoolkit
+package dev.shipwright
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

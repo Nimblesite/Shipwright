@@ -22,7 +22,7 @@ def parse_lcov(path: str) -> dict[str, dict[str, float]]:
         line = raw.strip()
         if line.startswith("SF:"):
             src = line[3:]
-            # Package key = the directory that contains src/ (e.g. deploy-toolkit-manifest)
+            # Package key = the directory that contains src/ (e.g. shipwright-manifest)
             p = Path(src)
             try:
                 # Walk up until we find a part named "src" or "tests", then take its parent

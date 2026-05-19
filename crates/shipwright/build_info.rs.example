@@ -1,24 +1,24 @@
-// Example `build.rs` for any Nimblesite binary that links `deploy-toolkit-cli`.
+// Example `build.rs` for any Nimblesite binary that links `shipwright`.
 // Copy into your crate as `build.rs`.
 //
 // Emits compile-time env vars consumed by the `BuildInfo` struct:
-//   DEPLOY_TOOLKIT_GIT_SHA     (short sha or "unknown")
-//   DEPLOY_TOOLKIT_GIT_DIRTY   ("true" / "false")
-//   DEPLOY_TOOLKIT_BUILD_TIME  (RFC3339 UTC)
-//   DEPLOY_TOOLKIT_TARGET      (rust target triple from Cargo)
-//   DEPLOY_TOOLKIT_TOOLCHAIN   ("rustc <version>")
+//   SHIPWRIGHT_GIT_SHA     (short sha or "unknown")
+//   SHIPWRIGHT_GIT_DIRTY   ("true" / "false")
+//   SHIPWRIGHT_BUILD_TIME  (RFC3339 UTC)
+//   SHIPWRIGHT_TARGET      (rust target triple from Cargo)
+//   SHIPWRIGHT_TOOLCHAIN   ("rustc <version>")
 //
 // Consume in src/main.rs:
 //
-//   use deploy_toolkit_cli::{dispatch, BuildInfo, VersionSpec};
-//   use deploy_toolkit_manifest::{ExecutableKind, Language};
+//   use shipwright::{dispatch, BuildInfo, VersionSpec};
+//   use shipwright_manifest::{ExecutableKind, Language};
 //
 //   let build = BuildInfo {
-//       git_sha:   option_env!("DEPLOY_TOOLKIT_GIT_SHA"),
-//       git_dirty: option_env!("DEPLOY_TOOLKIT_GIT_DIRTY").map(|s| s == "true"),
-//       build_time: option_env!("DEPLOY_TOOLKIT_BUILD_TIME"),
-//       target:    option_env!("DEPLOY_TOOLKIT_TARGET"),
-//       toolchain: option_env!("DEPLOY_TOOLKIT_TOOLCHAIN"),
+//       git_sha:   option_env!("SHIPWRIGHT_GIT_SHA"),
+//       git_dirty: option_env!("SHIPWRIGHT_GIT_DIRTY").map(|s| s == "true"),
+//       build_time: option_env!("SHIPWRIGHT_BUILD_TIME"),
+//       target:    option_env!("SHIPWRIGHT_TARGET"),
+//       toolchain: option_env!("SHIPWRIGHT_TOOLCHAIN"),
 //   };
 //   let spec = VersionSpec {
 //       name: env!("CARGO_PKG_NAME"),
@@ -38,25 +38,25 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed=DEPLOY_TOOLKIT_GIT_SHA");
+    println!("cargo:rerun-if-env-changed=SHIPWRIGHT_GIT_SHA");
 
-    let sha = read_env_or_cmd("DEPLOY_TOOLKIT_GIT_SHA", &["git", "rev-parse", "--short=10", "HEAD"])
+    let sha = read_env_or_cmd("SHIPWRIGHT_GIT_SHA", &["git", "rev-parse", "--short=10", "HEAD"])
         .unwrap_or_else(|| "unknown".into());
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_GIT_SHA={sha}");
+    println!("cargo:rustc-env=SHIPWRIGHT_GIT_SHA={sha}");
 
     let dirty = Command::new("git")
         .args(["status", "--porcelain"])
         .output()
         .map(|o| !o.stdout.is_empty())
         .unwrap_or(false);
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_GIT_DIRTY={}", if dirty { "true" } else { "false" });
+    println!("cargo:rustc-env=SHIPWRIGHT_GIT_DIRTY={}", if dirty { "true" } else { "false" });
 
     let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     // Minimal RFC3339 (UTC seconds); for real output use the `time` crate.
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_BUILD_TIME={}", rfc3339_from_secs(secs));
+    println!("cargo:rustc-env=SHIPWRIGHT_BUILD_TIME={}", rfc3339_from_secs(secs));
 
     if let Ok(target) = std::env::var("TARGET") {
-        println!("cargo:rustc-env=DEPLOY_TOOLKIT_TARGET={target}");
+        println!("cargo:rustc-env=SHIPWRIGHT_TARGET={target}");
     }
 
     let tc = Command::new("rustc")
@@ -66,7 +66,7 @@ fn main() {
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_TOOLCHAIN={tc}");
+    println!("cargo:rustc-env=SHIPWRIGHT_TOOLCHAIN={tc}");
 }
 
 fn read_env_or_cmd(env: &str, cmd: &[&str]) -> Option<String> {

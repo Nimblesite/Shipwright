@@ -1,9 +1,9 @@
-// Pure .NET port of the deploy-toolkit resolver.
+// Pure .NET port of the Shipwright resolver.
 // No I/O: the caller supplies a `probe` function. Public surface mirrors the
 // Rust / TypeScript / Dart / Kotlin ports. Conformance: the shared vectors
 // in `schemas/test-vectors.json` must pass against this implementation.
 
-namespace DeployToolkit;
+namespace Shipwright;
 
 public enum Source
 {
@@ -214,7 +214,7 @@ public static class BinaryResolver
             var r = TrySource(src, input, probe);
             if (r is not null) return r;
         }
-        return Resolution.Error(global::DeployToolkit.ErrorCode.NoSourceResolved);
+        return Resolution.Error(global::Shipwright.ErrorCode.NoSourceResolved);
     }
 
     private static Resolution? TrySource(Source source, ResolveInput input, Probe probe) => source switch
@@ -240,14 +240,14 @@ public static class BinaryResolver
         if (got is null)
         {
             return Resolution.Error(
-                global::DeployToolkit.ErrorCode.UserSettingVersionMismatch,
+                global::Shipwright.ErrorCode.UserSettingVersionMismatch,
                 new ErrorDetails(input.ExpectedVersion, string.Empty, input.UserSettingPath));
         }
-        if (!NameMatches(input, got)) return Resolution.Error(global::DeployToolkit.ErrorCode.BinaryNameMismatch);
+        if (!NameMatches(input, got)) return Resolution.Error(global::Shipwright.ErrorCode.BinaryNameMismatch);
         return got.Version == input.ExpectedVersion
             ? Resolution.Ok(Source.UserSetting, input.UserSettingPath, got.Version)
             : Resolution.Error(
-                global::DeployToolkit.ErrorCode.UserSettingVersionMismatch,
+                global::Shipwright.ErrorCode.UserSettingVersionMismatch,
                 new ErrorDetails(input.ExpectedVersion, got.Version, input.UserSettingPath));
     }
 
@@ -257,10 +257,10 @@ public static class BinaryResolver
         if (path is null) return null;
         var got = probe(path);
         if (got is null) return null;
-        if (!NameMatches(input, got)) return Resolution.Error(global::DeployToolkit.ErrorCode.BinaryNameMismatch);
+        if (!NameMatches(input, got)) return Resolution.Error(global::Shipwright.ErrorCode.BinaryNameMismatch);
         return got.Version == input.ExpectedVersion
             ? Resolution.Ok(Source.Env, path, got.Version)
-            : Resolution.OkWarn(Source.Env, path, got.Version, global::DeployToolkit.WarningCode.EnvVersionMismatch);
+            : Resolution.OkWarn(Source.Env, path, got.Version, global::Shipwright.WarningCode.EnvVersionMismatch);
     }
 
     private static Resolution? TryPath(ResolveInput input, Probe probe)
@@ -271,7 +271,7 @@ public static class BinaryResolver
             var candidate = JoinBinary(entry, input.BinaryName, input.Platform);
             var got = probe(candidate);
             if (got is null) continue;
-            if (!NameMatches(input, got)) return Resolution.Error(global::DeployToolkit.ErrorCode.BinaryNameMismatch);
+            if (!NameMatches(input, got)) return Resolution.Error(global::Shipwright.ErrorCode.BinaryNameMismatch);
             if (got.Version == input.ExpectedVersion) return Resolution.Ok(Source.Path, candidate, got.Version);
         }
         return null;
@@ -283,10 +283,10 @@ public static class BinaryResolver
         var candidate = JoinBinary(input.BundledDir, input.BinaryName, input.Platform);
         var got = probe(candidate);
         if (got is null) return null;
-        if (!NameMatches(input, got)) return Resolution.Error(global::DeployToolkit.ErrorCode.BinaryNameMismatch);
+        if (!NameMatches(input, got)) return Resolution.Error(global::Shipwright.ErrorCode.BinaryNameMismatch);
         return got.Version == input.ExpectedVersion
             ? Resolution.Ok(Source.Bundled, candidate, got.Version)
-            : Resolution.OkWarn(Source.Bundled, candidate, got.Version, global::DeployToolkit.WarningCode.BundledVersionDrift);
+            : Resolution.OkWarn(Source.Bundled, candidate, got.Version, global::Shipwright.WarningCode.BundledVersionDrift);
     }
 
     private static Resolution? TryDotnetTool(ResolveInput input, Probe probe)

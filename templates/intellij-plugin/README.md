@@ -8,7 +8,7 @@ or user-selected binaries before the plugin starts language services.
 - `build.gradle.kts.tpl` — rename to `build.gradle.kts` and substitute
   placeholders.
 - `src/main/resources/META-INF/plugin.xml.tpl` — rename to `plugin.xml`.
-- `src/main/kotlin/DeployToolkitStartupActivity.kt` — startup verification
+- `src/main/kotlin/ShipwrightStartupActivity.kt` — startup verification
   hook using `shipwright-intellij`.
 - `shipwright.json` — plugin manifest with bundled binary layout.
 

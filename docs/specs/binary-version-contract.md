@@ -103,7 +103,25 @@ The expected version comes from `shipwright.json`. Version comparison rules:
 4. Preserve and compare build metadata exactly unless the manifest declares `ignoreBuildMetadata: true`.
 5. Treat an unparsable or missing version as a mismatch.
 
-User overrides MUST NOT bypass this check. A configured path, environment override, PATH discovery result, bundled binary, downloaded asset, or package-manager install result all go through the same comparison.
+User overrides MUST NOT bypass this check. A configured path, environment override, bundled binary, downloaded asset, or repair-installed binary all go through the same comparison.
+
+## [SWR-VERSION-BUILD-STAMPING] Build-Time Version Stamping
+
+Source-controlled version files SHOULD use the valid semantic placeholder `0.0.0-dev`.
+Release and package jobs MUST treat the release version as an explicit build input and stamp the
+runner working tree before compiling, verifying, or packaging artifacts.
+
+Rules:
+
+1. The tag-triggered release MUST build the exact tagged source SHA.
+2. Release jobs MUST NOT commit, push, or move source-control refs after the tag exists.
+3. Stamping MUST be implemented as a first-class script or build target that accepts the version.
+4. Tests MUST be able to pass an arbitrary semantic version into the same stamper.
+5. Stamping MUST update every deployed version carrier: project manifests, package manifests,
+   lock files that carry project versions, `shipwright.json` product version, and every component
+   `expectedVersion`.
+6. Stamping MUST use structured parsers for structured files. Ad hoc `sed` rewrites of JSON, YAML,
+   TOML, XML, or lock files are not acceptable.
 
 ## Product Manifest
 
@@ -114,7 +132,7 @@ Each package that launches binaries MUST include `shipwright.json`. Minimal exam
   "manifestVersion": 1,
   "product": {
     "id": "my-tool",
-    "version": "1.2.3"
+    "version": "0.0.0-dev"
   },
   "components": [
     {
@@ -122,7 +140,7 @@ Each package that launches binaries MUST include `shipwright.json`. Minimal exam
       "kind": "lsp",
       "language": "rust",
       "binaryName": "my-tool-lsp",
-      "expectedVersion": "1.2.3",
+      "expectedVersion": "0.0.0-dev",
       "required": true
     }
   ]
@@ -150,4 +168,5 @@ Every product repo MUST include tests that prove:
 3. Protocol initialization reports the same version.
 4. A mismatched configured path causes a visible startup error.
 5. A matching bundled binary starts successfully.
-6. A PATH binary with the wrong version is rejected in favor of a matching bundled binary.
+6. Test-time version stamping updates every deployed version carrier.
+7. A packaged artifact contains the stamped manifest and binaries reporting the stamped version.

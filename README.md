@@ -1,6 +1,6 @@
 # Shipwright
 
-Shipwright is a Shipwright for teams shipping binaries and IDE extensions that must stay version-matched across multiple ecosystems and package registries.
+Shipwright is a shared deployment contract for teams shipping binaries and IDE extensions that must stay version-matched across multiple ecosystems and package registries.
 
 It defines the version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them.
 

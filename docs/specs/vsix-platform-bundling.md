@@ -147,9 +147,13 @@ Shipwright's `activateShipwright()` abstracts this — it reads `shipwright.json
 - Each VSIX MUST be built with: `npx vsce package --target <vsceTarget>`
 - `package.json` `engines.vscode` MUST be `^1.99.0` or later. Platform-specific VSIX support was introduced in VS Code 1.61 / vsce 1.99.0; the minimum enforces correct Marketplace routing.
 - The `npm_config_arch` environment variable MUST be set during `npm install` to match the target architecture. This ensures native npm modules compile for the correct arch.
-- Output filename convention: `<extensionName>-<vsceTarget>.vsix` (e.g. `deslop-darwin-arm64.vsix`).
+- Output filename convention: `<extensionName>-<version>-<vsceTarget>.vsix` (e.g. `deslop-1.2.3-darwin-arm64.vsix`). The target suffix is mandatory when the artifact is renamed.
 - Pre-release builds: append `--pre-release` to the `vsce package` command.
 - Do NOT publish from a developer machine. The publish step is CI-only (see [SWR-VSIX-PUBLISH]).
+- Native-binary extensions MUST NOT produce a single all-platform VSIX. One target-specific VSIX
+  per `vsceTarget` is required.
+- The release or test version MUST be stamped into the runner working tree before `vsce package`
+  runs. See [SWR-VERSION-BUILD-STAMPING](binary-version-contract.md#swr-version-build-stamping).
 
 ## [SWR-VSIX-CI-MATRIX] GitHub Actions Matrix Strategy
 
@@ -291,7 +295,8 @@ Summary:
 
 This section implements `SWR-GATE-verify-extension-package` for VS Code artifacts.
 
-After `vsce package`, the CI job MUST verify the staged binary is present in the VSIX:
+After `vsce package`, the CI job MUST verify the produced VSIX contents. Presence-only `grep` checks
+are not enough for native-binary extensions.
 
 ```bash
 # SWR-VSIX-VERIFY
@@ -302,4 +307,15 @@ unzip -l *.vsix | grep -F "bin/${{ matrix.platform }}/${{ inputs.binary_name }}$
 
 A zero exit code confirms the binary is present at the correct path. This check MUST fail the job if the binary is missing.
 
-For extensions with multiple components, run the grep for each component binary.
+For extensions with multiple components, verify each component binary.
+
+The verifier MUST also fail when any of these are present:
+
+1. A foreign platform directory under `bin/`.
+2. A native binary under `bin/all/`.
+3. A deployed manifest or package manifest still carrying the source placeholder instead of the
+   stamped version.
+4. Compiled test output such as `out/`, source trees such as `src/`, or unbundled `node_modules/`
+   except the exact Microsoft-style platform package whitelist.
+5. Runtime caches, post-install binary copies, or protocol runtime directories such as `--stdio/`,
+   `.shipwright-cache/`, or product-specific cache folders.

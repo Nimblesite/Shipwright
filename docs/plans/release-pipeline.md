@@ -29,21 +29,29 @@ Shipwright is a generic, portfolio-shareable toolkit consumed by downstream prod
 
 ### 1.1 Single Source of Truth
 
-The canonical version lives in `/Cargo.toml` under `[workspace.package] version`. No version field in any other file is edited by hand — every bump goes through `shipwright-version-stamp`.
+Source-controlled deployable versions stay at the valid semantic placeholder `0.0.0-dev`. The
+release version is an explicit build input derived from the `v*` tag, and every deployed version
+field is stamped in the runner working tree before build, verification, packaging, or publish.
+
+No release workflow may commit, push, or move refs after the tag exists.
 
 ### 1.2 shipwright-version-stamp Invocation
 
 ```bash
-# Dry-run first, then write
+# Dry-run first, then stamp the local/runner working tree only
 shipwright-version-stamp --tag v1.2.3 --root . --dry-run
 shipwright-version-stamp --tag v1.2.3 --root .
 ```
+
+Tests must be able to pass an arbitrary semantic version into the same stamper. The stamper must
+use structured parsers for structured files; no ad hoc `sed` version rewrites.
 
 `build.gradle.kts` is not yet handled — see gap SWR-REL-GAP-GRADLE-STAMP.
 
 ### 1.3 Version Consistency Verification — SWR-REL-VERSION-VERIFY
 
-`scripts/verify-versions.sh` asserts every manifest agrees with the release tag before any publish job runs. It checks:
+`scripts/verify-versions.sh` asserts every stamped manifest agrees with the release tag before any
+publish job runs. It checks the runner working tree after `shipwright-version-stamp` has executed:
 
 1. `version` in root `Cargo.toml` `[workspace.package]`
 2. `version` in every `package.json` (excluding `node_modules/`, `target/`)
@@ -58,7 +66,9 @@ shipwright-version-stamp --tag v1.2.3 --root .
 All items must pass before the release tag is pushed.
 
 1. **SWR-REL-PRERELEASE-CHANGELOG** — `CHANGELOG.md` at repo root has an entry for the new version.
-2. **SWR-REL-PRERELEASE-PR** — A PR titled `chore: release v{version}` is merged to `main`. It contains only version bumps, `build-info.json`, and the CHANGELOG entry. No code changes.
+2. **SWR-REL-PRERELEASE-PR** — A PR titled `chore: prepare release v{version}` is merged to
+   `main`. It contains the changelog/release metadata only. It MUST NOT contain source version
+   bumps.
 3. **SWR-REL-PRERELEASE-CI** — `make ci` passes on the release commit.
 4. **SWR-REL-PRERELEASE-MANIFEST** — Fixture validation passes (`make lint` already includes this).
 5. **SWR-REL-PRERELEASE-COVERAGE** — `make test` satisfies the threshold in `coverage-thresholds.json`.
@@ -183,7 +193,9 @@ cd clients/kotlin/shipwright-intellij
 
 ### 8.1 Tag Strategy
 
-Single annotated tag `v{version}` pushed to `main` after the release PR merges.
+Single annotated tag `v{version}` pushed to the prepared `main` commit after the release PR merges.
+That tagged commit still carries source placeholders; release jobs stamp the tag version in their
+runner working trees and build the exact tagged SHA.
 
 ```bash
 git tag -a v0.2.0 -m "Release v0.2.0"
@@ -271,7 +283,7 @@ ci-gate (make ci)
 ## 11. Post-Release — SWR-REL-POSTRELEASE
 
 1. Verify `build-info.json` at repo root reflects the released version.
-2. Open a follow-up PR bumping the workspace version to the next pre-release (e.g. `0.2.0-dev`).
+2. Verify source-controlled project versions remain at the placeholder.
 3. Ratchet `coverage-thresholds.json` to the measured value (never lower).
 4. Notify downstream consumers to update their dependency versions.
 
@@ -381,10 +393,11 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 
 - [ ] Write `## [0.1.0] - YYYY-MM-DD` entry in `CHANGELOG.md`
 - [ ] Run `shipwright-version-stamp --tag v0.1.0 --root . --dry-run` and verify all files shown
-- [ ] Run `scripts/verify-versions.sh 0.1.0` — must exit 0
+- [ ] Run `shipwright-version-stamp --tag v0.1.0 --root <temp-copy>` and verify tests can stamp a non-source working tree
+- [ ] Run `scripts/verify-versions.sh 0.1.0` against the stamped tree — must exit 0
 - [ ] Confirm `make ci` passes on `main`
-- [ ] Commit on branch `chore/release-v0.1.0`, open PR, merge to `main`
+- [ ] Commit release notes/metadata on branch `chore/release-v0.1.0`, open PR, merge to `main`
 - [ ] Push annotated tag: `git tag -a v0.1.0 -m "Release v0.1.0" && git push origin v0.1.0`
 - [ ] Monitor `release.yml` workflow run
 - [ ] Ratchet `coverage-thresholds.json` to measured coverage value
-- [ ] Open follow-up PR bumping workspace version to `0.2.0-dev`
+- [ ] Confirm source-controlled versions are still `0.0.0-dev`

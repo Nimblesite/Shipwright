@@ -3,7 +3,7 @@ plugins {
     `maven-publish`
 }
 
-group = "dev.deploytoolkit"
+group = "dev.shipwright"
 version = "0.1.0"
 
 repositories {

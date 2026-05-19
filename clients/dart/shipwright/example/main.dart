@@ -1,11 +1,14 @@
-// Minimal usage example for the deploy_toolkit package.
-// DTK-REL-DART-SCORE
-import 'package:deploy_toolkit/deploy_toolkit.dart';
+// Minimal usage example for the shipwright package.
+import 'package:shipwright/shipwright.dart';
 
-Future<void> main() async {
-  final resolver = DeployToolkitResolver();
-  final result = await resolver.resolve(
-    manifestPath: 'deployment-toolkit.json',
+void main() {
+  final input = ResolveInput(
+    binaryName: 'my-lsp',
+    expectedVersion: '0.1.0',
+    sources: const [Source.bundled, Source.path],
+    bundledDir: 'bin/darwin-arm64',
   );
-  print('Resolved: $result');
+
+  final result = resolve(input, (_) => null);
+  print('Resolved: ${result.status.wire}');
 }

@@ -100,10 +100,14 @@ VS Code:
 
 - Load `shipwright.json` from the extension package.
 - Use `@nimblesite/shipwright-vscode` for resolution.
-- Resolve in this order: user setting, env, bundled, package manager/tool, PATH.
+- Resolve in this order: user setting, env, bundled.
+- Do not inspect PATH, mutate PATH, run `which`/`where`, or use package-manager/global installs
+  as normal VS Code startup sources. Package managers are explicit repair flows only.
 - Accept a user-configured binary only when its version matches.
 - Bundle native binaries under `bin/<vsceTarget>/<binaryName><exe>` where `vsceTarget` equals the platform id (e.g. `darwin-arm64`). See `schemas/platforms.json`.
 - Bundle platform-agnostic tools under `bin/all/<binaryName>`.
+- Execute bundled VSIX binaries directly from the unpacked extension folder. Do not copy them to
+  another directory during install or activation.
 - Surface mismatch errors with expected version, found version, and selected path.
 - Extension tests must stage binaries inside the extension bundle, clear binary override environment variables, remove PATH-installed product binaries, and assert the accepted resolver source is `bundled`.
 - `package.json` `engines.vscode` must be `^1.99.0` or later.
@@ -112,7 +116,8 @@ VS Code:
 JetBrains:
 
 - Load `shipwright.json` from plugin root.
-- Resolve user setting, env, package manager/tool, and PATH before LSP descriptor startup.
+- Resolve user setting, env, and bundled plugin binary before LSP descriptor startup.
+- Package managers are explicit repair flows, not startup sources.
 - Report failures through notifications/Event Log with expected and found versions.
 
 Zed:
@@ -132,6 +137,9 @@ VSIX must prove:
 - No unmanifested binary is present for the target platform.
 - Bundled binary reports `expectedVersion`.
 - Extension activation tests use bundled binaries, not `target/release` or PATH.
+- Native VSIX packages contain exactly one `bin/<vsceTarget>/` directory and no foreign platform bins.
+- VSIX artifacts do not contain `out/`, source trees, unbundled `node_modules/`, runtime caches, or
+  post-install binary copies.
 
 Verify binary presence in the VSIX automatically (see [SWR-VSIX-VERIFY] in `docs/specs/vsix-platform-bundling.md`):
 
@@ -185,10 +193,10 @@ crates/shipwright-host/src/lib.rs
 Required behavior:
 
 - user setting mismatch is a hard error
-- PATH mismatch is skipped in favor of later sources
-- env mismatch is accepted with a warning
-- bundled mismatch is accepted with a warning
-- missing package-manager binaries return a prompt action
+- env mismatch is a hard error for required components
+- bundled mismatch is a hard error for required components
+- PATH and global package-manager installs are not normal startup sources
+- package-manager repair returns a prompt action
 - Zed-style `lsp-initialize` returns a deferred check
 - Windows platforms append `.exe`
 

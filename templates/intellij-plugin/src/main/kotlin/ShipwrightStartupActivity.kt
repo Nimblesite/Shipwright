@@ -1,11 +1,11 @@
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
-import dev.deploytoolkit.intellij.BinaryResolver
+import dev.shipwright.intellij.BinaryResolver
 
-class DeployToolkitStartupActivity : StartupActivity.DumbAware {
+class ShipwrightStartupActivity : StartupActivity.DumbAware {
     override fun runActivity(project: Project) {
         val result = BinaryResolver
-            .forPlugin(DeployToolkitStartupActivity::class.java)
+            .forPlugin(ShipwrightStartupActivity::class.java)
             .verifyHost("jetbrains")
 
         if (!result.ok) {

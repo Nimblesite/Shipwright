@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.deploytoolkit:deploy-toolkit-intellij:0.1.0")
+    implementation("dev.shipwright:shipwright-intellij:0.1.0")
     intellijPlatform {
         intellijIdeaCommunity("2024.3")
     }

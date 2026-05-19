@@ -1,10 +1,10 @@
-/// JVM port of the deploy-toolkit resolver.
+/// JVM port of the Shipwright resolver.
 ///
 /// Pure: no I/O, caller supplies a [Probe]. Public surface mirrors the
 /// Rust / TypeScript / Dart ports so the shared conformance vectors
 /// (`schemas/test-vectors.json`) apply unchanged.
 
-package dev.deploytoolkit
+package dev.shipwright
 
 // ── Enum wire-forms ─────────────────────────────────────────────────────────
 

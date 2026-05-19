@@ -9,6 +9,10 @@ Status: Draft
 
 IDE extensions using Shipwright must install with minimal friction while guaranteeing that the matching binaries are present and compatible. A user should normally install one VSIX, JetBrains plugin, Zed extension, or package-manager entry and get the right language server, MCP server, CLI, sidecar, and helper tools without manual setup.
 
+For VS Code extensions with native binaries, the Microsoft platform-specific sample is authoritative:
+the installed extension package is the runtime source. The extension MUST execute the binary from
+the unpacked extension directory, not from PATH or a package-manager global install.
+
 ## Required Startup Behavior
 
 Every IDE extension MUST validate required binaries before reporting itself ready.
@@ -29,6 +33,10 @@ The extension MUST NOT silently continue with a missing or incompatible binary.
 VSIX and JetBrains plugin packages MUST bundle required runtime binaries by default.
 
 Directory names under `bin/` are `vsceTarget` values from `schemas/platforms.json` (e.g. `darwin-arm64`, `win32-x64`). The full VSIX packaging pipeline — build matrix, binary staging, `vsce package --target`, content verification, and Marketplace publish — is specified in [vsix-platform-bundling.md](vsix-platform-bundling.md).
+
+VS Code MUST use the files unpacked by VS Code into the extension directory as-is. It MUST NOT copy
+bundled binaries to another runtime directory during installation or activation, and it MUST NOT
+create a per-user binary cache for bundled VSIX contents.
 
 Normative layout:
 
@@ -76,7 +84,6 @@ Supported forms:
 
 1. A binary directory containing all required components.
 2. A per-component absolute path.
-3. A PATH mode that accepts system-installed binaries only when versions match.
 
 The override is a resolver input, not a bypass. If a user points to a mismatched binary, the extension MUST stop startup and report the expected and found versions.
 
@@ -94,11 +101,14 @@ For each component, resolvers SHOULD use this order:
 
 1. Explicit per-component path.
 2. Explicit binary directory.
-3. Bundled package binary.
-4. Managed package cache or extension-managed download.
-5. PATH or package-manager global install.
+3. Explicit environment override, if the host documents one.
+4. Bundled package binary.
+5. Managed extension download/cache only where marketplace packaging prevents bundling.
 
-PATH is last because a global install is the easiest place to accidentally pick up an older binary. A matching PATH binary may be used, but a mismatched PATH binary must not block a matching bundled binary.
+VS Code native-binary extensions MUST stop at the bundled package binary unless the user explicitly
+configured an absolute override. They MUST NOT inspect PATH, prepend or append to PATH, shell out to
+`which`/`where`, or use Homebrew, Scoop, npm-global, Cargo, dotnet tools, or any other global package
+manager as a normal startup source.
 
 If the user explicitly configured a path and it mismatches, do not fall back. The user needs a precise error so they can fix the configured path.
 
@@ -204,4 +214,5 @@ Every host resolver library MUST provide:
 4. `--version` execution where host permits.
 5. Protocol handshake fallback where host cannot execute preflight commands.
 6. Consistent diagnostic objects.
-7. Tests for env override, configured path, bundled binary, PATH fallback, missing binary, and mismatch.
+7. Tests for env override, configured path, bundled binary, missing binary, mismatch, and rejection
+   of PATH/global-install fallback during normal startup.

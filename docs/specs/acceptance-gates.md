@@ -64,8 +64,8 @@ Every host library must exercise these resolver cases:
 - Configured directory containing the binary.
 - Environment path and directory overrides.
 - Bundled binary.
-- Package manager or dotnet/npm tool fallback.
-- PATH fallback.
+- Explicit package-manager repair prompt.
+- Rejection of PATH/global-install fallback during normal startup.
 - Version mismatch.
 - Missing binary.
 - Required component failure.

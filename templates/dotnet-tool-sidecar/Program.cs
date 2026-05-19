@@ -1,5 +1,5 @@
 using System.Reflection;
-using DeployToolkit;
+using Shipwright;
 
 var version = typeof(Program)
     .Assembly

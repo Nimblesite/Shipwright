@@ -1,1 +1,1 @@
-rootProject.name = "deploy-toolkit-intellij"
+rootProject.name = "shipwright-intellij"

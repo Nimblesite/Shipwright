@@ -12,7 +12,7 @@
   "files": [
     "dist",
     "bin",
-    "deployment-toolkit.json",
+    "shipwright.json",
     "package.json",
     "README.md"
   ],
@@ -44,7 +44,7 @@
     "prepackage": "npm run compile"
   },
   "dependencies": {
-    "@deploy-toolkit/vscode": "^0.1.0"
+    "@nimblesite/shipwright-vscode": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

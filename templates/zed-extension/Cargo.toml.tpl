@@ -8,5 +8,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-deploy-toolkit-zed = "0.1.0"
+shipwright-zed = "0.1.0"
 zed_extension_api = "0.5"

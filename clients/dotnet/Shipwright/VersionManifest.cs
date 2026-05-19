@@ -3,7 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace DeployToolkit;
+namespace Shipwright;
 
 /// <summary>How a binary was invoked w.r.t. the --version contract.</summary>
 public enum VersionMode { NotRequested, Plain, Json }
@@ -23,7 +23,7 @@ public sealed record VersionSpec(
     string? Toolchain = null
 );
 
-/// <summary>Emit the deploy-toolkit `--version` contract from a .NET binary.</summary>
+/// <summary>Emit the Shipwright `--version` contract from a .NET binary.</summary>
 public static class VersionManifest
 {
     private static readonly JsonSerializerOptions Json = new()

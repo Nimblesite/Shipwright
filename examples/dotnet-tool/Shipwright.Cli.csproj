@@ -13,8 +13,8 @@
     <Authors>NIMBLESITE PTY LTD</Authors>
     <Description>Shipwright — dotnet global tool for the Shipwright version contract.</Description>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/nimblesite/deployment_toolkit</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/nimblesite/deployment_toolkit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Nimblesite/Shipwright</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Nimblesite/Shipwright</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>shipwright deployment versioning ide-extension binary</PackageTags>
     <IncludeSymbols>true</IncludeSymbols>

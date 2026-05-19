@@ -13,18 +13,36 @@ Audit the repository at `$ARGUMENTS` (or the current working directory if no arg
 **You are a process wrapper around the specs. Do not invent rules. Every finding MUST cite a spec ID from the Shipwright repo.**
 
 Shipwright specs live at:
-`https://github.com/MelbourneDeveloper/deployment_toolkit/tree/main/docs/specs/`
+`https://github.com/Nimblesite/Shipwright/tree/main/docs/specs/`
 
 Individual spec files (reference these URLs, not file paths):
-- Binary version contract: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/binary-version-contract.md`
-- IDE extension deployment: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/ide-extension-deployment.md`
-- VSIX platform bundling: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/vsix-platform-bundling.md`
-- Binary signing and notarization: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/binary-signing-notarization.md`
-- Compatibility matrix: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/compatibility-matrix.md`
-- Acceptance gates: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/acceptance-gates.md`
-- Library architecture: `https://github.com/MelbourneDeveloper/deployment_toolkit/blob/main/docs/specs/library-architecture.md`
+- Binary version contract: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/binary-version-contract.md`
+- IDE extension deployment: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/ide-extension-deployment.md`
+- VSIX platform bundling: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/vsix-platform-bundling.md`
+- Binary signing and notarization: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/binary-signing-notarization.md`
+- Compatibility matrix: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/compatibility-matrix.md`
+- Acceptance gates: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/acceptance-gates.md`
+- Library architecture: `https://github.com/Nimblesite/Shipwright/blob/main/docs/specs/library-architecture.md`
 
 **Never cite a local file path. Always cite the GitHub URL above plus the spec ID (e.g. `[SWR-VSIX-PACKAGE]`).**
+
+## Critical Fail-Fast Rules
+
+These are release blockers, not style findings:
+
+- For VS Code extensions with native binaries, Microsoft's platform-specific sample is authoritative.
+  A normal startup path that reads PATH, mutates PATH, shells out to `which`/`where`, copies bundled
+  binaries after install, or uses package-manager/global installs as a runtime source is FAIL.
+- Native VSIX packages MUST be one VSIX per target via `npx vsce package --target <vsceTarget>`.
+  A single all-platform native VSIX is FAIL.
+- Target-specific VSIX filenames MUST include the target suffix when renamed, and each VSIX MUST
+  contain exactly the expected `bin/<vsceTarget>/` contents with no foreign platform binaries.
+- Produced VSIX artifacts MUST be inspected. Fail if the artifact contains unstamped placeholders,
+  missing or undeclared binaries, `out/`, source trees, unbundled `node_modules/`, runtime caches, or
+  post-install binary copies.
+- Source-controlled versions SHOULD stay at `0.0.0-dev`. Release/test version stamping MUST be a
+  first-class script or build input, and tag-triggered releases MUST NOT commit or push version bumps
+  after the tag exists. See `[SWR-VERSION-BUILD-STAMPING]`.
 
 ---
 
@@ -53,6 +71,8 @@ Skip sections that are N/A for the detected shape. State why.
    If the Shipwright repo path is unknown, note it as unverifiable and flag it.
 3. Does every executable component in `components[]` have a `binaryName`, `expectedVersion`, `language`, and `platforms`?
 4. Are platform IDs from the canonical set (`darwin-arm64`, `darwin-x64`, `linux-x64`, `linux-arm64`, `win32-x64`, `win32-arm64`, `all`)? See `[SWR-VSIX-TARGETS]`.
+5. Are source-controlled versions placeholders such as `0.0.0-dev`, with a first-class release/test
+   stamper that updates every deployed version carrier? See `[SWR-VERSION-BUILD-STAMPING]`.
 
 ### 3. Binary Version Contract — `[SWR-VERSION-CONTRACT]`
 
@@ -75,7 +95,8 @@ Skip entirely if no IDE extension is present.
 3. Are platform-agnostic binaries under `bin/all/<binaryName>`? See `[SWR-VSIX-LAYOUT]`.
 4. Does `.vscodeignore` exclude all other platform directories and follow the correct pattern (Pattern A or B)? See `[SWR-VSIX-LAYOUT]`.
 5. Does the extension use `@nimblesite/shipwright-vscode` for binary resolution? See `[SWR-IDE-RESOLUTION]`.
-6. Does resolution order follow: user setting → env → bundled → package manager → PATH? See `[SWR-IDE-RESOLUTION-ORDER]`.
+6. Does resolution order follow: user setting/env override → bundled? Any PATH/package-manager
+   runtime fallback is FAIL. See `[SWR-IDE-RESOLUTION-ORDER]`.
 7. Does the extension surface mismatch errors with expected version, found version, and selected path? See `[SWR-IDE-ERROR]`.
 8. For `.NET` sidecar components:
    - Is `ms-dotnettools.vscode-dotnet-runtime` in `extensionDependencies`? See `[SWR-IDE-DOTNET-RUNTIME]`.
@@ -87,7 +108,8 @@ Skip entirely if no IDE extension is present.
 #### JetBrains
 
 1. Does the plugin load `shipwright.json` from plugin root?
-2. Does resolution check user setting → env → package manager → PATH before LSP startup?
+2. Does resolution check user setting → env → bundled plugin binary before LSP startup, without
+   PATH/package-manager startup fallback?
 3. Are failures reported through notifications/Event Log with expected and found versions? See `[SWR-IDE-ERROR]`.
 
 #### Zed
@@ -105,8 +127,10 @@ Skip if no VS Code extension.
 3. Is Node version `22.x` in CI? See `[SWR-VSIX-CI-MATRIX]`.
 4. Is `npm_config_arch` set per matrix leg during `npm install`? See `[SWR-VSIX-CI-MATRIX]`.
 5. Does the publish job run on tag only, after all build jobs succeed, in a single atomic step? See `[SWR-VSIX-PUBLISH]`.
-6. Does CI verify binary presence with `unzip -l` after packaging? See `[SWR-VSIX-VERIFY]`.
-7. Is the reusable workflow `publish-vsix-per-platform.yml` from `templates/gh-actions/` used (or a faithful equivalent)? See `[SWR-VSIX-CI-MATRIX]`.
+6. Does CI verify full VSIX contents after packaging, including no foreign platform bins, no
+   unstamped placeholders, no `out/`, no source trees, and no unbundled `node_modules/`? See `[SWR-VSIX-VERIFY]`.
+7. Is each renamed VSIX target-suffixed and version-stamped? See `[SWR-VSIX-PACKAGE]`.
+8. Is the reusable workflow `publish-vsix-per-platform.yml` from `templates/gh-actions/` used (or a faithful equivalent)? See `[SWR-VSIX-CI-MATRIX]`.
 
 ### 6. Binary Signing and Notarization — `[SWR-SIGN-*]`
 

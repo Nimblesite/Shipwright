@@ -1,10 +1,10 @@
 // Runs every vector from `schemas/test-vectors.json` through BinaryResolver.Resolve.
 
 using System.Text.Json;
-using DeployToolkit;
+using Shipwright;
 using Xunit;
 
-namespace DeployToolkit.Tests;
+namespace Shipwright.Tests;
 
 public class ConformanceTests
 {

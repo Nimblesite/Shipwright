@@ -1,18 +1,18 @@
 # `shipwright-intellij`
 
-JVM / Kotlin port of the shipwright resolver. Drop-in for IntelliJ
+JVM / Kotlin port of the Shipwright resolver. Drop-in for IntelliJ
 plugins and any JVM consumer that needs the same binary-resolution
 algorithm as the Rust / TypeScript / Dart ports.
 
 - Conformance: passes every vector in `schemas/test-vectors.json`.
-- Package: `dev.deploytoolkit:intellij` (generic, not company-branded).
+- Package: `dev.shipwright:intellij` (generic, not company-branded).
 - No IntelliJ platform dependencies at the resolver layer; an optional
   platform adapter lives in a separate module once it exists upstream.
 
 ## Usage
 
 ```kotlin
-import dev.deploytoolkit.*
+import dev.shipwright.*
 
 val resolution = resolve(
   ResolveInput(

@@ -11,6 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DeployToolkit" Version="0.1.0" />
+    <PackageReference Include="Shipwright" Version="0.1.0" />
   </ItemGroup>
 </Project>

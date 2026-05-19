@@ -1,6 +1,6 @@
 # agent-pmo:f481f8d
 # =============================================================================
-# Standard Makefile — deployment_toolkit
+# Standard Makefile — Shipwright
 # Cross-platform: Linux, macOS, Windows (via GNU Make)
 # Multi-language: Rust workspace (crates/) + Node tooling (tools/, tests/).
 # =============================================================================
@@ -144,7 +144,7 @@ build-nuget:
 
 ## build-dart: Validate the Dart package (pub get + analyze)
 build-dart:
-	cd clients/dart/deploy_toolkit && dart pub get && dart analyze
+	cd clients/dart/shipwright && dart pub get && dart analyze
 
 ## deploy-skill-claude: Install the shipwright-audit skill into ~/.claude/skills/
 deploy-skill-claude:

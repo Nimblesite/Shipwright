@@ -1,6 +1,6 @@
 /// Pure resolver: no I/O, caller supplies `probe`.
 
-/// Ordered discovery sources declared in `deployment-toolkit.schema.json`.
+/// Ordered discovery sources declared in `shipwright.schema.json`.
 enum Source {
   userSetting,
   env,

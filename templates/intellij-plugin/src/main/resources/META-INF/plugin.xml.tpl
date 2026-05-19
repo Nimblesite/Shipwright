@@ -6,6 +6,6 @@
   <depends>com.intellij.modules.platform</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <postStartupActivity implementation="DeployToolkitStartupActivity" />
+    <postStartupActivity implementation="ShipwrightStartupActivity" />
   </extensions>
 </idea-plugin>
