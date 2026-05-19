@@ -1,10 +1,10 @@
-# Deployment Toolkit Product Migration Tickets
+# Shipwright Product Migration Tickets
 
 Status: Draft
 
 These tickets are Nimblesite-specific because they track the first product migrations. The reusable libraries they adopt must keep generic package names.
 
-## DTK-MIG-DART-MUTANT-CLI: dart_mutant CLI Pilot
+## SWR-MIG-DART-MUTANT-CLI: dart_mutant CLI Pilot
 
 Goal:
 
@@ -12,16 +12,16 @@ Goal:
 
 Tasks:
 
-- Add `deployment-toolkit.json` from `fixtures/manifests/dart-mutant.json`.
+- Add `shipwright.json` from `fixtures/manifests/dart-mutant.json`.
 - Add text and JSON `--version` output using the shared helper once available.
-- Add CI that runs `deploy-toolkit-validate-manifest deployment-toolkit.json`.
+- Add CI that runs `shipwright-validate-manifest shipwright.json`.
 - Add CI that checks the built binary reports `dart-mutant 0.1.0`.
 
 Exit criteria:
 
 - CLI release fails on manifest/version drift.
 
-## DTK-MIG-FORGE-MULTI-BINARY: Forge Multi-Binary Pilot
+## SWR-MIG-SHARPLSP-MULTI-BINARY: SharpLsp Multi-Binary Pilot
 
 Goal:
 
@@ -29,7 +29,7 @@ Goal:
 
 Tasks:
 
-- Add the Forge product manifest from `fixtures/manifests/forge.json`.
+- Add the SharpLsp product manifest from `fixtures/manifests/sharplsp.json`.
 - Add Rust LSP version output.
 - Add .NET sidecar JSON version output for C# and F# sidecars.
 - Add VSIX and JetBrains startup checks before language server ready state.
@@ -37,9 +37,9 @@ Tasks:
 
 Exit criteria:
 
-- Forge CI fails if any sidecar reports a different version from the extension manifest.
+- SharpLsp CI fails if any sidecar reports a different version from the extension manifest.
 
-## DTK-MIG-DESLOP-IDE: Deslop VS Code and JetBrains Pilot
+## SWR-MIG-DESLOP-IDE: Deslop VS Code and JetBrains Pilot
 
 Goal:
 
@@ -58,7 +58,7 @@ Exit criteria:
 - Activation fails visibly when a configured or bundled binary reports the wrong version.
 - VSIX tests fail if they resolve `deslop-lsp` or `deslop-mcp` from PATH or build output.
 
-## DTK-MIG-BASILISK-IDE: Basilisk VS Code and Zed Pilot
+## SWR-MIG-BASILISK-IDE: Basilisk VS Code and Zed Pilot
 
 Goal:
 
@@ -75,7 +75,7 @@ Exit criteria:
 
 - Zed reports expected/found version when initialize metadata mismatches.
 
-## DTK-MIG-TMC-NODE-MCP: Too Many Cooks Node/MCP Pilot
+## SWR-MIG-TMC-NODE-MCP: Too Many Cooks Node/MCP Pilot
 
 Goal:
 

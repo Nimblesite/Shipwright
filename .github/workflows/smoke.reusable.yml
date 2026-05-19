@@ -9,7 +9,7 @@
 # When `publish_vsix` is true, a secondary job installs the VSIX into a
 # headless VS Code and asserts activation completes without error.
 
-name: deploy-toolkit smoke (reusable)
+name: shipwright smoke (reusable)
 
 on:
   workflow_call:

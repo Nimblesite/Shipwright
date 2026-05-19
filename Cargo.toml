@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/deploy-toolkit-cli",
-    "crates/deploy-toolkit-host",
-    "crates/deploy-toolkit-manifest",
-    "crates/deploy-toolkit-zed",
-    "tools/deploy-stamp",
+    "crates/shipwright",
+    "crates/shipwright-host",
+    "crates/shipwright-manifest",
+    "crates/shipwright-zed",
+    "tools/shipwright-version-stamp",
 ]
 
 [workspace.package]
@@ -13,8 +13,12 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/nimblesite/deployment_toolkit"
+repository = "https://github.com/Nimblesite/Shipwright"
+homepage = "https://github.com/Nimblesite/Shipwright"
 description = "Shared libraries for deploying binaries and IDE extensions with matching versions."
+keywords = ["deployment", "versioning", "ide-extension", "binary", "tooling"]
+categories = ["development-tools", "development-tools::build-utils"]
+readme = "README.md"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

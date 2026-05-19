@@ -7,10 +7,10 @@ import addFormats from "ajv-formats";
 
 const toolDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(toolDir, "..", "..");
-const defaultSchemaPath = join(repoRoot, "schemas", "deployment-toolkit.schema.json");
+const defaultSchemaPath = join(repoRoot, "schemas", "shipwright.schema.json");
 
 function usage() {
-  console.error("Usage: deploy-toolkit-validate-manifest [--schema <path>] <manifest-or-directory>...");
+  console.error("Usage: shipwright-validate-manifest [--schema <path>] <manifest-or-directory>...");
 }
 
 function parseArgs(argv) {

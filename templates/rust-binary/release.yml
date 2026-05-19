@@ -1,6 +1,6 @@
 # Place at `.github/workflows/release.yml` in the consuming repo.
 # Triggers on semver tag push; delegates the whole pipeline to the
-# deployment_toolkit reusable orchestrator.
+# Shipwright reusable orchestrator.
 
 name: release
 
@@ -10,7 +10,7 @@ on:
 
 jobs:
   release:
-    uses: nimblesite/deployment_toolkit/.github/workflows/release.reusable.yml@v1
+    uses: nimblesite/Shipwright/.github/workflows/release.reusable.yml@v1
     with:
       tag: ${{ github.ref_name }}
       bin_name: "{{BINARY_NAME}}"

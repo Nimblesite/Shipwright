@@ -2,10 +2,10 @@
 #
 # Product repos invoke this on tag push. The workflow stamps the release
 # version when the product repo carries tools/deploy-stamp, builds platform
-# archives, publishes them to the GitHub Release, runs the deploy-toolkit
+# archives, publishes them to the GitHub Release, runs the shipwright
 # smoke workflow, and optionally updates Homebrew/Scoop metadata.
 
-name: deploy-toolkit release (reusable)
+name: shipwright release (reusable)
 
 on:
   workflow_call:
@@ -24,14 +24,14 @@ on:
         required: false
         default: ""
       product_id:
-        description: "Product id from deployment-toolkit.json (kebab-case)."
+        description: "Product id from shipwright.json (kebab-case)."
         type: string
         required: true
       manifest_path:
-        description: "Path to deployment-toolkit.json in the product repo."
+        description: "Path to shipwright.json in the product repo."
         type: string
         required: false
-        default: "deployment-toolkit.json"
+        default: "shipwright.json"
       targets:
         description: "JSON array of Rust target triples to build."
         type: string
@@ -88,7 +88,7 @@ on:
         required: false
 
 concurrency:
-  group: deploy-toolkit-release-${{ github.ref }}
+  group: shipwright-release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:

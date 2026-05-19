@@ -1,10 +1,21 @@
 {
-  "name": "@deploy-toolkit/validate-manifest",
+  "name": "@nimblesite/shipwright-validate-manifest",
   "version": "0.1.0",
   "type": "module",
-  "description": "Generic deployment manifest validator for product CI.",
+  "description": "Shipwright deployment manifest validator for product CI.",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nimblesite/Shipwright.git"
+  },
+  "homepage": "https://github.com/Nimblesite/Shipwright",
+  "keywords": ["shipwright", "deployment", "manifest", "validation"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": ["index.mjs", "README.md", "LICENSE"],
   "bin": {
-    "deploy-toolkit-validate-manifest": "index.mjs"
+    "shipwright-validate-manifest": "index.mjs"
   },
   "scripts": {
     "validate": "node index.mjs ../../fixtures/manifests/deslop.json",

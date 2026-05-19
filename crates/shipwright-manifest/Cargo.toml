@@ -1,0 +1,24 @@
+[package]
+name = "shipwright-manifest"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Manifest and version-output data types for Shipwright products."
+documentation = "https://docs.rs/shipwright-manifest"
+readme = "README.md"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/lib.rs"

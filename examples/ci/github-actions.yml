@@ -1,4 +1,4 @@
-name: deployment-toolkit-contracts
+name: shipwright-contracts
 
 on:
   pull_request:
@@ -29,6 +29,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Product repo binary drift gate
         run: |
-          echo "deploy-toolkit verify-binaries --manifest deployment-toolkit.json --platform linux-x64"
-          echo "deploy-toolkit verify-extension-package --manifest deployment-toolkit.json --package product.vsix --platform linux-x64"
+          echo "shipwright verify-binaries --manifest shipwright.json --platform linux-x64"
+          echo "shipwright verify-extension-package --manifest shipwright.json --package product.vsix --platform linux-x64"
           echo "These commands must fail when an extension version and bundled binary version drift."

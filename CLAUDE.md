@@ -1,5 +1,5 @@
 <!-- agent-pmo:f481f8d -->
-# deployment_toolkit — Agent Instructions
+# Shipwright — Agent Instructions
 
 > ⚠️ **TOKEN DISCIPLINE.** Check file size first. `Grep` over `Read`. Use `offset`/`limit`.
 > Smallest diff that solves the problem. Delete dead code, unused imports, stale comments.
@@ -9,7 +9,7 @@
 
 ## Project Overview
 
-`deployment_toolkit` is a portfolio-shared library that scaffolds binary and IDE-extension deployment in a consistent way across multiple downstream products (Too Many Cooks, Deslop, Basilisk, forge, dart_mutant — see [docs/specs/source-projects.md](docs/specs/source-projects.md)). It defines the binary version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them. See [docs/specs/](docs/specs/) for the authoritative behavior specs and [docs/plans/](docs/plans/) for the implementation plan.
+`Shipwright` is a portfolio-shared library that scaffolds binary and IDE-extension deployment in a consistent way across multiple downstream products (Too Many Cooks, Deslop, Basilisk, SharpLsp, dart_mutant — see [docs/specs/source-projects.md](docs/specs/source-projects.md)). It defines the binary version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them. See [docs/specs/](docs/specs/) for the authoritative behavior specs and [docs/plans/](docs/plans/) for the implementation plan.
 
 **Primary language(s):** Rust (workspace, libraries) + Node/TypeScript (manifest validator + fixture tests)
 **Build command:** `make ci`
@@ -35,7 +35,7 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 - **Heavy structured logging everywhere.** See Logging below.
 - **No linter suppressions.** Fix the code.
 - **Pure functions over statements.**
-- **Spec IDs are hierarchical, non-numeric: `[GROUP-TOPIC]` / `[GROUP-TOPIC-DETAIL]` or `DTK-GROUP-TOPIC` / `DTK-GROUP-TOPIC-DETAIL`** (e.g., `[AUTH-TOKEN-VERIFY]`, `[CI-TIMEOUT]`, `DTK-MIG-DESLOP-IDE`). Same-group sections sit adjacent in the TOC. NO sequential numbers (`[SPEC-001]`, `DTK-SPEC-001`, `DTK-MIG-003`). Code/tests/docs that implement a spec section MUST reference its ID in a comment so `grep [AUTH-` finds spec → code → tests in one shot.
+- **Spec IDs are hierarchical, non-numeric: `[GROUP-TOPIC]` / `[GROUP-TOPIC-DETAIL]` or `SWR-GROUP-TOPIC` / `SWR-GROUP-TOPIC-DETAIL`** (e.g., `[AUTH-TOKEN-VERIFY]`, `[CI-TIMEOUT]`, `SWR-IDE-DOTNET-RUNTIME`). Same-group sections sit adjacent in the TOC. NO sequential numbers (`[SPEC-001]`, `SWR-SPEC-001`). Code/tests/docs that implement a spec section MUST reference its ID in a comment so `grep SWR-IDE` finds spec → code → tests in one shot.
 
 ## Logging Standards
 
@@ -53,7 +53,7 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 - All public items have `///` doc comments.
 - `thiserror` for library errors; `anyhow` only in application code.
 - Workspace lints in `Cargo.toml [workspace.lints]` are deny-by-default — do not weaken them.
-- `crates/deploy-toolkit-host` is the pure binary-resolution algorithm with NO I/O. The probe is injected. Keep it that way.
+- `crates/shipwright-host` is the pure binary-resolution algorithm with NO I/O. The probe is injected. Keep it that way.
 
 ### TypeScript / Node
 - No `any` (use `unknown` and narrow). No `!` non-null assertion. No `// @ts-ignore`/`@ts-nocheck`.
@@ -74,7 +74,7 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 
 ## Build Commands
 
-Cross-platform GNU Make. On Windows: `choco install make` or use the one in Git for Windows.
+Agent PMO make targets 
 
 ```bash
 make build   # compile everything (Rust workspace + Node tools)
@@ -86,7 +86,7 @@ make ci      # lint + test + build (full CI simulation)
 make setup   # post-create dev environment setup
 ```
 
-**There are exactly 7 targets. No others.** `make test` runs the test runner with its fail-fast flag, collects coverage, asserts measured ≥ threshold from `coverage-thresholds.json`, and exits non-zero on any failure. To debug a single test, invoke the runner directly — that is not a Makefile target.
+`make test` runs the test runner with its fail-fast flag, collects coverage, asserts measured ≥ threshold from `coverage-thresholds.json`, and exits non-zero on any failure. To debug a single test, invoke the runner directly — that is not a Makefile target.
 
 **`make fmt`** formats code in-place. **`make lint`** runs linters/analyzers (read-only, no formatting). **`make test`** runs tests with coverage. Three separate targets — no overlap.
 
@@ -94,17 +94,17 @@ make setup   # post-create dev environment setup
 
 ```
 crates/                            # Rust workspace members
-  deploy-toolkit-host/             # pure binary-resolution algorithm (no I/O)
-  deploy-toolkit-manifest/         # workspace member declared in Cargo.toml — NOT YET CREATED
+  shipwright-host/                 # pure binary-resolution algorithm (no I/O)
+  shipwright-manifest/             # workspace member declared in Cargo.toml — NOT YET CREATED
 clients/                           # per-language client SDKs (placeholders)
   dart/  dotnet/  kotlin/  ts/
 docs/
   specs/                           # behaviour specs (binary-version-contract, compatibility-matrix, etc.)
   plans/                           # implementation plans with TODO checklists
-schemas/                           # JSON schemas (deployment-toolkit, version-manifest, platforms, test-vectors)
+schemas/                           # JSON schemas (shipwright, version-manifest, platforms, test-vectors)
 fixtures/                          # manifests, golden manifests, version outputs, platform definitions
 tools/
-  validate-manifest/               # Node-based AJV validator (deploy-toolkit-validate-manifest)
+  validate-manifest/               # Node-based AJV validator (shipwright-validate-manifest)
 templates/
   gh-actions/                      # downstream-project release/publish workflow templates
 examples/ci/                       # example consumer CI configurations
@@ -113,7 +113,32 @@ tests/fixtures.test.mjs            # Node test runner over fixtures
 
 **Architecture invariants:**
 
-1. The Rust host crate (`deploy-toolkit-host`) MUST stay pure — no filesystem, network, or process spawning. The version-probe function is injected by the caller (the IDE extension).
+1. The Rust host crate (`shipwright-host`) MUST stay pure — no filesystem, network, or process spawning. The version-probe function is injected by the caller (the IDE extension).
 2. The JSON schemas in `schemas/` are the source of truth for the manifest format. Generated client code (Rust, TS, Dart, .NET, Kotlin) consumes these schemas.
 3. Every fixture in `fixtures/` is exercised by `tests/fixtures.test.mjs` against the AJV validator in `tools/validate-manifest/`.
 4. `templates/gh-actions/` is shipped as-is to downstream products — never inline-modify; treat as published interface.
+
+## .NET Runtime in VS Code Extensions — NON-NEGOTIABLE
+
+Any VS Code extension with framework-dependent .NET sidecars (`"language": "dotnet"` components) MUST use the `.NET Install Tool` extension to acquire the runtime. This is the ONLY permitted approach.
+
+- `"extensionDependencies": ["ms-dotnettools.vscode-dotnet-runtime"]` in `package.json`
+- `dotnet.findPath` then `dotnet.acquire` commands on activation — non-interactive toast spinner
+- Set `DOTNET_ROOT` in the env passed to the Rust LSP host
+- On failure: non-modal error notification + `retryDotnetAcquisition` command
+- **NEVER** crash on missing .NET. **NEVER** `dotnet tool install`. **NEVER** hand-roll a download.
+
+Full spec: `docs/specs/ide-extension-deployment.md` [SWR-IDE-DOTNET-RUNTIME]
+
+## Key External References
+
+Agents working on VSIX bundling, CI templates, or the vscode host library MUST read these before writing any code. The Microsoft sample is the authoritative source — follow it exactly.
+
+- **Microsoft platform-specific sample** (AUTHORITATIVE): https://github.com/microsoft/vscode-platform-specific-sample/tree/main
+  - CI workflow (Node 22.x, matrix shape, publish job): https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.github/workflows/ci.yml
+  - `.vscodeignore` (node_modules whitelist pattern): https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.vscodeignore
+  - Runtime binary resolution (`extension.js`): https://github.com/microsoft/vscode-platform-specific-sample/blob/main/extension.js
+- **VS Code bundling guide**: https://code.visualstudio.com/api/working-with-extensions/bundling-extension
+- **Rust Analyzer release workflow** (inspiration): https://github.com/rust-lang/rust-analyzer/blob/2024-06-11/.github/workflows/release.yaml#L105
+- **Shipwright VSIX spec** (implements the above): `docs/specs/vsix-platform-bundling.md`
+- **Shipwright VSIX template** (ready to use): `templates/gh-actions/publish-vsix-per-platform.yml`

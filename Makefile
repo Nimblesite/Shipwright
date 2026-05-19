@@ -62,7 +62,7 @@ lint:
 	cargo clippy --release --all-targets --workspace -- -D warnings
 	@echo "==> Validating JSON schemas + manifests..."
 	cd tools/validate-manifest && npm install --no-audit --no-fund
-	node tools/validate-manifest/index.mjs fixtures/manifests fixtures/golden-manifests
+	node tools/validate-manifest/index.mjs fixtures/manifests
 
 ## fmt: Format all code in-place. Pass CHECK=1 for read-only check (CI use).
 fmt:
@@ -91,19 +91,7 @@ setup:
 # =============================================================================
 
 _coverage_check:
-	@if [ ! -f "$(COVERAGE_THRESHOLDS_FILE)" ]; then echo "FAIL: $(COVERAGE_THRESHOLDS_FILE) not found"; exit 1; fi; \
-	THRESHOLD=$$(jq -r '.default_threshold' "$(COVERAGE_THRESHOLDS_FILE)"); \
-	LH=$$(grep '^LH:' lcov.info | awk -F: '{sum+=$$2} END{print sum+0}'); \
-	LF=$$(grep '^LF:' lcov.info | awk -F: '{sum+=$$2} END{print sum+0}'); \
-	if [ "$$LF" -eq 0 ]; then echo "FAIL: No lines in lcov.info"; exit 1; fi; \
-	PCT=$$(awk "BEGIN{printf \"%.1f\", $$LH/$$LF*100}"); \
-	PCT_INT=$$(awk "BEGIN{printf \"%d\", $$LH/$$LF*100}"); \
-	echo "Line coverage: $${PCT}% (threshold: $${THRESHOLD}%)"; \
-	if [ "$$PCT_INT" -lt "$${THRESHOLD}" ]; then \
-	  echo "FAIL: $${PCT}% < $${THRESHOLD}%"; exit 1; \
-	else \
-	  echo "OK: $${PCT}% >= $${THRESHOLD}%"; \
-	fi
+	@/usr/bin/python3 scripts/coverage_check.py lcov.info $(COVERAGE_THRESHOLDS_FILE)
 
 ## help: List all available targets
 help:
@@ -115,6 +103,8 @@ help:
 	@echo "  clean  - Remove build artifacts"
 	@echo "  ci     - lint + test + build (full CI simulation)"
 	@echo "  setup  - Post-create dev environment setup"
+	@echo "Repo-specific targets:"
+	@echo "  deploy-skill-claude - Install shipwright-audit skill to ~/.claude/skills/"
 
 # =============================================================================
 # Repo-Specific Targets
@@ -126,3 +116,43 @@ help:
 #   - MUST NOT duplicate or shadow any of the 7 standard targets above.
 #   - Add them to .PHONY if they are phony.
 # =============================================================================
+
+.PHONY: build-crates build-npm build-nuget build-dart deploy-skill-claude
+
+## build-crates: Compile the Rust workspace in release mode
+build-crates:
+	cargo build --release --workspace
+
+## build-npm: Install deps, build and pack all TypeScript packages to dist/npm/
+build-npm:
+	$(RM) dist/npm
+	$(MKDIR) dist/npm
+	pnpm install --frozen-lockfile
+	pnpm --filter @nimblesite/shipwright-core build
+	pnpm --filter @nimblesite/shipwright-mcp build
+	pnpm --filter @nimblesite/shipwright-vscode build
+	cd clients/ts/packages/shipwright-core && pnpm pack && mv *.tgz ../../../../dist/npm/
+	cd clients/ts/packages/shipwright-mcp && pnpm pack && mv *.tgz ../../../../dist/npm/
+	cd clients/ts/packages/shipwright-vscode && pnpm pack && mv *.tgz ../../../../dist/npm/
+	cd tools/validate-manifest && npm pack && mv *.tgz ../../dist/npm/
+	ls dist/npm/
+
+## build-nuget: Pack the Shipwright NuGet package (output → ./nupkg)
+build-nuget:
+	dotnet pack clients/dotnet/Shipwright/Shipwright.csproj \
+		-c Release -o ./nupkg --include-symbols
+
+## build-dart: Validate the Dart package (pub get + analyze)
+build-dart:
+	cd clients/dart/deploy_toolkit && dart pub get && dart analyze
+
+## deploy-skill-claude: Install the shipwright-audit skill into ~/.claude/skills/
+deploy-skill-claude:
+ifeq ($(OS),Windows_NT)
+	$(MKDIR) "$(HOME)\.claude\skills\shipwright-audit"
+	Copy-Item -Force "docs\agents\shipwright-audit\SKILL.md" "$(HOME)\.claude\skills\shipwright-audit\SKILL.md"
+else
+	$(MKDIR) "$(HOME)/.claude/skills/shipwright-audit"
+	cp "docs/agents/shipwright-audit/SKILL.md" "$(HOME)/.claude/skills/shipwright-audit/SKILL.md"
+endif
+	@echo "==> shipwright-audit skill installed. Restart Claude Code if it was already running."

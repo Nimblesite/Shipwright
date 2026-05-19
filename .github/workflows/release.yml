@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write  # npm provenance
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── toolchains ──────────────────────────────────────────────────────────
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      # ── CI gate ─────────────────────────────────────────────────────────────
+      - name: CI
+        run: make ci
+
+      # ── build npm packages ───────────────────────────────────────────────────
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build npm packages
+        run: |
+          pnpm --filter @nimblesite/shipwright-core build
+          pnpm --filter @nimblesite/shipwright-mcp build
+          pnpm --filter @nimblesite/shipwright-vscode build
+
+      # ── publish @nimblesite/shipwright-core ─────────────────────────────────────────────
+      - name: Publish @nimblesite/shipwright-core
+        run: |
+          PKG=$(node -p "require('./clients/ts/packages/shipwright-core/package.json').version")
+          if npm view @nimblesite/shipwright-core@$PKG version 2>/dev/null | grep -q "$PKG"; then
+            echo "@nimblesite/shipwright-core@$PKG already published — skipping"
+          else
+            pnpm --filter @nimblesite/shipwright-core publish --access public --no-git-checks
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── publish @nimblesite/shipwright-mcp ──────────────────────────────────────────────
+      - name: Publish @nimblesite/shipwright-mcp
+        run: |
+          PKG=$(node -p "require('./clients/ts/packages/shipwright-mcp/package.json').version")
+          if npm view @nimblesite/shipwright-mcp@$PKG version 2>/dev/null | grep -q "$PKG"; then
+            echo "@nimblesite/shipwright-mcp@$PKG already published — skipping"
+          else
+            pnpm --filter @nimblesite/shipwright-mcp publish --access public --no-git-checks
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── publish @nimblesite/shipwright-vscode ───────────────────────────────────────────
+      - name: Publish @nimblesite/shipwright-vscode
+        run: |
+          PKG=$(node -p "require('./clients/ts/packages/shipwright-vscode/package.json').version")
+          if npm view @nimblesite/shipwright-vscode@$PKG version 2>/dev/null | grep -q "$PKG"; then
+            echo "@nimblesite/shipwright-vscode@$PKG already published — skipping"
+          else
+            pnpm --filter @nimblesite/shipwright-vscode publish --access public --no-git-checks
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── publish @nimblesite/shipwright-validate-manifest ────────────────────────────────
+      - name: Publish @nimblesite/shipwright-validate-manifest
+        run: |
+          PKG=$(node -p "require('./tools/validate-manifest/package.json').version")
+          if npm view @nimblesite/shipwright-validate-manifest@$PKG version 2>/dev/null | grep -q "$PKG"; then
+            echo "@nimblesite/shipwright-validate-manifest@$PKG already published — skipping"
+          else
+            pnpm --filter @nimblesite/shipwright-validate-manifest publish --access public --no-git-checks
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── publish NuGet ────────────────────────────────────────────────────────
+      - name: Pack NuGet
+        run: |
+          dotnet pack clients/dotnet/Shipwright/Shipwright.csproj \
+            -c Release -o ./nupkg --include-symbols
+
+      - name: Publish NuGet
+        run: |
+          dotnet nuget push ./nupkg/Shipwright.*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

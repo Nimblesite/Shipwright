@@ -4,7 +4,7 @@ Copy this directory into a Zed extension repo when the extension needs a
 matching language server or tool binary. You get:
 
 - A Rust/WASM extension scaffold.
-- A `deployment-toolkit.json` manifest that declares the server contract.
+- A `shipwright.json` manifest that declares the server contract.
 - A startup pattern that defers version validation to LSP initialize when
   the host cannot preflight native binaries.
 
@@ -12,8 +12,8 @@ matching language server or tool binary. You get:
 
 - `Cargo.toml.tpl` — rename to `Cargo.toml` and substitute placeholders.
 - `extension.toml.tpl` — rename to `extension.toml`.
-- `src/lib.rs` — extension entry point wired for deploy-toolkit-zed.
-- `deployment-toolkit.json` — manifest for the Zed package.
+- `src/lib.rs` — extension entry point wired for shipwright-zed.
+- `shipwright.json` — manifest for the Zed package.
 
 ## One-time bootstrap
 

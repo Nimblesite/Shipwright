@@ -1,16 +1,16 @@
 # `templates/dotnet-tool-sidecar`
 
 Copy this directory into a .NET sidecar or global tool repo to expose the
-deploy-toolkit version contract and publish the sidecar alongside IDE
+shipwright version contract and publish the sidecar alongside IDE
 extensions.
 
 ## Files
 
 - `Sidecar.csproj.tpl` — rename to `<ProjectName>.csproj` and substitute
   placeholders.
-- `Program.cs` — wires the future `DeployToolkit` helper before real sidecar
+- `Program.cs` — wires the future `Shipwright` helper before real sidecar
   startup.
-- `deployment-toolkit.json` — sidecar manifest with dotnet-tool repair data.
+- `shipwright.json` — sidecar manifest with dotnet-tool repair data.
 - `release.yml` — move to `.github/workflows/release.yml`.
 
 ## One-time bootstrap

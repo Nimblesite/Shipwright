@@ -1,8 +1,11 @@
-# Deployment Toolkit Compatibility Matrix
+# Shipwright Compatibility Matrix
 
+```
+Spec prefix: SWR-COMPAT-*
 Status: Draft
+```
 
-This spec describes which checks each host must perform for Nimblesite product manifests. Reusable host libraries stay generic, but these fixtures prove the current Nimblesite products can be represented by the contract.
+This spec describes which checks each host must perform and what the platform coverage requirements are.
 
 ## Host Requirements
 
@@ -14,20 +17,23 @@ This spec describes which checks each host must perform for Nimblesite product m
 | CLI | Yes | Not applicable. | Verify `--version` and `--version --json` against release tag and manifest version. |
 | Package manager | No runtime spawn during publishing. | Not applicable. | Verify formula/manifest version, asset URL, and sha256 against release artifacts. |
 
-## Product Coverage
-
-| Product | Fixture | Hosts covered |
-| --- | --- | --- |
-| Deslop | `fixtures/manifests/deslop.json` | VS Code, JetBrains, CLI |
-| Basilisk | `fixtures/manifests/basilisk.json` | VS Code, Zed, CLI |
-| Forge | `fixtures/manifests/forge.json` | VS Code, JetBrains, Zed |
-| Too Many Cooks | `fixtures/manifests/too-many-cooks.json` | VS Code, package-manager path |
-| dart_mutant | `fixtures/manifests/dart-mutant.json` | CLI |
-
 ## Platform Coverage
 
-The platform fixture at `fixtures/platforms/platform-ids.json` must stay aligned with `schemas/platforms.json`. The first release gate covers `darwin-arm64`, `darwin-x64`, `linux-x64`, `linux-arm64`, `win32-x64`, `win32-arm64`, and `all`.
+The first release gate covers these platform ids (defined in `schemas/platforms.json`):
 
-## Tickets
+- `darwin-arm64`
+- `darwin-x64`
+- `linux-x64`
+- `linux-arm64`
+- `win32-x64`
+- `win32-arm64`
+- `all` (platform-agnostic)
 
-- DTK-SPEC-COMPATIBILITY-BINDINGS: Generate language bindings from `schemas/compatibility-matrix.json` after the first host library lands.
+The platform fixture at `fixtures/platforms/platform-ids.json` must stay aligned with `schemas/platforms.json`.
+
+## Manifest Versioning
+
+1. The manifest schema is versioned via `manifestVersion`.
+2. Host libraries must reject incompatible newer manifest schemas.
+3. Host libraries may warn on older compatible schemas.
+4. Component kinds must be extensible so future products can add new host types without changing existing fields.

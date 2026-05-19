@@ -1,257 +1,112 @@
-# Deployment Toolkit
+# Shipwright
 
-Deployment Toolkit is the shared contract and library set for shipping binaries and IDE extensions that must stay version-matched.
+Shipwright is a Shipwright for teams shipping binaries and IDE extensions that must stay version-matched across multiple ecosystems and package registries.
 
-The first adopters are Nimblesite products: Deslop, Basilisk, Forge, Too Many Cooks, and dart_mutant. The reusable libraries use generic public package names such as `deploy-toolkit-*`, `@deploy-toolkit/*`, and `DeployToolkit`. Product manifests and fixtures can still be Nimblesite-specific because they describe real products.
+It defines the version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them.
 
 ## What This Solves
 
-IDE extensions and developer tools often drift apart:
+IDE extensions and developer tools drift apart in predictable ways:
 
 - A VSIX ships one language server version while the extension expects another.
 - A JetBrains or Zed plugin starts a binary from PATH without checking it.
 - An MCP server reports a hard-coded protocol version that no longer matches the npm package.
 - Release artifacts, package-manager manifests, and bundled binaries are verified differently in every repo.
 
-This repo makes that consistent. Every product declares its deployable components in `deployment-toolkit.json`, every executable reports its version in the same format, and every host checks versions before startup or package release.
+Shipwright makes that consistent. Every product declares its deployable components in `shipwright.json`, every executable reports its version in the same structured format, and every host checks versions before startup or package release.
 
-## Current Surfaces
+## Packages
+
+| Registry | Package |
+| --- | --- |
+| crates.io | `shipwright`, `shipwright-manifest`, `shipwright-host`, `shipwright-zed`, `shipwright-version-stamp` |
+| npm | `@nimblesite/shipwright-core`, `@nimblesite/shipwright-vscode`, `@nimblesite/shipwright-mcp`, `@nimblesite/shipwright-validate-manifest` |
+| NuGet | `Shipwright` |
+| pub.dev | `shipwright` |
+
+## Repo Layout
 
 | Path | Purpose |
 | --- | --- |
-| `schemas/deployment-toolkit.schema.json` | Product manifest schema. |
-| `schemas/version-manifest.schema.json` | JSON shape for `--version --json`. |
-| `schemas/platforms.json` | Canonical platform ids and runtime mappings. |
-| `schemas/test-vectors.json` | Shared resolver vectors every host-library port must pass. |
-| `fixtures/manifests/` | Golden Nimblesite product manifests. |
+| `schemas/` | JSON schemas for the product manifest, version-output, platforms, and test vectors. |
+| `fixtures/manifests/` | Example product manifests. |
 | `fixtures/invalid-manifests/` | Schema failure examples. |
 | `fixtures/version-outputs/` | Plain and JSON version-output examples. |
+| `crates/shipwright-manifest/` | Rust data types for the version contract. |
+| `crates/shipwright-host/` | Pure binary-resolution algorithm (no I/O). |
+| `crates/shipwright/` | Binary-side helper (emits `--version` / `--version --json`). |
+| `crates/shipwright-zed/` | Zed editor host integration. |
+| `clients/ts/packages/shipwright-core/` | TypeScript core resolver. |
+| `clients/ts/packages/shipwright-vscode/` | VS Code extension glue. |
+| `clients/ts/packages/shipwright-mcp/` | MCP helpers. |
+| `clients/dotnet/Shipwright/` | .NET library. |
+| `clients/dotnet/Shipwright.Cli/` | .NET global tool (`shipwright`). |
+| `clients/dart/shipwright/` | Dart client. |
+| `tools/shipwright-version-stamp/` | Cross-platform version-stamping CLI. |
 | `tools/validate-manifest/` | AJV-backed manifest validator. |
-| `crates/deploy-toolkit-manifest` | Rust manifest and version-output data types. |
-| `crates/deploy-toolkit-host` | Rust resolver algorithm. |
-| `clients/ts/packages/deploy-toolkit-core` | TypeScript resolver algorithm. |
-| `templates/gh-actions/` | Reusable release, Homebrew tap, and Scoop bucket workflows. |
-| `docs/specs/` | Contract specs. |
+| `templates/gh-actions/` | Reusable release workflow templates for downstream product repos. |
+| `docs/specs/` | Contract and architecture specs. |
 | `docs/plans/` | Implementation and migration plans. |
 
-## Setup
-
-Install dependencies from the repo root:
+## Build
 
 ```bash
-pnpm install
-cargo fetch
+make ci       # lint + test + build (full CI)
+make test     # tests + coverage + threshold enforcement
+make lint     # linters only
+make fmt      # format in place
+make build    # compile all artifacts
+make clean    # remove build artifacts
+make setup    # post-create dev environment setup
 ```
 
-Run the current validation suite:
+## Version Contract
+
+Every executable component must support:
 
 ```bash
-pnpm test
+tool-name --version        # prints "tool-name 1.2.3"
+tool-name --version --json # prints JSON per schemas/version-manifest.schema.json
 ```
 
-That runs:
+## Product Manifest
 
-- schema and fixture validation
-- all TypeScript resolver vectors
-- Rust manifest formatter tests
-
-## Validate A Manifest
-
-Validate one manifest:
-
-```bash
-pnpm validate:manifest fixtures/manifests/deslop.json
-```
-
-Validate every manifest in a directory:
-
-```bash
-node tools/validate-manifest/index.mjs fixtures/manifests
-```
-
-Expected result:
-
-```text
-fixtures/manifests/deslop.json: valid
-```
-
-Invalid manifests under `fixtures/invalid-manifests/` must fail. Do not weaken the schema to make those pass.
-
-## Write A Product Manifest
-
-Each product repo opts in by adding `deployment-toolkit.json` at its root or package root.
-
-Minimal CLI-only example:
+Each product declares its components in `shipwright.json`:
 
 ```json
 {
   "manifestVersion": 1,
   "product": {
-    "id": "dart-mutant",
-    "displayName": "dart_mutant",
+    "id": "my-tool",
+    "displayName": "My Tool",
     "version": "0.1.0"
   },
   "components": [
     {
-      "id": "dart-mutant-cli",
-      "kind": "cli",
-      "language": "dart",
-      "binaryName": "dart-mutant",
+      "id": "my-tool-lsp",
+      "kind": "lsp",
+      "language": "rust",
+      "binaryName": "my-tool-lsp",
       "expectedVersion": "0.1.0",
-      "platforms": ["all"],
-      "sources": ["path", "github-release"],
-      "verifyStartup": true,
-      "versionCheckStrategy": "version-flag-json",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"],
+      "sources": ["bundled", "github-release"],
       "required": true
     }
-  ],
-  "hosts": {
-    "cli": {
-      "artifact": "archive",
-      "activationVerifies": ["dart-mutant-cli"],
-      "onMismatch": "error"
-    }
-  }
+  ]
 }
 ```
 
-Use the existing product fixtures as starting points:
-
-- `fixtures/manifests/deslop.json`
-- `fixtures/manifests/basilisk.json`
-- `fixtures/manifests/forge.json`
-- `fixtures/manifests/too-many-cooks.json`
-- `fixtures/manifests/dart-mutant.json`
-
-## Version Contract
-
-Every executable component must support a plain version line:
-
-```bash
-tool-name --version
-```
-
-Output:
-
-```text
-tool-name 1.2.3
-```
-
-Components that support JSON output must also support:
-
-```bash
-tool-name --version --json
-```
-
-Output must match `schemas/version-manifest.schema.json`, for example:
-
-```json
-{
-  "manifestVersion": 1,
-  "name": "deslop-lsp",
-  "version": "0.1.0",
-  "kind": "lsp",
-  "language": "rust",
-  "product": "deslop"
-}
-```
-
-MCP and LSP servers must report the same version through protocol initialize metadata when the host cannot run `--version` before startup.
-
-## Resolver Contract
-
-Host libraries must resolve binaries in this order when those sources are enabled in the manifest:
-
-1. exact configured binary path
-2. configured directory containing the binary
-3. environment path override
-4. environment directory override
-5. bundled binary
-6. language or package-manager tool fallback
-7. PATH lookup
-8. protocol fallback, such as LSP initialize for Zed
-
-Every resolver port must pass `schemas/test-vectors.json`.
-
-Run the TypeScript resolver vectors:
-
-```bash
-pnpm test:ts-core
-```
-
-Run the Rust manifest tests:
-
-```bash
-pnpm test:rust-manifest
-```
-
-## IDE Packaging Rules
-
-VS Code:
-
-- VSIX packages must include `deployment-toolkit.json`.
-- Native binaries go under `bin/<platform>/<binaryName><exe>`.
-- Platform-agnostic tools go under `bin/all/<binaryName>`.
-- Activation must fail visibly for required components with mismatched versions.
-
-JetBrains:
-
-- Plugins must load the manifest from plugin root.
-- Startup must check configured and external binaries before LSP startup.
-- If native bundling is used, helpers must be explicitly manifest-listed under plugin-root `bin/<platform>`.
-
-Zed:
-
-- Zed extensions cannot always spawn `--version` first.
-- Use `lsp-initialize` for components that must be verified after server start.
-- Cache/download metadata must record version and checksum.
-
-## Release Workflow Templates
-
-Reusable workflow templates live under `templates/gh-actions/`:
-
-- `release-binary-multiplatform.yml`
-- `publish-brew-tap.yml`
-- `publish-scoop-bucket.yml`
-
-These are generic templates. Product repos pass product-specific names, repos, versions, asset URLs, and checksums as inputs.
-
-## CI Pattern For Product Repos
-
-Product repos should run these gates:
-
-```bash
-pnpm validate:manifest deployment-toolkit.json
-tool-name --version
-tool-name --version --json
-deploy-toolkit verify-binaries --manifest deployment-toolkit.json --platform <platform>
-deploy-toolkit verify-extension-package --manifest deployment-toolkit.json --package <artifact> --platform <platform>
-```
-
-`verify-binaries` and `verify-extension-package` are planned CLI commands. Until they land, product repos should add explicit tests that prove the same behavior.
-
-## Important Boundary
-
-Do this:
-
-- Keep reusable library names generic.
-- Keep product manifests honest and product-specific.
-- Keep Nimblesite repo URLs in fixtures when the fixture is about a Nimblesite product.
-- Add failing product tests before implementing product fixes.
-- Validate every new manifest against the schema.
-
-Do not do this:
-
-- Do not blanket-rebrand Nimblesite product fixtures.
-- Do not hard-code versions in MCP/LSP metadata.
-- Do not allow IDE extensions to start required binaries without version checks.
-- Do not silently fall through from a user-configured binary with the wrong version.
-
-## Main Docs
+## Docs
 
 - [Binary Version Contract](docs/specs/binary-version-contract.md)
 - [IDE Extension Deployment](docs/specs/ide-extension-deployment.md)
-- [Acceptance Gates](docs/specs/acceptance-gates.md)
 - [Library Architecture](docs/specs/library-architecture.md)
-- [Product Migration Tickets](docs/plans/product-migration-tickets.md)
-- [AI Agent Product Adoption Guide](docs/agents/product-repo-adoption-guide.md)
+- [Compatibility Matrix](docs/specs/compatibility-matrix.md)
+- [Acceptance Gates](docs/specs/acceptance-gates.md)
+- [Release Pipeline](docs/plans/release-pipeline.md)
+
+## License
+
+Licensed under either of [MIT](LICENSE) or [Apache-2.0](LICENSE) at your option.
+
+Copyright (c) 2026 NIMBLESITE PTY LTD

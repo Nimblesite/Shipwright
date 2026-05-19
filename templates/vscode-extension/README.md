@@ -1,11 +1,11 @@
 # `templates/vscode-extension`
 
 Copy this directory into a VS Code extension repo to opt in to
-deploy-toolkit startup validation. You get:
+shipwright startup validation. You get:
 
-- A `deployment-toolkit.json` manifest that declares bundled LSP/MCP
+- A `shipwright.json` manifest that declares bundled LSP/MCP
   binaries under `bin/<platform>`.
-- Activation code that calls `@deploy-toolkit/vscode` before starting the
+- Activation code that calls `@shipwright/vscode` before starting the
   real extension features.
 - User settings for a shared binary directory and per-component overrides.
 
@@ -14,7 +14,7 @@ deploy-toolkit startup validation. You get:
 - `package.json.tpl` — rename to `package.json` and substitute placeholders.
 - `tsconfig.json` — TypeScript settings for the scaffold.
 - `src/extension.ts` — activation gate that verifies binaries first.
-- `deployment-toolkit.json` — VSIX manifest; add components as needed.
+- `shipwright.json` — VSIX manifest; add components as needed.
 
 ## One-time bootstrap
 

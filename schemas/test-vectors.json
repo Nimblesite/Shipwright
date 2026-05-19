@@ -1,5 +1,5 @@
 {
-  "$comment": "Authoritative resolver test vectors. Every host-library port (Rust, TS, Kotlin, C#, Dart) MUST run these through its resolver and produce the expected outcome. Names mirror the 10 sources declared in deployment-toolkit.schema.json. Probe results are virtual (the harness feeds them in) — no real file system access is performed.",
+  "$comment": "Authoritative resolver test vectors. Every host-library port (Rust, TS, Kotlin, C#, Dart) MUST run these through its resolver and produce the expected outcome. Names mirror the 10 sources declared in shipwright.schema.json. Probe results are virtual (the harness feeds them in) — no real file system access is performed.",
   "manifestVersion": 1,
   "vectors": [
     {

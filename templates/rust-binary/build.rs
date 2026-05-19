@@ -1,4 +1,4 @@
-// Emits compile-time env vars consumed by deploy_toolkit_cli::BuildInfo.
+// Emits compile-time env vars consumed by shipwright_cli::BuildInfo.
 // Copy verbatim into your repo as `build.rs`.
 
 use std::process::Command;
@@ -6,24 +6,24 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed=DEPLOY_TOOLKIT_GIT_SHA");
+    println!("cargo:rerun-if-env-changed=SHIPWRIGHT_GIT_SHA");
 
-    let sha = read_env_or_cmd("DEPLOY_TOOLKIT_GIT_SHA", &["git", "rev-parse", "--short=10", "HEAD"])
+    let sha = read_env_or_cmd("SHIPWRIGHT_GIT_SHA", &["git", "rev-parse", "--short=10", "HEAD"])
         .unwrap_or_else(|| "unknown".into());
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_GIT_SHA={sha}");
+    println!("cargo:rustc-env=SHIPWRIGHT_GIT_SHA={sha}");
 
     let dirty = Command::new("git")
         .args(["status", "--porcelain"])
         .output()
         .map(|o| !o.stdout.is_empty())
         .unwrap_or(false);
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_GIT_DIRTY={}", if dirty { "true" } else { "false" });
+    println!("cargo:rustc-env=SHIPWRIGHT_GIT_DIRTY={}", if dirty { "true" } else { "false" });
 
     let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_BUILD_TIME={}", rfc3339_from_secs(secs));
+    println!("cargo:rustc-env=SHIPWRIGHT_BUILD_TIME={}", rfc3339_from_secs(secs));
 
     if let Ok(target) = std::env::var("TARGET") {
-        println!("cargo:rustc-env=DEPLOY_TOOLKIT_TARGET={target}");
+        println!("cargo:rustc-env=SHIPWRIGHT_TARGET={target}");
     }
 
     let tc = Command::new("rustc")
@@ -33,7 +33,7 @@ fn main() {
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
-    println!("cargo:rustc-env=DEPLOY_TOOLKIT_TOOLCHAIN={tc}");
+    println!("cargo:rustc-env=SHIPWRIGHT_TOOLCHAIN={tc}");
 }
 
 fn read_env_or_cmd(env: &str, cmd: &[&str]) -> Option<String> {

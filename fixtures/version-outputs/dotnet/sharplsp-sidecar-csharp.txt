@@ -1,0 +1,1 @@
+sharplsp-sidecar-csharp 0.1.0

@@ -1,15 +1,17 @@
 # Product Repo Adoption Guide For AI Agents
 
+```
 Status: Draft
+```
 
-This guide is for AI agents modifying Deslop, Basilisk, Forge, Too Many Cooks, dart_mutant, or any later product repo that opts into Deployment Toolkit.
+This guide is for AI agents integrating Shipwright into a product repo.
 
 ## First Rules
 
 1. Lock every file before editing it.
 2. Do not edit files locked by another agent.
-3. Keep reusable library/package names generic.
-4. Keep Nimblesite product manifests and fixtures product-specific.
+3. Keep Shipwright library and package names generic.
+4. Keep product manifests and fixtures product-specific.
 5. Add or update tests before fixing implementation drift.
 6. Validate with the smallest targeted command first, then run the repo's normal test command.
 7. Message coordination status on TMC whenever you claim scope, change scope, hit a blocker, or finish a validation step.
@@ -18,7 +20,7 @@ This guide is for AI agents modifying Deslop, Basilisk, Forge, Too Many Cooks, d
 
 Use this checklist for every product repo.
 
-### 1. Add `deployment-toolkit.json`
+### 1. Add `shipwright.json`
 
 Create a product manifest at the product repo root or package root. Start from the closest fixture:
 
@@ -30,10 +32,10 @@ Create a product manifest at the product repo root or package root. Start from t
 | VS Code plus Zed | `fixtures/manifests/basilisk.json` |
 | Node/npm MCP server | `fixtures/manifests/too-many-cooks.json` |
 
-Validate it from `deployment_toolkit`:
+Validate it from the Shipwright repo:
 
 ```bash
-pnpm validate:manifest /path/to/product/deployment-toolkit.json
+node tools/validate-manifest/index.mjs /path/to/product/shipwright.json
 ```
 
 If validation fails, fix the manifest or schema deliberately. Do not remove required fields to make the test easier.
@@ -57,35 +59,36 @@ JSON output must conform to `schemas/version-manifest.schema.json`.
 
 For protocol servers, also test initialize metadata:
 
-- LSP: initialize result must carry the same product version where supported.
-- MCP: `serverInfo.version` must match the npm/package version.
+- LSP: `InitializeResult.serverInfo.version` must match.
+- MCP: `serverInfo.version` must match the package version.
 
 Add the failing tests first if the product does not support this yet.
 
 ### 3. Wire Version Implementation
 
-Use shared helpers where they exist. If the helper for the product language is not ready, implement the product behavior directly but keep the exact contract.
+Use the appropriate Shipwright library for the product language.
 
 Rust:
 
-- Use generic `deploy-toolkit-*` crates when available.
+- Use `shipwright` crate.
 - `--version` must run before workspace-root parsing or server startup.
 - `--version --json` must run before tracing/server startup if possible.
 
 Node and MCP:
 
+- Use `@nimblesite/shipwright-mcp`.
 - Do not hard-code `serverInfo.version`.
-- Derive it from the package version or a generated build/version module.
 - Add a test that compares `serverInfo.version` to `package.json`.
 
 .NET:
 
+- Use the `Shipwright` NuGet library.
 - Derive version from assembly/package metadata.
-- Support sidecars and dotnet tools.
 - Keep plain and JSON output identical to the schema examples.
 
 Dart:
 
+- Use the `shipwright` pub package.
 - Add a CLI version command.
 - Emit JSON shape compatible with `schemas/version-manifest.schema.json`.
 
@@ -95,33 +98,28 @@ Editor integrations must verify every required component before ready state.
 
 VS Code:
 
-- Load `deployment-toolkit.json` from the extension package.
-- Resolve in this order when declared: user setting, env, bundled, package manager/tool, PATH.
+- Load `shipwright.json` from the extension package.
+- Use `@nimblesite/shipwright-vscode` for resolution.
+- Resolve in this order: user setting, env, bundled, package manager/tool, PATH.
 - Accept a user-configured binary only when its version matches.
-- Bundle native binaries under `bin/<platform>/<binaryName><exe>`.
+- Bundle native binaries under `bin/<vsceTarget>/<binaryName><exe>` where `vsceTarget` equals the platform id (e.g. `darwin-arm64`). See `schemas/platforms.json`.
 - Bundle platform-agnostic tools under `bin/all/<binaryName>`.
 - Surface mismatch errors with expected version, found version, and selected path.
-- Extension tests must stage binaries inside the extension bundle, clear binary
-  override environment variables, remove PATH-installed product binaries, and
-  assert the accepted resolver source is `bundled`.
+- Extension tests must stage binaries inside the extension bundle, clear binary override environment variables, remove PATH-installed product binaries, and assert the accepted resolver source is `bundled`.
+- `package.json` `engines.vscode` must be `^1.99.0` or later.
+- Build VSIX with `npx vsce package --target <vsceTarget>`. See spec [SWR-VSIX-PACKAGE] in `docs/specs/vsix-platform-bundling.md`.
 
 JetBrains:
 
-- Load the manifest from plugin root.
+- Load `shipwright.json` from plugin root.
 - Resolve user setting, env, package manager/tool, and PATH before LSP descriptor startup.
-- If native binaries are bundled, ensure every bundled path is listed in the manifest.
 - Report failures through notifications/Event Log with expected and found versions.
 
 Zed:
 
+- Use `shipwright-zed`.
 - If subprocess preflight is unavailable, declare `lsp-initialize`.
 - Verify the server version from initialize metadata.
-- Record cached binary version and checksum for downloaded binaries.
-
-CLI/package-manager:
-
-- Check release asset version before publishing package-manager manifests.
-- Brew and Scoop metadata must point at the same tag/version and asset checksum.
 
 ### 5. Add Package Contents Tests
 
@@ -129,144 +127,44 @@ For IDE extensions, add tests that inspect the produced package artifact.
 
 VSIX must prove:
 
-- `deployment-toolkit.json` is included.
-- each required bundled native binary exists under `bin/<platform>/`
-- no unmanifested binary is present for the target platform
-- bundled binary reports `expectedVersion`
-- extension activation tests use the bundled binaries, not `target/release` or PATH
+- `shipwright.json` is included at the extension root.
+- Each required bundled native binary exists under `bin/<vsceTarget>/<binaryName><exe>` (e.g. `bin/darwin-arm64/product-lsp`).
+- No unmanifested binary is present for the target platform.
+- Bundled binary reports `expectedVersion`.
+- Extension activation tests use bundled binaries, not `target/release` or PATH.
 
-JetBrains must prove:
+Verify binary presence in the VSIX automatically (see [SWR-VSIX-VERIFY] in `docs/specs/vsix-platform-bundling.md`):
 
-- plugin root contains `deployment-toolkit.json`
-- any bundled helpers are listed in the manifest
-- LSP startup is blocked on mismatched required binaries
-
-Zed must prove:
-
-- components that cannot be preflighted use `lsp-initialize`
-- initialize metadata mismatch is reported and blocks readiness
+```bash
+unzip -l my-extension-darwin-arm64.vsix | grep -F "bin/darwin-arm64/my-lsp"
+```
 
 ### 6. Add CI Gates
 
 At minimum, product CI must run:
 
 ```bash
-pnpm validate:manifest deployment-toolkit.json
+node /path/to/shipwright/tools/validate-manifest/index.mjs shipwright.json
 <binary> --version
 <binary> --version --json
 ```
 
-When the shared CLI commands are available, add:
+VS Code extensions with native binaries MUST use the `publish-vsix-per-platform.yml` reusable workflow from `templates/gh-actions/`. It handles the 6-platform build matrix, binary staging, `vsce package --target`, VSIX content verification, and atomic Marketplace publish. See `docs/specs/vsix-platform-bundling.md` for the full pipeline spec.
+
+When the full Shipwright CLI is available:
 
 ```bash
-deploy-toolkit verify-binaries --manifest deployment-toolkit.json --platform <platform>
-deploy-toolkit verify-extension-package --manifest deployment-toolkit.json --package <artifact> --platform <platform>
+shipwright verify-binaries --manifest shipwright.json --platform <platform>
+shipwright verify-extension-package --manifest shipwright.json --package <artifact> --platform <platform>
 ```
 
-Until then, implement equivalent product-local tests.
+### 7. Update Shipwright Fixtures
 
-### 7. Update Deployment Toolkit Fixtures
-
-When a product repo adopts or changes the contract, update this repo too:
+When a product repo adopts or changes the contract, update the Shipwright repo too:
 
 - `fixtures/manifests/<product>.json`
 - `fixtures/version-outputs/<language>/<binary>.txt`
 - `fixtures/version-outputs/<language>/<binary>.json`
-- `docs/plans/product-migration-tickets.md`
-
-Run:
-
-```bash
-pnpm test
-```
-
-## Product-Specific Instructions
-
-### dart_mutant
-
-Goal: CLI pilot.
-
-Do:
-
-- Add `deployment-toolkit.json`.
-- Add `dart-mutant --version`.
-- Add `dart-mutant --version --json`.
-- Validate package release version against the manifest.
-
-Do not:
-
-- Add IDE packaging complexity before the CLI contract is green.
-
-### Forge
-
-Goal: multi-binary pilot.
-
-Do:
-
-- Add manifest entries for `forge-lsp`, `forge-sidecar-csharp`, and `forge-sidecar-fsharp`.
-- Make every sidecar report the same expected version.
-- Check sidecars before editor ready state.
-- Verify VSIX bundled `forge-lsp` paths under `bin/<platform>`.
-
-Do not:
-
-- Let the Rust LSP and .NET sidecars carry separate release versions unless the manifest explicitly models that.
-
-### Deslop
-
-Goal: VS Code and JetBrains pilot.
-
-Do:
-
-- Add or keep tests for `deslop`, `deslop-lsp`, and `deslop-mcp`.
-- Ensure `deslop-lsp --version` prints `deslop-lsp 0.1.0`.
-- Ensure `--version` is handled before interpreting args as a workspace root.
-- Check VSIX package contents for `deslop-lsp`, `deslop-mcp`, and `deslop` where bundled.
-- Keep JetBrains resolver behavior aligned with the manifest.
-
-Known contract test:
-
-```bash
-cargo test -p deslop-lsp prints_exact_version_contract
-```
-
-### Basilisk
-
-Goal: VS Code plus Zed pilot.
-
-Do:
-
-- Add manifest entries for CLI, LSP, and optional profiler helper.
-- Use `lsp-initialize` for Zed verification when subprocess checks are unavailable.
-- Treat profiler helper failures as optional only when `"required": false`.
-
-Do not:
-
-- Block the main LSP on optional profiler helper failure unless the manifest marks it required.
-
-### Too Many Cooks
-
-Goal: Node/npm MCP pilot.
-
-Do:
-
-- Add `deployment-toolkit.json`.
-- Add `tmc-server --version`.
-- Add `tmc-server --version --json`.
-- Derive MCP `serverInfo.version` from the package version.
-- Add a contract test that compares serverInfo version to `package.json`.
-
-Known contract test:
-
-```bash
-node --import tsx --test --test-concurrency=1 packages/too-many-cooks/test/server_version_contract_test.ts
-```
-
-Expected current failure until fixed:
-
-```text
-'0.1.0' == '0.5.0'
-```
 
 ## Resolver Port Instructions
 
@@ -275,13 +173,13 @@ Every resolver port must pass `schemas/test-vectors.json`.
 Use the TypeScript core implementation as the most readable reference:
 
 ```text
-clients/ts/packages/deploy-toolkit-core/src/resolve.ts
+clients/ts/packages/shipwright-core/src/resolve.ts
 ```
 
 Use the Rust host crate as the strict reference:
 
 ```text
-crates/deploy-toolkit-host/src/lib.rs
+crates/shipwright-host/src/lib.rs
 ```
 
 Required behavior:
@@ -307,8 +205,7 @@ While editing:
 
 - Send TMC updates after each meaningful step.
 - Keep product-specific manifests product-specific.
-- Keep shared library code generic.
-- Do not change schema identifiers or product names as a rebrand exercise.
+- Keep Shipwright library code generic.
 
 Before handoff:
 
@@ -322,7 +219,7 @@ Before handoff:
 
 A product is opted in when:
 
-- it has a valid `deployment-toolkit.json`
+- it has a valid `shipwright.json`
 - every required executable reports exact plain and JSON versions
 - protocol initialize metadata matches package/binary version
 - every IDE extension verifies required components on startup

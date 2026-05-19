@@ -1,5 +1,5 @@
 {
-  "$comment": "Canonical platform identifiers used by deployment-toolkit. Every `bundlePath` token `${platform}` resolves to one of these. Node's process.platform + process.arch and Rust's target_triple are mapped here.",
+  "$comment": "Canonical platform identifiers used by shipwright. Every `bundlePath` token `${platform}` resolves to one of these. Node's process.platform + process.arch and Rust's target_triple are mapped here.",
   "manifestVersion": 1,
   "platforms": [
     {

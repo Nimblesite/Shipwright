@@ -1,4 +1,4 @@
-use deploy_toolkit_zed::language_server_command;
+use shipwright_zed::language_server_command;
 use zed_extension_api::{self as zed, Result};
 
 struct Extension;
@@ -14,7 +14,7 @@ impl zed::Extension for Extension {
         worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
         language_server_command(
-            include_str!("../deployment-toolkit.json"),
+            include_str!("../shipwright.json"),
             "{{LSP_COMPONENT_ID}}",
             language_server_id,
             worktree,

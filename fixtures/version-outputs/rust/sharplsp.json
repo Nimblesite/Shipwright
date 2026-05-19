@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 1,
+  "name": "sharplsp",
+  "version": "0.1.0",
+  "kind": "lsp",
+  "language": "rust",
+  "buildTime": "2026-01-01T00:00:00Z",
+  "gitSha": "abc1234",
+  "gitDirty": false,
+  "target": "aarch64-apple-darwin",
+  "toolchain": "rustc 1.89.0",
+  "capabilities": ["version-flag", "version-flag-json", "lsp-initialize-version"],
+  "product": "sharplsp"
+}

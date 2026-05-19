@@ -8,7 +8,7 @@ on:
 
 jobs:
   release:
-    uses: nimblesite/deployment_toolkit/.github/workflows/release.reusable.yml@v1
+    uses: nimblesite/Shipwright/.github/workflows/release.reusable.yml@v1
     with:
       tag: ${{ github.ref_name }}
       bin_name: "{{COMMAND_NAME}}"

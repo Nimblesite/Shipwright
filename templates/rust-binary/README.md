@@ -1,21 +1,21 @@
 # `templates/rust-binary`
 
 Copy this directory into a new repo to start a Rust CLI/LSP/MCP that
-participates in deploy-toolkit out of the box. You get:
+participates in shipwright out of the box. You get:
 
 - A binary whose `--version` and `--version --json` already match the
-  deploy-toolkit contract (`schemas/version-manifest.schema.json`).
+  shipwright contract (`schemas/version-manifest.schema.json`).
 - `build.rs` emitting `GIT_SHA`, `BUILD_TIME`, and toolchain info.
-- A `deployment-toolkit.json` product manifest.
+- A `shipwright.json` product manifest.
 - A `release.yml` that delegates to the reusable release orchestrator.
 
 ## Files
 
 - `Cargo.toml.tpl` — rename to `Cargo.toml` and substitute `{{PRODUCT_ID}}`,
   `{{BINARY_NAME}}`, `{{VERSION}}`.
-- `src/main.rs` — entry point that wires `deploy-toolkit-cli::dispatch`.
+- `src/main.rs` — entry point that wires `shipwright-cli::dispatch`.
 - `build.rs` — emits the compile-time env vars.
-- `deployment-toolkit.json` — single-component manifest; add components as
+- `shipwright.json` — single-component manifest; add components as
   the product grows.
 - `release.yml` — move to `.github/workflows/release.yml`.
 

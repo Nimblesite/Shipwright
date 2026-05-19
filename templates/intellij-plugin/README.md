@@ -9,8 +9,8 @@ or user-selected binaries before the plugin starts language services.
   placeholders.
 - `src/main/resources/META-INF/plugin.xml.tpl` — rename to `plugin.xml`.
 - `src/main/kotlin/DeployToolkitStartupActivity.kt` — startup verification
-  hook using `deploy-toolkit-intellij`.
-- `deployment-toolkit.json` — plugin manifest with bundled binary layout.
+  hook using `shipwright-intellij`.
+- `shipwright.json` — plugin manifest with bundled binary layout.
 
 ## One-time bootstrap
 
@@ -34,4 +34,4 @@ rm build.gradle.kts.tpl src/main/resources/META-INF/plugin.xml.tpl
 ```
 
 Package runtime binaries under `bin/<platform>` inside the plugin root and
-keep `deployment-toolkit.json` in the final plugin artifact.
+keep `shipwright.json` in the final plugin artifact.

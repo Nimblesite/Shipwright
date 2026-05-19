@@ -13,8 +13,8 @@ const specDir = join(root, "docs", "specs");
 const workflowDir = join(root, ".github", "workflows");
 const semverPattern = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const namePattern = /^[a-z0-9][a-z0-9-]{1,63}$/;
-const trackedIdPattern = /^DTK-[A-Z]+(?:-[A-Z]+)+$/;
-const illegalNumericTrackedIdPattern = /\bDTK-[A-Z]+-\d+\b/g;
+const trackedIdPattern = /^SWR-[A-Z]+(?:-[A-Z]+)+$/;
+const illegalNumericTrackedIdPattern = /\bSWR-[A-Z]+-\d+\b/g;
 const validKinds = new Set(["cli", "lsp", "mcp", "sidecar", "dap", "tool"]);
 const validLanguages = new Set(["rust", "dotnet", "dart", "typescript", "kotlin", "javascript"]);
 
@@ -50,7 +50,7 @@ test("all golden manifests pass schema validation", () => {
   const manifests = listJsonFiles(goldenDir);
   assert.deepEqual(
     manifests.map((file) => relative(goldenDir, file)),
-    ["basilisk.json", "dart-mutant.json", "deslop.json", "forge.json", "too-many-cooks.json"]
+    ["basilisk.json", "dart-mutant.json", "deslop.json", "sharplsp.json", "too-many-cooks.json"]
   );
 
   for (const manifest of manifests) {
@@ -96,7 +96,7 @@ test("all invalid manifests fail schema validation", () => {
 
 test("plain and JSON version fixtures match the contract", () => {
   const files = walkFiles(versionOutputDir).filter((file) => file.endsWith(".txt") || file.endsWith(".json"));
-  assert.equal(files.length, 12);
+  assert.equal(files.length, 16);
 
   const textNames = new Set();
   const jsonNames = new Set();

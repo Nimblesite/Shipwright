@@ -1,5 +1,5 @@
 {
-  "name": "deployment-toolkit",
+  "name": "shipwright",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,12 +7,12 @@
   "scripts": {
     "test": "pnpm test:fixtures && pnpm test:ts-core && pnpm test:ts-vscode && pnpm test:ts-node && pnpm test:cli && pnpm test:rust-workspace",
     "test:fixtures": "node --test tests/fixtures.test.mjs",
-    "test:ts-core": "pnpm --filter @deploy-toolkit/core test",
-    "test:ts-vscode": "pnpm --filter @deploy-toolkit/vscode test",
-    "test:ts-node": "pnpm --filter @deploy-toolkit/node test",
-    "test:cli": "pnpm --filter deploy-toolkit test",
+    "test:ts-core": "pnpm --filter @shipwright/core test",
+    "test:ts-vscode": "pnpm --filter @shipwright/vscode test",
+    "test:ts-node": "pnpm --filter @shipwright/node test",
+    "test:cli": "pnpm --filter shipwright test",
     "test:rust-workspace": "cargo test --workspace",
-    "test:rust-manifest": "cargo test -p deploy-toolkit-manifest",
+    "test:rust-manifest": "cargo test -p shipwright-manifest",
     "validate:fixtures": "node --test tests/fixtures.test.mjs",
     "validate:manifest": "node tools/validate-manifest/index.mjs"
   }

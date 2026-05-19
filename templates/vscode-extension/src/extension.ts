@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { activateDeploymentToolkit } from "@deploy-toolkit/vscode";
+import { activateShipwright } from "@shipwright/vscode";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const deployment = await activateDeploymentToolkit(context, { vscode });
+  const deployment = await activateShipwright(context, { vscode });
   if (!deployment.ok) {
     return;
   }

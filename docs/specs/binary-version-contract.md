@@ -1,18 +1,21 @@
 # Binary Version Contract Spec
 
+```
+Spec prefix: SWR-VERSION-*
 Status: Draft
+```
 
 ## Purpose
 
-All Nimblesite binaries, language servers, MCP servers, sidecars, helper tools, and CLI entry points must expose one consistent version contract. IDE extensions use this contract at startup to ensure the binaries they launch match the extension package that installed or selected them.
+All binaries, language servers, MCP servers, sidecars, helper tools, and CLI entry points managed by Shipwright must expose one consistent version contract. IDE extensions use this contract at startup to ensure the binaries they launch match the extension package that installed or selected them.
 
-The contract exists to prevent an extension package from launching the wrong server, stale sidecar, old MCP tool, or incompatible CLI.
+The contract prevents an extension from launching the wrong server, stale sidecar, old MCP tool, or incompatible CLI.
 
 ## Required `--version` Behavior
 
 Every executable component MUST support:
 
-```text
+```bash
 <binary> --version
 ```
 
@@ -31,7 +34,7 @@ The command MUST:
 Example:
 
 ```text
-forge-sidecar-csharp 0.1.0
+my-tool-lsp 1.2.3
 ```
 
 Stderr SHOULD be empty for `--version`. If a platform runtime writes unavoidable warnings, the version parser MUST only trust the first stdout line.
@@ -40,21 +43,19 @@ Stderr SHOULD be empty for `--version`. If a platform runtime writes unavoidable
 
 Every component SHOULD also support:
 
-```text
-<binary> --version --format json
+```bash
+<binary> --version --json
 ```
 
-The JSON shape is:
+The JSON shape must conform to `schemas/version-manifest.schema.json`:
 
 ```json
 {
-  "schemaVersion": 1,
-  "componentId": "deslop-lsp",
-  "version": "0.1.0",
-  "productId": "deslop",
-  "target": "darwin-arm64",
-  "commit": "optional-git-sha",
-  "buildProfile": "release"
+  "manifestVersion": 1,
+  "name": "my-tool-lsp",
+  "version": "1.2.3",
+  "kind": "lsp",
+  "language": "rust"
 }
 ```
 
@@ -68,8 +69,8 @@ LSP servers MUST set `InitializeResult.serverInfo`:
 
 ```json
 {
-  "name": "basilisk",
-  "version": "0.1.0"
+  "name": "my-tool-lsp",
+  "version": "1.2.3"
 }
 ```
 
@@ -77,8 +78,8 @@ MCP servers MUST set `serverInfo` in the initialize response:
 
 ```json
 {
-  "name": "too-many-cooks",
-  "version": "0.5.0"
+  "name": "my-tool-mcp",
+  "version": "1.2.3"
 }
 ```
 
@@ -87,16 +88,14 @@ Custom sidecar protocols MUST either support `--version` before launch or send a
 ```json
 {
   "type": "hello",
-  "componentId": "forge-sidecar-csharp",
-  "version": "0.1.0"
+  "componentId": "my-tool-sidecar",
+  "version": "1.2.3"
 }
 ```
 
 ## Matching Rules
 
-The expected version comes from the installing package manifest. For marketplace IDE extensions this is normally the extension version. For a product with intentionally split component versions, the extension manifest MUST list each expected component version explicitly.
-
-Version comparison rules:
+The expected version comes from `shipwright.json`. Version comparison rules:
 
 1. Strip one optional leading `v` before comparison.
 2. Compare the complete semantic version string after normalization.
@@ -104,36 +103,26 @@ Version comparison rules:
 4. Preserve and compare build metadata exactly unless the manifest declares `ignoreBuildMetadata: true`.
 5. Treat an unparsable or missing version as a mismatch.
 
-User overrides MUST NOT bypass this check. A configured path, environment override, PATH discovery result, bundled binary, downloaded Zed asset, or package-manager install result all go through the same comparison.
+User overrides MUST NOT bypass this check. A configured path, environment override, PATH discovery result, bundled binary, downloaded asset, or package-manager install result all go through the same comparison.
 
-## Product Binary Manifest
+## Product Manifest
 
-Each package that launches binaries MUST include a deployment manifest. Suggested path:
-
-```text
-deployment-toolkit.json
-```
-
-Suggested shape:
+Each package that launches binaries MUST include `shipwright.json`. Minimal example:
 
 ```json
 {
-  "schemaVersion": 1,
-  "productId": "forge",
-  "packageVersion": "0.1.0",
+  "manifestVersion": 1,
+  "product": {
+    "id": "my-tool",
+    "version": "1.2.3"
+  },
   "components": [
     {
-      "id": "forge-lsp",
+      "id": "my-tool-lsp",
       "kind": "lsp",
-      "version": "0.1.0",
-      "command": "forge-lsp",
-      "required": true
-    },
-    {
-      "id": "forge-sidecar-csharp",
-      "kind": "dotnet-tool",
-      "version": "0.1.0",
-      "command": "forge-sidecar-csharp",
+      "language": "rust",
+      "binaryName": "my-tool-lsp",
+      "expectedVersion": "1.2.3",
       "required": true
     }
   ]
@@ -144,13 +133,13 @@ The manifest is the single source of truth for startup validation, package assem
 
 ## Language Bindings
 
-Rust binaries MUST use a shared crate that wires version output from `CARGO_PKG_VERSION` and product metadata.
+Rust binaries MUST use `shipwright` to wire version output from `CARGO_PKG_VERSION` and build metadata.
 
-.NET binaries and dotnet tools MUST use a shared package that wires version output from MSBuild package metadata.
+.NET binaries and dotnet tools MUST use `Shipwright` to wire version output from MSBuild package metadata.
 
-Node binaries MUST read version from their own `package.json` at build time or from generated constants. Hard-coded server versions are forbidden.
+Node/MCP binaries MUST use `@nimblesite/shipwright-mcp` to derive `serverInfo.version` from `package.json`. Hard-coded server versions are forbidden.
 
-Editor extensions MUST use shared resolver libraries instead of custom per-product parsers.
+IDE extensions MUST use `@nimblesite/shipwright-vscode`, `shipwright-host`, or the appropriate host library instead of custom per-product parsers.
 
 ## Test Requirements
 
@@ -161,10 +150,4 @@ Every product repo MUST include tests that prove:
 3. Protocol initialization reports the same version.
 4. A mismatched configured path causes a visible startup error.
 5. A matching bundled binary starts successfully.
-6. A PATH binary with the wrong version is rejected or ignored in favor of a matching bundled binary.
-
-## TODO
-
-- [ ] Define the canonical JSON schema file and validation fixtures.
-- [ ] Decide whether 1500 ms is the final timeout for all platforms or only the VS Code resolver default.
-- [ ] Add a formal compatibility field for rare cases where protocol compatibility intentionally differs from package version.
+6. A PATH binary with the wrong version is rejected in favor of a matching bundled binary.

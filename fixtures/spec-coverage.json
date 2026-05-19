@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "docs/specs/binary-version-contract.md": {
-    "defaultTicket": "DTK-SPEC-BINARY-VERSION",
+    "defaultTicket": "SWR-SPEC-BINARY-VERSION",
     "fixtures": [
       "fixtures/version-outputs/rust/deslop.txt",
       "fixtures/version-outputs/rust/deslop.json",
@@ -9,25 +9,37 @@
       "fixtures/version-outputs/rust/deslop-lsp.json",
       "fixtures/version-outputs/rust/deslop-mcp.txt",
       "fixtures/version-outputs/rust/deslop-mcp.json",
-      "fixtures/version-outputs/dotnet/forge-sidecar-csharp.txt",
-      "fixtures/version-outputs/dotnet/forge-sidecar-csharp.json",
+      "fixtures/version-outputs/rust/sharplsp.txt",
+      "fixtures/version-outputs/rust/sharplsp.json",
+      "fixtures/version-outputs/dotnet/sharplsp-sidecar-csharp.txt",
+      "fixtures/version-outputs/dotnet/sharplsp-sidecar-csharp.json",
+      "fixtures/version-outputs/dotnet/sharplsp-sidecar-fsharp.txt",
+      "fixtures/version-outputs/dotnet/sharplsp-sidecar-fsharp.json",
       "fixtures/version-outputs/node/tmc-server.txt",
       "fixtures/version-outputs/node/tmc-server.json",
       "fixtures/version-outputs/dart/dart-mutant.txt",
       "fixtures/version-outputs/dart/dart-mutant.json"
     ]
   },
+  "docs/specs/binary-signing-notarization.md": {
+    "defaultTicket": "SWR-SIGN-COVERAGE",
+    "fixtures": [
+      "templates/gh-actions/release-binary-multiplatform.yml",
+      "templates/gh-actions/publish-vsix-per-platform.yml",
+      "templates/rust-binary/release.yml"
+    ]
+  },
   "docs/specs/ide-extension-deployment.md": {
-    "defaultTicket": "DTK-SPEC-IDE-EXTENSION-DEPLOYMENT",
+    "defaultTicket": "SWR-SPEC-IDE-EXTENSION-DEPLOYMENT",
     "fixtures": [
       "fixtures/manifests/deslop.json",
       "fixtures/manifests/basilisk.json",
-      "fixtures/manifests/forge.json",
+      "fixtures/manifests/sharplsp.json",
       "fixtures/manifests/too-many-cooks.json"
     ]
   },
   "docs/specs/library-architecture.md": {
-    "defaultTicket": "DTK-SPEC-LIBRARY-ARCHITECTURE",
+    "defaultTicket": "SWR-SPEC-LIBRARY-ARCHITECTURE",
     "fixtures": [
       "tools/validate-manifest/package.json",
       "tools/validate-manifest/index.mjs",
@@ -35,39 +47,47 @@
     ]
   },
   "docs/specs/repo-survey.md": {
-    "defaultTicket": "DTK-SPEC-REPO-SURVEY",
+    "defaultTicket": "SWR-SPEC-REPO-SURVEY",
     "fixtures": [
       "fixtures/manifests/deslop.json",
       "fixtures/manifests/basilisk.json",
-      "fixtures/manifests/forge.json",
+      "fixtures/manifests/sharplsp.json",
       "fixtures/manifests/too-many-cooks.json",
       "fixtures/manifests/dart-mutant.json"
     ]
   },
   "docs/specs/source-projects.md": {
-    "defaultTicket": "DTK-SPEC-SOURCE-PROJECTS",
+    "defaultTicket": "SWR-SPEC-SOURCE-PROJECTS",
     "fixtures": [
       "fixtures/manifests/deslop.json",
       "fixtures/manifests/basilisk.json",
-      "fixtures/manifests/forge.json",
+      "fixtures/manifests/sharplsp.json",
       "fixtures/manifests/too-many-cooks.json",
       "fixtures/manifests/dart-mutant.json"
     ]
   },
   "docs/specs/compatibility-matrix.md": {
-    "defaultTicket": "DTK-SPEC-COMPATIBILITY-MATRIX",
+    "defaultTicket": "SWR-SPEC-COMPATIBILITY-MATRIX",
     "fixtures": [
       "schemas/compatibility-matrix.json",
       "fixtures/platforms/platform-ids.json"
     ]
   },
   "docs/specs/acceptance-gates.md": {
-    "defaultTicket": "DTK-SPEC-ACCEPTANCE-GATES",
+    "defaultTicket": "SWR-SPEC-ACCEPTANCE-GATES",
     "fixtures": [
       "examples/ci/github-actions.yml",
       "templates/gh-actions/release-binary-multiplatform.yml",
       "templates/gh-actions/publish-brew-tap.yml",
       "templates/gh-actions/publish-scoop-bucket.yml"
+    ]
+  },
+  "docs/specs/vsix-platform-bundling.md": {
+    "defaultTicket": "SWR-SPEC-VSIX-PLATFORM-BUNDLING",
+    "fixtures": [
+      "templates/gh-actions/publish-vsix-per-platform.yml",
+      "fixtures/manifests/sharplsp.json",
+      "schemas/platforms.json"
     ]
   }
 }

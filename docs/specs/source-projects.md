@@ -1,6 +1,6 @@
 # Source Projects (Deployment Targets)
 
-These are the projects whose binaries and other artifacts the deployment_toolkit
+These are the projects whose binaries and other artifacts Shipwright
 must scaffold for, in a CONSISTENT WAY:
 
 - `/Users/christianfindlay/Documents/Code/tmc/too-many-cooks`

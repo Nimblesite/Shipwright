@@ -1,17 +1,17 @@
-//! Scaffold entry point. Prints the deploy-toolkit `--version` contract
+//! Scaffold entry point. Prints the shipwright `--version` contract
 //! and otherwise runs the real CLI logic (stubbed here).
 
-use deploy_toolkit_cli::{dispatch, BuildInfo, CliError, VersionSpec};
-use deploy_toolkit_manifest::{ExecutableKind, Language};
+use shipwright_cli::{dispatch, BuildInfo, CliError, VersionSpec};
+use shipwright_manifest::{ExecutableKind, Language};
 use std::io;
 
 fn main() -> Result<(), CliError> {
     let build = BuildInfo {
-        git_sha: option_env!("DEPLOY_TOOLKIT_GIT_SHA"),
-        git_dirty: option_env!("DEPLOY_TOOLKIT_GIT_DIRTY").map(|s| s == "true"),
-        build_time: option_env!("DEPLOY_TOOLKIT_BUILD_TIME"),
-        target: option_env!("DEPLOY_TOOLKIT_TARGET"),
-        toolchain: option_env!("DEPLOY_TOOLKIT_TOOLCHAIN"),
+        git_sha: option_env!("SHIPWRIGHT_GIT_SHA"),
+        git_dirty: option_env!("SHIPWRIGHT_GIT_DIRTY").map(|s| s == "true"),
+        build_time: option_env!("SHIPWRIGHT_BUILD_TIME"),
+        target: option_env!("SHIPWRIGHT_TARGET"),
+        toolchain: option_env!("SHIPWRIGHT_TOOLCHAIN"),
     };
     let spec = VersionSpec {
         name: env!("CARGO_PKG_NAME"),
@@ -23,7 +23,9 @@ fn main() -> Result<(), CliError> {
         build,
     };
 
-    if dispatch(std::env::args(), io::stdout().lock(), &spec)? {
+    let args: Vec<String> = std::env::args().collect();
+    let mut stdout = io::stdout().lock();
+    if dispatch(&args, &mut stdout, &spec)? {
         return Ok(());
     }
 

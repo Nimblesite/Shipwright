@@ -1,124 +1,109 @@
-# Deployment Toolkit Library Architecture Spec
+# Shipwright Library Architecture Spec
 
+```
+Spec prefix: SWR-ARCH-*
 Status: Draft
+```
 
 ## Purpose
 
-This repo will provide shared libraries and tooling for deploying Nimblesite binaries and IDE extensions. The reusable libraries must use generic public package names so the framework can be released as public crates, npm packages, NuGet packages, and host integrations. Product repos should stop maintaining bespoke version parsers, platform directory conventions, package manifests, and startup checks.
+Shipwright provides shared libraries and tooling for deploying binaries and IDE extensions. The libraries use generic public package names and are designed for any team shipping language servers, MCP servers, sidecars, or CLI tools alongside IDE extensions.
+
+Product repos stop maintaining bespoke version parsers, platform directory conventions, package manifests, and startup checks. Instead they adopt Shipwright and get consistent behavior across all host environments.
 
 ## Libraries
 
 ### Rust
 
-`deploy-toolkit-cli`
-
+**`shipwright`**
 - Adds a standard `--version` implementation for Rust binaries.
 - Exposes plain text and JSON version metadata.
-- Provides helpers for Clap-based CLIs and manual argument parsing.
-- Reads `CARGO_PKG_NAME`, `CARGO_PKG_VERSION`, target triple, and optional git metadata.
+- Reads `CARGO_PKG_NAME`, `CARGO_PKG_VERSION`, target triple, and optional build metadata.
 
-`deploy-toolkit-manifest`
-
-- Defines the product deployment manifest data model.
+**`shipwright-manifest`**
+- Defines the `shipwright.json` product manifest data model.
 - Validates component ids, versions, platform names, checksums, and required flags.
 - Generates target-specific asset names.
 
-`deploy-toolkit-release`
+**`shipwright-host`**
+- Pure binary-resolution algorithm for IDE extension hosts.
+- No I/O — the version-probe function is injected by the caller.
+- Every resolver port must pass `schemas/test-vectors.json`.
 
-- Builds release manifests from product build outputs.
-- Verifies every produced binary reports the expected version.
-- Emits checksums and package contents for VSIX, JetBrains, Zed, npm, cargo, and dotnet tool workflows.
+**`shipwright-zed`**
+- Zed editor host integration built on `shipwright-host`.
 
 ### TypeScript
 
-`@deploy-toolkit/vscode`
-
-- Loads `deployment-toolkit.json` from a VS Code extension.
+**`@nimblesite/shipwright-vscode`**
+- Loads `shipwright.json` from a VS Code extension.
 - Resolves configured, bundled, cached, and PATH binaries.
 - Runs `--version` through `execFile` or `spawn` without a shell.
-- Prepends matching bundled directories to the extension process PATH when needed.
 - Returns structured diagnostics and user-facing messages.
 
-`@deploy-toolkit/core`
+**`@nimblesite/shipwright-core`**
+- JSON schemas, platform ids, error types, and manifest parsing shared across hosts.
 
-- Owns JSON schemas, platform ids, error types, and manifest parsing shared by VS Code and build scripts.
+**`@nimblesite/shipwright-mcp`**
+- Adds `--version` handling for npm/MCP binaries.
+- Generates MCP server `serverInfo.version` from `package.json`.
+- Prevents hard-coded server versions drifting from package metadata.
 
-### Kotlin / JetBrains
-
-`deploy-toolkit-jetbrains`
-
-- Loads plugin-root manifests.
-- Resolves user-configured, bundled, and PATH binaries.
-- Runs version checks using `GeneralCommandLine`.
-- Converts failures into JetBrains notifications and Event Log entries.
-- Provides LSP descriptor helpers so products do not reimplement path search.
+**`@nimblesite/shipwright-validate-manifest`**
+- AJV-backed CLI for validating `shipwright.json` in product CI.
 
 ### .NET
 
-`DeployToolkit`
-
+**`Shipwright`** (library)
 - Adds `--version` handling to .NET sidecars and global tools.
 - Reads package version from assembly metadata.
 - Emits the same plain text and JSON contract as Rust and Node.
 
-### Node
+**`Shipwright`** (global tool — `dotnet tool install -g Shipwright`)
+- CLI for validating manifests, verifying binaries, and inspecting packages.
 
-`@deploy-toolkit/node`
+### Dart
 
-- Adds `--version` handling for npm binaries.
-- Generates MCP server `serverInfo.version` from package metadata.
-- Prevents hard-coded server versions drifting from `package.json`.
+**`shipwright`**
+- Binary resolver and `--version` contract helpers for Dart/Flutter applications.
 
-## CLI Tool
+## Version-Stamping Tool
 
-`deployment-toolkit`
+**`shipwright-version-stamp`**
 
-The repo should eventually produce a CLI used by product repos and CI:
+Stamps a semver tag into every manifest file in the repo with a single command:
 
-```text
-deployment-toolkit verify-manifest
-deployment-toolkit verify-binaries --manifest deployment-toolkit.json
-deployment-toolkit package-vsix
-deployment-toolkit package-jetbrains
-deployment-toolkit release-assets
-deployment-toolkit repair
+```bash
+shipwright-version-stamp --tag v1.2.3 --root .
 ```
 
-The CLI must be product-agnostic and driven by the manifest.
+Supports: `Cargo.toml`, `package.json`, `*.csproj`, `pubspec.yaml`.
 
 ## Manifest Model
 
-Core entities:
-
 | Entity | Meaning |
 | --- | --- |
-| Product | A tool family such as Deslop, Basilisk, Forge, or Too Many Cooks. |
-| Package | A distributable artifact such as VSIX, JetBrains plugin, npm package, cargo crate, dotnet tool, or Zed extension. |
-| Component | A runtime executable or config payload required by a package. |
+| Product | A tool family with a stable id and version. |
+| Component | A runtime executable or config payload required by a product. |
+| Host | An IDE or runtime environment that resolves and launches components. |
 | Resolver | Host-specific logic that locates and validates a component. |
 | Verification | Version, checksum, platform, and protocol checks before startup or release. |
 
-The manifest must support native binaries, .NET tools, Node binaries, WASM/Zed extension libraries, config payloads, and helper executables.
+The manifest supports native binaries, .NET tools, Node binaries, WASM/Zed extension libraries, config payloads, and helper executables.
 
 ## Integration Pattern
 
-Product repos should integrate in this order:
+Product repos integrate in this order:
 
-1. Add the version library to every binary and sidecar.
-2. Add `deployment-toolkit.json` to each package.
-3. Replace local editor resolver code with the shared host library.
+1. Add `shipwright` (or the appropriate language library) to every binary and sidecar.
+2. Add `shipwright.json` to each package.
+3. Replace local editor resolver code with the appropriate host library.
 4. Update release packaging to place binaries under standard `bin/<platform>` directories.
-5. Add CI checks that run `deployment-toolkit verify-binaries`.
+5. Add CI checks that validate the manifest and verify binaries.
 
 ## Compatibility Rules
 
-1. The manifest schema must be versioned.
-2. Host libraries must reject newer incompatible manifest schemas.
+1. The manifest schema is versioned via `manifestVersion`.
+2. Host libraries must reject incompatible newer manifest schemas.
 3. Host libraries may warn on older compatible schemas.
-4. Component kinds must be extensible so future products can add Intellij, Zed, Neovim, MCP-only, and CLI-only packages without changing existing fields.
-
-## TODO
-
-- [ ] Agree final crate, npm package, Kotlin module, and NuGet package names with `DepToolkitOpus`.
-- [ ] Define the first JSON schema and generate bindings for Rust and TypeScript.
-- [ ] Decide whether the CLI should be Rust-first or Node-first for fastest integration with VSIX packaging.
+4. Component kinds are extensible — new host types can be added without breaking existing fields.

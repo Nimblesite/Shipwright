@@ -6,7 +6,7 @@ on:
       manifest_path:
         required: false
         type: string
-        default: deployment-toolkit.json
+        default: shipwright.json
       binary_name:
         required: true
         type: string

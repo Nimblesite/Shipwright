@@ -1,14 +1,17 @@
-# Deployment Toolkit Acceptance Gates
+# Shipwright Acceptance Gates
 
+```
+Spec prefix: SWR-GATE-*
 Status: Draft
+```
 
-These gates define what Nimblesite product repos must prove before they can claim deployment-toolkit compliance. The reusable libraries and workflows referenced here use generic package names.
+These gates define what product repos must prove before they can claim Shipwright compliance.
 
 ## `verify-binaries`
 
 Inputs:
 
-- Product `deployment-toolkit.json`.
+- Product `shipwright.json`.
 - Target platform id.
 - Build output root or installed tool root.
 
@@ -24,13 +27,13 @@ Required checks:
 
 Inputs:
 
-- Product `deployment-toolkit.json`.
-- Extension artifact path, such as VSIX, JetBrains ZIP/JAR, or Zed package.
+- Product `shipwright.json`.
+- Extension artifact path (VSIX, JetBrains ZIP/JAR, or Zed package).
 - Target platform id.
 
 Required checks:
 
-- The artifact contains `deployment-toolkit.json`.
+- The artifact contains `shipwright.json`.
 - VSIX native binaries are under `bin/<platform>/<binaryName><exe>`.
 - VSIX platform-agnostic binaries are under `bin/all/<binaryName>`.
 - JetBrains plugin packages either omit native binaries or place explicitly allowed helpers under plugin-root `bin/<platform>`.
@@ -42,7 +45,7 @@ Required checks:
 Inputs:
 
 - Product test command for the IDE extension.
-- Product `deployment-toolkit.json`.
+- Product `shipwright.json`.
 - Target platform id.
 
 Required checks:
@@ -70,17 +73,17 @@ Every host library must exercise these resolver cases:
 
 ## CI Contract
 
-The example workflow at `examples/ci/github-actions.yml` validates all golden manifests and proves invalid manifests fail. Product repos should add the generic validator package and then run product-specific binary/package checks after build.
+Product repos must run at minimum:
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm test
-pnpm validate:manifest deployment-toolkit.json
-deploy-toolkit verify-binaries --manifest deployment-toolkit.json --platform <target>
-deploy-toolkit verify-extension-package --manifest deployment-toolkit.json --package <artifact> --platform <target>
+shipwright-validate-manifest shipwright.json
+<binary> --version
+<binary> --version --json
 ```
 
-## Tickets
+When the full CLI is available, also run:
 
-- DTK-SPEC-ACCEPTANCE-VERIFY-BINARIES: Implement `deploy-toolkit verify-binaries` after the manifest validator is stable.
-- DTK-SPEC-ACCEPTANCE-VERIFY-PACKAGE: Implement `deploy-toolkit verify-extension-package` after the first VSIX pilot ships.
+```bash
+shipwright verify-binaries --manifest shipwright.json --platform <target>
+shipwright verify-extension-package --manifest shipwright.json --package <artifact> --platform <target>
+```

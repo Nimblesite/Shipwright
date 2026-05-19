@@ -1,0 +1,21 @@
+[package]
+name = "shipwright"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Binary-side helper: emits --version / --version --json per the Shipwright contract."
+documentation = "https://docs.rs/shipwright"
+readme = "README.md"
+
+[dependencies]
+shipwright-manifest = { path = "../shipwright-manifest", version = "0.1" }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true

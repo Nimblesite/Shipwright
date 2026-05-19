@@ -1,4 +1,4 @@
-# Deployment Toolkit Repo Survey
+# Shipwright Repo Survey
 
 Status: Draft
 
@@ -26,6 +26,6 @@ This survey records the local evidence gathered from the current Nimblesite tool
 
 ## TODO
 
-- [ ] Confirm with `deployment_toolkit_open` whether library names below should be final package names or working names.
+- [ ] Confirm library names are final package names or working names.
 - [ ] Re-check Deslop LSP `--version` behavior when implementation starts; the current evidence suggests a real mismatch with the VSIX resolver.
 - [ ] Decide whether TMC should be treated as a Node-only binary first or moved behind the same manifest as native binaries immediately.

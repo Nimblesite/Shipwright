@@ -14,7 +14,6 @@ ehthumbs.db
 Desktop.ini
 
 # IDE / Editor
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -83,3 +82,4 @@ obj/
 
 
 .dart_tool/
+.deslop-cache/

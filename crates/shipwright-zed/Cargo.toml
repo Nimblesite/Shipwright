@@ -1,0 +1,22 @@
+[package]
+name = "shipwright-zed"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Zed host helpers for Shipwright binary and LSP version checks."
+documentation = "https://docs.rs/shipwright-zed"
+readme = "README.md"
+
+[dependencies]
+shipwright-host = { path = "../shipwright-host", version = "0.1" }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
