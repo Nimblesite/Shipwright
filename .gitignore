@@ -40,6 +40,9 @@ lcov.info
 *.profdata
 target/llvm-cov/
 
+# Stamped build artifact — written by shipwright-version-stamp at build time, not source-controlled
+build-info.json
+
 # Secrets / local overrides
 .env
 .env.local

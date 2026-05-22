@@ -9,7 +9,7 @@
     <!-- Suppress CS1591 (missing XML doc) until we doc every public member. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>Shipwright</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>NIMBLESITE PTY LTD</Authors>
     <Description>Shipwright — binary resolver and version-manifest helpers for products adopting the Shipwright contract.</Description>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>

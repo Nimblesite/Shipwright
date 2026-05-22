@@ -10,7 +10,7 @@ documentation = "https://docs.rs/shipwright-zed"
 readme = "README.md"
 
 [dependencies]
-shipwright-host = { path = "../shipwright-host", version = "0.1" }
+shipwright-host = { path = "../shipwright-host", version = "0.2" }
 
 [dev-dependencies]
 serde_json = { workspace = true }

@@ -1,42 +1,54 @@
 {
-  "name": "@nimblesite/shipwright-vscode",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "VS Code glue for Shipwright: reads shipwright.json, resolves each component, surfaces prompts to the user.",
-  "license": "MIT OR Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Nimblesite/Shipwright.git"
+  "dependencies": {
+    "@nimblesite/shipwright-core": "workspace:*"
   },
+  "description": "VS Code glue for Shipwright: reads shipwright.json, resolves each component, surfaces prompts to the user.",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "homepage": "https://github.com/Nimblesite/Shipwright",
-  "keywords": ["shipwright", "deployment", "versioning", "vscode", "ide-extension"],
+  "keywords": [
+    "shipwright",
+    "deployment",
+    "versioning",
+    "vscode",
+    "ide-extension"
+  ],
+  "license": "MIT OR Apache-2.0",
+  "name": "@nimblesite/shipwright-vscode",
+  "peerDependencies": {
+    "vscode": "*"
+  },
+  "peerDependenciesMeta": {
+    "vscode": {
+      "optional": true
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
-  "files": ["dist/", "README.md", "LICENSE"],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nimblesite/Shipwright.git"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "vscode": "*"
-  },
-  "peerDependenciesMeta": {
-    "vscode": { "optional": true }
-  },
-  "dependencies": {
-    "@nimblesite/shipwright-core": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^24.10.1",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.14"
-  }
+  "type": "module",
+  "version": "0.2.0"
 }

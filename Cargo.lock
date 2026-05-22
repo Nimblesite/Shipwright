@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "shipwright"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
  "shipwright-manifest",
@@ -249,7 +249,7 @@ dependencies = [
 
 [[package]]
 name = "shipwright-host"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "shipwright-manifest"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -267,7 +267,7 @@ dependencies = [
 
 [[package]]
 name = "shipwright-version-stamp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -277,7 +277,7 @@ dependencies = [
 
 [[package]]
 name = "shipwright-zed"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
  "shipwright-host",

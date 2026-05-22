@@ -1,19 +1,19 @@
 {
   "name": "shipwright",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
   "packageManager": "pnpm@10.10.0",
+  "private": true,
   "scripts": {
     "test": "pnpm test:fixtures && pnpm test:ts-core && pnpm test:ts-vscode && pnpm test:ts-mcp && pnpm test:cli && pnpm test:rust-workspace",
-    "test:fixtures": "node --test tests/fixtures.test.mjs",
-    "test:ts-core": "pnpm --filter @nimblesite/shipwright-core test",
-    "test:ts-vscode": "pnpm --filter @nimblesite/shipwright-vscode test",
-    "test:ts-mcp": "pnpm --filter @nimblesite/shipwright-mcp test",
     "test:cli": "pnpm --filter shipwright test",
-    "test:rust-workspace": "cargo test --workspace",
+    "test:fixtures": "node --test tests/fixtures.test.mjs",
     "test:rust-manifest": "cargo test -p shipwright-manifest",
+    "test:rust-workspace": "cargo test --workspace",
+    "test:ts-core": "pnpm --filter @nimblesite/shipwright-core test",
+    "test:ts-mcp": "pnpm --filter @nimblesite/shipwright-mcp test",
+    "test:ts-vscode": "pnpm --filter @nimblesite/shipwright-vscode test",
     "validate:fixtures": "node --test tests/fixtures.test.mjs",
     "validate:manifest": "node tools/validate-manifest/index.mjs"
-  }
+  },
+  "type": "module",
+  "version": "0.2.0"
 }

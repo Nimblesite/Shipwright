@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-05-20
+## [0.2.0] - 2026-05-23
 
 ### Added
-- Initial release of all `Shipwright` packages across crates.io, npm, NuGet, and pub.dev.
+- Initial published release of all `Shipwright` packages across crates.io, npm, NuGet, and pub.dev.
 - `shipwright-manifest` (crates.io): Rust data types for the version-output contract and deployment manifest schema.
 - `shipwright` (crates.io): Rust CLI + library for validating and inspecting manifests.
 - `shipwright-host` (crates.io): Pure binary-resolution algorithm (no I/O; probe injected by caller).
@@ -23,5 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Shipwright` (NuGet): .NET library for binary resolution and manifest helpers.
 - `shipwright` (pub.dev): Dart binary resolver and `--version` contract helpers.
 
-[Unreleased]: https://github.com/Nimblesite/Shipwright/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Nimblesite/Shipwright/releases/tag/v0.1.0
+### Notes
+- No `v0.1.0` tag was pushed; the `0.1.0` prep landed in PR #6 but the first actually-published version is `v0.2.0`.
+
+[Unreleased]: https://github.com/Nimblesite/Shipwright/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Nimblesite/Shipwright/releases/tag/v0.2.0
