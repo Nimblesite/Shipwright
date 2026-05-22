@@ -153,7 +153,7 @@ test("each spec file has fixture coverage or a tracked ticket id", () => {
   }
 });
 
-test("tracked DTK ids do not use numeric suffixes", () => {
+test("tracked SWR ids do not use numeric suffixes", () => {
   const files = [
     ...walkFiles(join(root, "docs", "plans")).filter((file) => file.endsWith(".md")),
     ...walkFiles(specDir).filter((file) => file.endsWith(".md")),

@@ -8,10 +8,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>shipwright</ToolCommandName>
-    <PackageId>Shipwright</PackageId>
+    <PackageId>Shipwright.Cli.Example</PackageId>
     <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
     <Authors>NIMBLESITE PTY LTD</Authors>
-    <Description>Shipwright — dotnet global tool for the Shipwright version contract.</Description>
+    <Description>Reference dotnet global tool example for the Shipwright version contract. Not published.</Description>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Nimblesite/Shipwright</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Nimblesite/Shipwright</PackageProjectUrl>

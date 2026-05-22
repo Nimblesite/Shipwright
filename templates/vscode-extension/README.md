@@ -5,7 +5,7 @@ shipwright startup validation. You get:
 
 - A `shipwright.json` manifest that declares bundled LSP/MCP
   binaries under `bin/<platform>`.
-- Activation code that calls `@shipwright/vscode` before starting the
+- Activation code that calls `@nimblesite/shipwright-vscode` before starting the
   real extension features.
 - User settings for a shared binary directory and per-component overrides.
 

@@ -23,7 +23,7 @@ const spec: VersionSpec = {
   toolchain: "node 24"
 };
 
-describe("@shipwright/node", () => {
+describe("@nimblesite/shipwright-mcp", () => {
   it("creates MCP serverInfo from package metadata", () => {
     expect(createMcpServerInfo({ name: "@scope/pkg", version: "0.5.0" }, "tmc-server")).toEqual({
       ok: true,

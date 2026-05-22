@@ -133,7 +133,7 @@ pnpm --filter @nimblesite/shipwright-vscode publish --access public --no-git-che
 
 ### 4.3 Secret
 
-`NPM_TOKEN` — granular npm access token with publish rights to the `@shipwright` scope.
+`NPM_TOKEN` — granular npm access token with publish rights to the `@nimblesite` scope.
 
 ---
 
@@ -345,7 +345,7 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 
 - [x] Build pipeline (`tsc` to `dist/`) for all three TypeScript packages
 - [x] `publishConfig`, `files`, `license`, `repository` in all `package.json` files
-- [x] `.npmrc` with `@shipwright` scope
+- [x] `.npmrc` with `@nimblesite` scope
 - [x] NuGet metadata (SourceLink, symbols, README) in both `.csproj` files
 - [x] `release.yml` with CI gate, dry-run, and publish jobs for npm + NuGet
 

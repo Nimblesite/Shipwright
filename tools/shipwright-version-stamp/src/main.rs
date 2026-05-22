@@ -1,10 +1,10 @@
-//! `deploy-stamp` — stamp a release tag into every language's version field.
+//! `shipwright-version-stamp` — stamp a release tag into every language's version field.
 //!
 //! Usage:
 //! ```text
-//! deploy-stamp --tag v1.2.3 --root /path/to/repo
-//! deploy-stamp --tag 1.2.3  --root .              # bare semver also accepted
-//! deploy-stamp --tag v1.2.3 --dry-run             # prints what would change
+//! shipwright-version-stamp --tag v1.2.3 --root /path/to/repo
+//! shipwright-version-stamp --tag 1.2.3  --root .              # bare semver also accepted
+//! shipwright-version-stamp --tag v1.2.3 --dry-run             # prints what would change
 //! ```
 //!
 //! Files rewritten (idempotent, skipped if absent):
@@ -60,7 +60,7 @@ fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            let _ = writeln!(io::stderr(), "deploy-stamp: {e}");
+            let _ = writeln!(io::stderr(), "shipwright-version-stamp: {e}");
             ExitCode::FAILURE
         }
     }
@@ -149,8 +149,8 @@ fn parse_args(args: &[String]) -> Result<Opts, StampError> {
 /// Print help to stdout.
 fn print_help() {
     println!(
-        "deploy-stamp — stamp a release tag into every language's version field\n\n\
-         USAGE:\n    deploy-stamp --tag <TAG> [--root <DIR>] [--dry-run]\n\n\
+        "shipwright-version-stamp — stamp a release tag into every language's version field\n\n\
+         USAGE:\n    shipwright-version-stamp --tag <TAG> [--root <DIR>] [--dry-run]\n\n\
          OPTIONS:\n    --tag <TAG>     semver or v<semver>, e.g. v1.2.3\n    \
          --root <DIR>    repo root (default: .)\n    \
          --dry-run       print actions without writing\n"

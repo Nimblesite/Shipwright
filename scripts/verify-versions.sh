@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DTK-REL-VERSION-VERIFY — assert every manifest agrees with the expected version.
+# SWR-REL-VERSION-VERIFY — assert every manifest agrees with the expected version.
 # Usage: verify-versions.sh <version>  (e.g. verify-versions.sh 1.2.3)
 set -euo pipefail
 

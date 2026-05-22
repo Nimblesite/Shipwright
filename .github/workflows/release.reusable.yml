@@ -1,9 +1,9 @@
 # Reusable Rust release orchestrator.
 #
 # Product repos invoke this on tag push. The workflow stamps the release
-# version when the product repo carries tools/deploy-stamp, builds platform
-# archives, publishes them to the GitHub Release, runs the shipwright
-# smoke workflow, and optionally updates Homebrew/Scoop metadata.
+# version when the product repo carries tools/shipwright-version-stamp,
+# builds platform archives, publishes them to the GitHub Release, runs the
+# shipwright smoke workflow, and optionally updates Homebrew/Scoop metadata.
 
 name: shipwright release (reusable)
 
@@ -115,15 +115,15 @@ jobs:
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
       - name: Install stable toolchain
-        if: hashFiles('tools/deploy-stamp/Cargo.toml') != ''
+        if: hashFiles('tools/shipwright-version-stamp/Cargo.toml') != ''
         uses: dtolnay/rust-toolchain@stable
 
       - name: Stamp product versions
-        if: hashFiles('tools/deploy-stamp/Cargo.toml') != ''
+        if: hashFiles('tools/shipwright-version-stamp/Cargo.toml') != ''
         shell: bash
         run: |
           set -euo pipefail
-          cargo run --manifest-path tools/deploy-stamp/Cargo.toml -- --tag "${{ inputs.tag }}" --root .
+          cargo run --manifest-path tools/shipwright-version-stamp/Cargo.toml -- --tag "${{ inputs.tag }}" --root .
 
       - name: Upload build-info
         if: hashFiles('build-info.json') != ''

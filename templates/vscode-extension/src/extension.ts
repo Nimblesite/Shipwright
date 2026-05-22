@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { activateShipwright } from "@shipwright/vscode";
+import { activateShipwright } from "@nimblesite/shipwright-vscode";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const deployment = await activateShipwright(context, { vscode });
