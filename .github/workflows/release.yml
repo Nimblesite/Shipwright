@@ -12,7 +12,7 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write  # npm provenance
+  id-token: write  # npm OIDC trusted publishing (no NPM_TOKEN secret)
 
 jobs:
   release:
@@ -31,8 +31,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      # npm OIDC trusted publishing requires npm >= 11.5.1 (action ships older).
+      - name: Upgrade npm to OIDC-capable release
+        run: npm install -g npm@latest
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -60,53 +64,54 @@ jobs:
           pnpm --filter @nimblesite/shipwright-mcp build
           pnpm --filter @nimblesite/shipwright-vscode build
 
-      # ── publish @nimblesite/shipwright-core ─────────────────────────────────────────────
+      # ── publish npm packages via OIDC trusted publishing ────────────────────
+      # Each package must be configured as a Trusted Publisher on npmjs.com
+      # pointing at: repo=Nimblesite/Shipwright, workflow=.github/workflows/release.yml,
+      # environment=release. No NPM_TOKEN secret is used — npm CLI 11.5.1+
+      # exchanges the GitHub-issued OIDC token for a short-lived publish token.
       - name: Publish @nimblesite/shipwright-core
+        working-directory: clients/ts/packages/shipwright-core
         run: |
-          PKG=$(node -p "require('./clients/ts/packages/shipwright-core/package.json').version")
+          PKG=$(node -p "require('./package.json').version")
           if npm view @nimblesite/shipwright-core@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-core@$PKG already published — skipping"
           else
-            pnpm --filter @nimblesite/shipwright-core publish --access public --no-git-checks
+            npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # ── publish @nimblesite/shipwright-mcp ──────────────────────────────────────────────
       - name: Publish @nimblesite/shipwright-mcp
+        working-directory: clients/ts/packages/shipwright-mcp
         run: |
-          PKG=$(node -p "require('./clients/ts/packages/shipwright-mcp/package.json').version")
+          PKG=$(node -p "require('./package.json').version")
           if npm view @nimblesite/shipwright-mcp@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-mcp@$PKG already published — skipping"
           else
-            pnpm --filter @nimblesite/shipwright-mcp publish --access public --no-git-checks
+            npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # ── publish @nimblesite/shipwright-vscode ───────────────────────────────────────────
+      # shipwright-vscode depends on shipwright-core via the workspace:*
+      # protocol. pnpm pack rewrites workspace:* to the concrete version in
+      # the tarball; npm publish then uploads that tarball under OIDC.
       - name: Publish @nimblesite/shipwright-vscode
+        working-directory: clients/ts/packages/shipwright-vscode
         run: |
-          PKG=$(node -p "require('./clients/ts/packages/shipwright-vscode/package.json').version")
+          PKG=$(node -p "require('./package.json').version")
           if npm view @nimblesite/shipwright-vscode@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-vscode@$PKG already published — skipping"
           else
-            pnpm --filter @nimblesite/shipwright-vscode publish --access public --no-git-checks
+            pnpm pack
+            npm publish --provenance --access public nimblesite-shipwright-vscode-${PKG}.tgz
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # ── publish @nimblesite/shipwright-validate-manifest ────────────────────────────────
       - name: Publish @nimblesite/shipwright-validate-manifest
+        working-directory: tools/validate-manifest
         run: |
-          PKG=$(node -p "require('./tools/validate-manifest/package.json').version")
+          PKG=$(node -p "require('./package.json').version")
           if npm view @nimblesite/shipwright-validate-manifest@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-validate-manifest@$PKG already published — skipping"
           else
-            pnpm --filter @nimblesite/shipwright-validate-manifest publish --access public --no-git-checks
+            npm publish --provenance --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # ── publish NuGet ────────────────────────────────────────────────────────
       - name: Pack NuGet
