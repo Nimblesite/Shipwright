@@ -14,4 +14,12 @@ export type {
   Status,
   WarningCode
 } from "./resolve.js";
-export { resolve } from "./resolve.js";
+export {
+  envPath,
+  executableName,
+  exeSuffix,
+  joinBinary,
+  pathCandidate,
+  platformSeparator,
+  resolve
+} from "./resolve.js";

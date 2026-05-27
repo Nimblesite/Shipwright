@@ -423,10 +423,12 @@ struct BuildInfoJson {
 
 /// Skip files under `target/`, `node_modules/`, `.git/`, `dist/`, `build/`.
 fn is_ignored(p: &Path) -> bool {
-    let s = p.to_string_lossy();
-    ["/target/", "/node_modules/", "/.git/", "/dist/", "/build/"]
-        .iter()
-        .any(|needle| s.contains(*needle))
+    p.components().any(|c| {
+        matches!(
+            c.as_os_str().to_str(),
+            Some("target" | "node_modules" | ".git" | "dist" | "build")
+        )
+    })
 }
 
 /// Depth-first walk, returning files whose file name equals `name`.

@@ -7,7 +7,7 @@ Status: Draft
 
 These gates define what product repos must prove before they can claim Shipwright compliance.
 
-## `verify-binaries`
+## [SWR-GATE-VERIFY-BINARIES] `verify-binaries`
 
 Inputs:
 
@@ -23,7 +23,7 @@ Required checks:
 - Protocol servers expose the same version through initialize metadata when their host requires it.
 - Optional components can fail only when the manifest marks `"required": false`.
 
-## `verify-extension-package`
+## [SWR-GATE-VERIFY-EXT-PKG] `verify-extension-package`
 
 Inputs:
 
@@ -40,7 +40,7 @@ Required checks:
 - Zed packages declare `lsp-initialize` for components that cannot be preflighted by subprocess.
 - Package contents include only manifest-listed binaries for the target platform.
 
-## `verify-extension-tests`
+## [SWR-GATE-VERIFY-EXT-TESTS] `verify-extension-tests`
 
 Inputs:
 
@@ -56,7 +56,7 @@ Required checks:
 - Tests assert that every bundled required component resolves from `bundled`.
 - Tests do not use build-output directories such as `target/release` as a resolver source.
 
-## Startup Contract
+## [SWR-GATE-STARTUP] Startup Contract
 
 Every host library must exercise these resolver cases:
 
@@ -71,7 +71,7 @@ Every host library must exercise these resolver cases:
 - Required component failure.
 - Optional component warning.
 
-## CI Contract
+## [SWR-GATE-CI] CI Contract
 
 Product repos must run at minimum:
 

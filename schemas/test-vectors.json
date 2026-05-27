@@ -286,15 +286,75 @@
         "expectedVersion": "0.4.2",
         "platform": "win32-x64",
         "sources": ["bundled"],
-        "bundledDir": "C:/ext/bin/win32-x64",
+        "bundledDir": "C:\\ext\\bin\\win32-x64",
         "probe": {
-          "C:/ext/bin/win32-x64/deslop-lsp.exe": { "name": "deslop-lsp", "version": "0.4.2" }
+          "C:\\ext\\bin\\win32-x64\\deslop-lsp.exe": { "name": "deslop-lsp", "version": "0.4.2" }
         }
       },
       "expect": {
         "source": "bundled",
-        "path": "C:/ext/bin/win32-x64/deslop-lsp.exe",
+        "path": "C:\\ext\\bin\\win32-x64\\deslop-lsp.exe",
         "version": "0.4.2",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "windows-backslash-bundled-dir-matches-probe",
+      "description": "Bundled dir with native Windows backslashes must produce a probe key that matches the Map entry. This is the exact bug that broke Basilisk on Windows: activate.ts used path.join (backslash) while resolve.ts used joinBinary (forward slash), causing a Map key mismatch.",
+      "input": {
+        "expectedVersion": "0.2.1",
+        "platform": "win32-x64",
+        "sources": ["bundled", "pkgmgr"],
+        "bundledDir": "C:\\Users\\dev\\.vscode\\extensions\\nimblesite.basilisk-0.2.1\\bin\\win32-x64",
+        "pkgmgr": { "scoop": "basilisk" },
+        "probe": {
+          "C:\\Users\\dev\\.vscode\\extensions\\nimblesite.basilisk-0.2.1\\bin\\win32-x64\\basilisk.exe": { "name": "basilisk", "version": "0.2.1" }
+        }
+      },
+      "expect": {
+        "source": "bundled",
+        "path": "C:\\Users\\dev\\.vscode\\extensions\\nimblesite.basilisk-0.2.1\\bin\\win32-x64\\basilisk.exe",
+        "version": "0.2.1",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "windows-path-entry-with-backslash",
+      "description": "PATH entries on Windows use backslashes. The resolver must construct the candidate with backslashes too, so the probe Map lookup succeeds.",
+      "input": {
+        "expectedVersion": "1.0.0",
+        "expectedName": "deslop-lsp",
+        "platform": "win32-x64",
+        "sources": ["path"],
+        "path": ["C:\\Users\\dev\\scoop\\shims"],
+        "probe": {
+          "C:\\Users\\dev\\scoop\\shims\\deslop-lsp.exe": { "name": "deslop-lsp", "version": "1.0.0" }
+        }
+      },
+      "expect": {
+        "source": "path",
+        "path": "C:\\Users\\dev\\scoop\\shims\\deslop-lsp.exe",
+        "version": "1.0.0",
+        "status": "ok"
+      }
+    },
+    {
+      "id": "windows-env-dir-with-backslash",
+      "description": "Environment variable BINARY_DIR with Windows backslashes must produce a matching probe key.",
+      "input": {
+        "expectedVersion": "0.5.0",
+        "platform": "win32-arm64",
+        "sources": ["env"],
+        "env": { "TOOL_DIR": "C:\\tools\\bin" },
+        "envConfig": { "dirVar": "TOOL_DIR" },
+        "probe": {
+          "C:\\tools\\bin\\deslop-lsp.exe": { "name": "deslop-lsp", "version": "0.5.0" }
+        }
+      },
+      "expect": {
+        "source": "env",
+        "path": "C:\\tools\\bin\\deslop-lsp.exe",
+        "version": "0.5.0",
         "status": "ok"
       }
     }

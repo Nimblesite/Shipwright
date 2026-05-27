@@ -1,0 +1,129 @@
+{
+  "name": "shipwright-tools",
+  "displayName": "Shipwright Tools",
+  "description": "Visual editor, validator, and toolkit for shipwright.json deployment manifests",
+  "version": "0.1.0",
+  "publisher": "nimblesite",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "shipwright",
+    "manifest",
+    "deployment",
+    "binary",
+    "vscode"
+  ],
+  "activationEvents": [
+    "workspaceContains:shipwright.json",
+    "workspaceContains:**/fixtures/manifests/*.json"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "shipwright.manifestEditor",
+        "displayName": "Shipwright Visual Editor",
+        "selector": [
+          {
+            "filenamePattern": "shipwright.json"
+          },
+          {
+            "filenamePattern": "**/fixtures/manifests/*.json"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "shipwright-explorer",
+          "title": "Shipwright",
+          "icon": "media/shipwright.png"
+        }
+      ]
+    },
+    "views": {
+      "shipwright-explorer": [
+        {
+          "id": "shipwright.manifestTree",
+          "name": "Manifest"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "shipwright.openVisualEditor",
+        "title": "Open Visual Editor",
+        "category": "Shipwright"
+      },
+      {
+        "command": "shipwright.scaffold",
+        "title": "Create New Manifest",
+        "category": "Shipwright"
+      },
+      {
+        "command": "shipwright.validate",
+        "title": "Validate Manifest",
+        "category": "Shipwright"
+      },
+      {
+        "command": "shipwright.refreshTree",
+        "title": "Refresh",
+        "category": "Shipwright",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "shipwright.addComponent",
+        "title": "Add Component",
+        "category": "Shipwright",
+        "icon": "$(add)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "shipwright.refreshTree",
+          "when": "view == shipwright.manifestTree",
+          "group": "navigation"
+        },
+        {
+          "command": "shipwright.addComponent",
+          "when": "view == shipwright.manifestTree",
+          "group": "navigation"
+        }
+      ]
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "shipwright.json",
+        "url": "./schemas/shipwright.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "tsc --noEmit",
+    "package": "npx @vscode/vsce package",
+    "compile-tests": "tsc -p test/tsconfig.json",
+    "pretest": "npm run build && npm run compile-tests",
+    "test": "node out/test/runTests.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.9.1",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "mocha": "^11.4.0",
+    "typescript": "^5.9.3"
+  }
+}

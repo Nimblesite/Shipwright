@@ -531,7 +531,12 @@ fn env_path(input: &ResolveInput<'_>) -> Option<String> {
 /// Join directory + binary name and append the platform `.exe` suffix.
 fn join_binary(dir: &str, name: &str, platform: Platform) -> String {
     let trimmed = dir.trim_end_matches(['/', '\\']);
-    format!("{trimmed}/{name}{}", platform.exe_suffix())
+    let sep = if matches!(platform, Platform::Win32X64 | Platform::Win32Arm64) {
+        '\\'
+    } else {
+        '/'
+    };
+    format!("{trimmed}{sep}{name}{}", platform.exe_suffix())
 }
 
 /// Expand a `PkgmgrConfig` into a platform -> command map.

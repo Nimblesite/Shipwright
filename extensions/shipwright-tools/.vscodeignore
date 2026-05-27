@@ -1,0 +1,10 @@
+**/*
+!dist/extension.js
+!dist/extension.js.map
+!media/**
+!schemas/**
+!package.json
+!LICENSE
+!README.md
+test/**
+out/**

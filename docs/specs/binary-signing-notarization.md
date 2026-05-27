@@ -6,7 +6,7 @@ Status: Draft
 Date: 2026-05-01
 ```
 
-## Purpose
+## [SWR-SIGN-PURPOSE] Purpose
 
 This spec defines the mandatory code-signing and notarization pipeline for all native binaries
 distributed by Nimblesite products. Unsigned or unnotarized binaries will be blocked by OS
@@ -20,7 +20,7 @@ notarized before upload.** This applies to all products that consume Shipwright
 
 ---
 
-## External References
+## [SWR-SIGN-REFS] External References
 
 Read these before writing any signing or CI code. Pages marked AUTHORITATIVE define the
 canonical behavior; everything else is supplementary.
