@@ -77,6 +77,7 @@ export function parseVersionOutput(stdout: string | Buffer): ProbedVersion | und
 
 function parseJsonVersion(firstLine: string): ProbedVersion | undefined {
   try {
+    // Safety: fields are narrowed with typeof checks below before use
     const parsed = JSON.parse(firstLine) as {
       componentId?: unknown;
       name?: unknown;

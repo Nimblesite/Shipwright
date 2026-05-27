@@ -6,7 +6,12 @@
       "mcp__too-many-cooks__message",
       "Bash(cargo test *)",
       "Bash(cargo clippy *)",
-      "Bash(cargo fmt *)"
+      "Bash(cargo fmt *)",
+      "Bash(make fmt *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Code\\\\Shipwright\\\\docs\\\\specs\" -Filter \"*.md\")",
+      "Bash(Select-Object Name)",
+      "Bash(gh run *)",
+      "Bash(pnpm install *)"
     ]
   },
   "autoMemoryEnabled": false

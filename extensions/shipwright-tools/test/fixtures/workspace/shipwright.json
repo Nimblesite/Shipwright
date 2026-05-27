@@ -1,0 +1,72 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "test-product",
+    "displayName": "Test Product",
+    "version": "1.0.0",
+    "repository": "https://github.com/example/test-product"
+  },
+  "components": [
+    {
+      "id": "test-lsp",
+      "kind": "lsp",
+      "language": "rust",
+      "binaryName": "test-lsp",
+      "expectedVersion": "1.0.0",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
+      "bundled": {
+        "bundlePath": "bin/${platform}/${binaryName}${exe}",
+        "perPlatformArtifact": true
+      },
+      "sources": ["user-setting", "env", "bundled", "path"],
+      "userSetting": "testProduct.lspPath",
+      "env": {
+        "pathVar": "TEST_LSP_PATH",
+        "dirVar": "TEST_BINARY_DIR"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    },
+    {
+      "id": "test-cli",
+      "kind": "cli",
+      "language": "rust",
+      "binaryName": "test-cli",
+      "expectedVersion": "1.0.0",
+      "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64"],
+      "sources": ["path", "cargo-bin"],
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    },
+    {
+      "id": "test-mcp",
+      "kind": "mcp",
+      "language": "typescript",
+      "binaryName": "test-mcp",
+      "expectedVersion": "1.0.0",
+      "platforms": ["all"],
+      "sources": ["user-setting", "env", "bundled", "path"],
+      "bundled": {
+        "bundlePath": "bin/all/${binaryName}",
+        "perPlatformArtifact": false
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag-json",
+      "required": false
+    }
+  ],
+  "hosts": {
+    "vscode": {
+      "artifact": "vsix-per-platform",
+      "activationVerifies": ["test-lsp", "test-mcp"],
+      "onMismatch": "error"
+    },
+    "cli": {
+      "artifact": "archive",
+      "activationVerifies": ["test-cli"],
+      "onMismatch": "warn"
+    }
+  }
+}

@@ -86,3 +86,9 @@ obj/
 
 .dart_tool/
 .deslop-cache/
+
+
+*.vsix
+
+
+.vscode-test/

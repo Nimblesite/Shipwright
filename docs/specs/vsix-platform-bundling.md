@@ -5,11 +5,11 @@ Spec prefix: SWR-VSIX-*
 Status: Draft
 ```
 
-## Purpose
+## [SWR-VSIX-PURPOSE] Purpose
 
 This spec defines the canonical pipeline for building, staging, and publishing platform-specific VS Code VSIX packages that bundle native binaries. It complements [ide-extension-deployment.md](ide-extension-deployment.md) (which owns the runtime resolution algorithm and bundling layout rule) and [acceptance-gates.md](acceptance-gates.md) (which owns the `verify-extension-package` gate).
 
-## External References
+## [SWR-VSIX-REFS] External References
 
 Agents working on VSIX bundling or the `publish-vsix-per-platform.yml` template MUST read these before writing any code or CI config. Every normative rule in this spec cites one of these sources.
 
@@ -293,7 +293,7 @@ Summary:
 
 ## [SWR-VSIX-VERIFY] Package Content Verification
 
-This section implements `SWR-GATE-verify-extension-package` for VS Code artifacts.
+This section implements [SWR-GATE-VERIFY-EXT-PKG] for VS Code artifacts.
 
 After `vsce package`, the CI job MUST verify the produced VSIX contents. Presence-only `grep` checks
 are not enough for native-binary extensions.

@@ -1,10 +1,13 @@
 # Shipwright Repo Survey
 
+```
+Spec prefix: SWR-SURVEY-*
 Status: Draft
+```
 
 This survey records the local evidence gathered from the current Nimblesite tool repos before specifying the deployment framework. It is intentionally concrete: the framework must support these shapes without forcing every product to rewrite its editor integration.
 
-## Source Repos
+## [SWR-SURVEY-REPOS] Source Repos
 
 | Repo | Tool Shape | Current Deployment and Version Evidence | Gaps for Framework |
 | --- | --- | --- | --- |
@@ -14,7 +17,7 @@ This survey records the local evidence gathered from the current Nimblesite tool
 | `/Users/christianfindlay/Documents/Code/forge` | Rust LSP binary, VS Code extension, Zed extension, Rider plugin, and .NET sidecar tools. | `forge-lsp --version` prints `forge-lsp <version>`. C# and F# sidecars print `forge-sidecar-csharp <version>` and `forge-sidecar-fsharp <version>`. `editors/vscode/src/install.ts` contains package-manager install/update logic for Homebrew, Scoop, and dotnet tools. Zed notes it cannot execute `--version` before startup. Rider resolves `forge-lsp` from settings, `~/.local/bin`, or PATH. | `ensureBinaries` exists but is not currently called by VSIX startup. VSIX `client.ts` starts from configured, bundled, or PATH without version enforcement. Rider resolves but does not verify. Zed needs LSP initialize version enforcement. |
 | `/Users/christianfindlay/Documents/Code/dart_mutant` | Single Rust CLI tool for Dart mutation testing. | `Cargo.toml` declares bin `dart_mutant`. Clap `version` is wired in `src/cli/mod.rs`; integration tests call `--version`. | No IDE extension yet. This is the simplest CLI-only consumer and should be the first low-risk adopter for the shared Rust version library. |
 
-## Requirements Distilled From Survey
+## [SWR-SURVEY-REQUIREMENTS] Requirements Distilled From Survey
 
 1. Every executable component must have the same machine-readable version contract, independent of language.
 2. Editor extensions must have a manifest listing every required binary and expected version.
@@ -24,7 +27,7 @@ This survey records the local evidence gathered from the current Nimblesite tool
 6. Package-manager installs are acceptable for CLI distribution and optional repair flows, but editor startup must not silently continue with missing or mismatched binaries.
 7. Multi-binary products need a single product manifest so the editor can validate LSP, MCP, CLI, helper, and sidecar tools consistently.
 
-## TODO
+## [SWR-SURVEY-TODO] TODO
 
 - [ ] Confirm library names are final package names or working names.
 - [ ] Re-check Deslop LSP `--version` behavior when implementation starts; the current evidence suggests a real mismatch with the VSIX resolver.
