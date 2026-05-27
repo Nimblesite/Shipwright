@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = join(fileURLToPath(import.meta.url), "..", "..");
 const validator = join(root, "tools", "validate-manifest", "index.mjs");
 const goldenDir = join(root, "fixtures", "manifests");
 const invalidDir = join(root, "fixtures", "invalid-manifests");

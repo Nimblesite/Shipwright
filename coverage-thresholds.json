@@ -22,6 +22,10 @@
     "shipwright-version-stamp": {
       "lines": 100.0,
       "functions": 100.0
+    },
+    "shipwright-tools": {
+      "lines": 90.0,
+      "functions": 90.0
     }
   }
 }

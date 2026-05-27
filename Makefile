@@ -16,9 +16,11 @@ ifeq ($(OS),Windows_NT)
   RM = Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
   MKDIR = New-Item -ItemType Directory -Force
   HOME ?= $(USERPROFILE)
+  PYTHON = python
 else
   RM = rm -rf
   MKDIR = mkdir -p
+  PYTHON = python3
 endif
 
 # ---------------------------------------------------------------------------
@@ -41,18 +43,18 @@ build:
 	@echo "==> Building Rust workspace..."
 	cargo build --release --workspace
 	@echo "==> Installing Node tooling deps..."
-	cd tools/validate-manifest && npm install --no-audit --no-fund
+	npm --prefix tools/validate-manifest install --no-audit --no-fund
 
 ## test: Fail-fast tests + coverage + threshold enforcement.
 ##       See REPO-STANDARDS-SPEC [TEST-RULES] and [COVERAGE-THRESHOLDS-JSON].
 test:
 	@echo "==> Testing (fail-fast + coverage + threshold)..."
-	rustup component add llvm-tools-preview 2>/dev/null || true
+	-@rustup component add llvm-tools-preview
 	# Stable cargo test is fail-fast at the binary level by default (omits
 	# --no-fail-fast). Per-test --fail-fast requires nightly -Z unstable-options;
 	# install cargo-nextest for true intra-binary fail-fast on stable.
 	cargo llvm-cov --workspace --all-targets --lcov --output-path lcov.info
-	cd tools/validate-manifest && npm install --no-audit --no-fund
+	npm --prefix tools/validate-manifest install --no-audit --no-fund
 	node --test tests/fixtures.test.mjs
 	$(MAKE) _coverage_check
 
@@ -61,7 +63,7 @@ lint:
 	@echo "==> Linting Rust..."
 	cargo clippy --release --all-targets --workspace -- -D warnings
 	@echo "==> Validating JSON schemas + manifests..."
-	cd tools/validate-manifest && npm install --no-audit --no-fund
+	npm --prefix tools/validate-manifest install --no-audit --no-fund
 	node tools/validate-manifest/index.mjs fixtures/manifests
 
 ## fmt: Format all code in-place. Pass CHECK=1 for read-only check (CI use).
@@ -81,9 +83,9 @@ ci: lint test build
 ## setup: Post-create dev environment setup (used by devcontainer)
 setup:
 	@echo "==> Setting up development environment..."
-	rustup component add llvm-tools-preview clippy rustfmt 2>/dev/null || true
-	cargo install cargo-llvm-cov --locked 2>/dev/null || true
-	cd tools/validate-manifest && npm install --no-audit --no-fund
+	-@rustup component add llvm-tools-preview clippy rustfmt
+	-@cargo install cargo-llvm-cov --locked
+	npm --prefix tools/validate-manifest install --no-audit --no-fund
 	@echo "==> Setup complete. Run 'make ci' to validate."
 
 # =============================================================================
@@ -91,7 +93,7 @@ setup:
 # =============================================================================
 
 _coverage_check:
-	@/usr/bin/python3 scripts/coverage_check.py lcov.info $(COVERAGE_THRESHOLDS_FILE)
+	@$(PYTHON) scripts/coverage_check.py lcov.info $(COVERAGE_THRESHOLDS_FILE)
 
 ## help: List all available targets
 help:
@@ -117,7 +119,12 @@ help:
 #   - Add them to .PHONY if they are phony.
 # =============================================================================
 
-.PHONY: build-crates build-npm build-nuget build-dart deploy-skill-claude
+.PHONY: build-crates build-npm build-nuget build-dart deploy-skill-claude test-vsix
+
+## test-vsix: Run VS Code extension E2E tests
+test-vsix:
+	@echo "==> Testing VS Code extension (E2E)..."
+	cd extensions/shipwright-tools && npm install --no-audit --no-fund && npm test
 
 ## build-crates: Compile the Rust workspace in release mode
 build-crates:

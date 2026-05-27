@@ -84,6 +84,65 @@ export interface Resolution {
   deferredCheck?: DeferredCheck;
 }
 
+// ── Canonical path helpers ─────────────────────────────────────────────
+// ALL path construction MUST go through these functions.  There is exactly
+// ONE way to join a directory + binary name, and it lives here.
+// shipwright-vscode (and every other host) MUST import these — never
+// re-implement path joining.
+
+/** Platform-native path separator: `\` on win32, `/` everywhere else. */
+export function platformSeparator(platform: Platform): string {
+  return platform === "win32-x64" || platform === "win32-arm64" ? "\\" : "/";
+}
+
+/** `.exe` on win32 platforms, empty string everywhere else. */
+export function exeSuffix(platform: Platform): string {
+  return platform === "win32-x64" || platform === "win32-arm64" ? ".exe" : "";
+}
+
+/** Binary name with platform-appropriate executable suffix. */
+export function executableName(binaryName: string, platform: Platform): string {
+  return `${binaryName}${exeSuffix(platform)}`;
+}
+
+/**
+ * Join a directory and binary name using the platform's native separator.
+ * This is THE ONLY function that constructs binary paths from components.
+ */
+export function joinBinary(dir: string, binaryName: string, platform: Platform): string {
+  const sep = platformSeparator(platform);
+  const needsSep = dir.length > 0 && !dir.endsWith("/") && !dir.endsWith("\\");
+  return `${dir}${needsSep ? sep : ""}${binaryName}${exeSuffix(platform)}`;
+}
+
+/**
+ * Determine if a PATH entry already points at the binary file, or if it
+ * is a directory that needs the binary name appended.
+ */
+export function pathCandidate(entry: string, binaryName: string, platform: Platform): string {
+  const expectedFile = executableName(binaryName, platform);
+  if (entry.endsWith(`/${expectedFile}`) || entry.endsWith(`\\${expectedFile}`) || entry === expectedFile) {
+    return entry;
+  }
+  return joinBinary(entry, binaryName, platform);
+}
+
+/** Resolve the binary path from environment variables. */
+export function envPath(input: ResolveInput, platform: Platform): string | undefined {
+  const env = input.env ?? {};
+  const config = input.envConfig ?? {};
+  if (config.pathVar && env[config.pathVar]) {
+    return env[config.pathVar];
+  }
+  const configuredDir = config.dirVar ? env[config.dirVar] : undefined;
+  if (configuredDir) {
+    return joinBinary(configuredDir, input.binaryName, platform);
+  }
+  return undefined;
+}
+
+// ── Resolver ──────────────────────────────────────────────────────────
+
 export function resolve(input: ResolveInput, probe: Probe): Resolution {
   let deferredPath: { source: Source; path: string } | undefined;
   const platform = input.platform ?? "darwin-arm64";
@@ -231,35 +290,6 @@ function nameMatches(input: ResolveInput, got: ProbedVersion): boolean {
   return got.name === (input.expectedName ?? input.binaryName);
 }
 
-function envPath(input: ResolveInput, platform: Platform): string | undefined {
-  const env = input.env ?? {};
-  const config = input.envConfig ?? {};
-  if (config.pathVar && env[config.pathVar]) {
-    return env[config.pathVar];
-  }
-  const configuredDir = config.dirVar ? env[config.dirVar] : undefined;
-  if (configuredDir) {
-    return joinBinary(configuredDir, input.binaryName, platform);
-  }
-  return undefined;
-}
-
-function pathCandidate(entry: string, binaryName: string, platform: Platform): string {
-  const expectedFile = `${binaryName}${exeSuffix(platform)}`;
-  if (entry.endsWith(`/${expectedFile}`) || entry.endsWith(`\\${expectedFile}`) || entry.endsWith(expectedFile)) {
-    return entry;
-  }
-  return joinBinary(entry, binaryName, platform);
-}
-
-function joinBinary(dir: string, binaryName: string, platform: Platform): string {
-  const slash = dir.endsWith("/") || dir.endsWith("\\") ? "" : "/";
-  return `${dir}${slash}${binaryName}${exeSuffix(platform)}`;
-}
-
-function exeSuffix(platform: Platform): string {
-  return platform === "win32-x64" || platform === "win32-arm64" ? ".exe" : "";
-}
 
 function pkgmgrCommands(pkgmgr: PkgmgrConfig): Record<string, string> {
   const commands: Record<string, string> = {};

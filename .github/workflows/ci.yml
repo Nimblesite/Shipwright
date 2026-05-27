@@ -61,3 +61,45 @@ jobs:
           path: |
             target/release/
           retention-days: 7
+
+  ts-tests:
+    name: TypeScript tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shipwright-core
+        run: pnpm --filter @nimblesite/shipwright-core build
+
+      - name: Test shipwright-core
+        run: pnpm --filter @nimblesite/shipwright-core test
+
+      - name: Build shipwright-vscode
+        run: pnpm --filter @nimblesite/shipwright-vscode build
+
+      - name: Test shipwright-vscode
+        run: pnpm --filter @nimblesite/shipwright-vscode test
+
+      - name: Test shipwright-mcp
+        run: pnpm --filter @nimblesite/shipwright-mcp test
+
+      - name: Install validate-manifest deps
+        run: npm install --no-audit --no-fund
+        working-directory: tools/validate-manifest
+
+      - name: Test fixtures
+        run: node --test tests/fixtures.test.mjs

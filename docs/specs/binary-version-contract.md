@@ -5,13 +5,13 @@ Spec prefix: SWR-VERSION-*
 Status: Draft
 ```
 
-## Purpose
+## [SWR-VERSION-PURPOSE] Purpose
 
 All binaries, language servers, MCP servers, sidecars, helper tools, and CLI entry points managed by Shipwright must expose one consistent version contract. IDE extensions use this contract at startup to ensure the binaries they launch match the extension package that installed or selected them.
 
 The contract prevents an extension from launching the wrong server, stale sidecar, old MCP tool, or incompatible CLI.
 
-## Required `--version` Behavior
+## [SWR-VERSION-CLI-OUTPUT] Required `--version` Behavior
 
 Every executable component MUST support:
 
@@ -39,7 +39,7 @@ my-tool-lsp 1.2.3
 
 Stderr SHOULD be empty for `--version`. If a platform runtime writes unavoidable warnings, the version parser MUST only trust the first stdout line.
 
-## JSON Version Output
+## [SWR-VERSION-JSON-OUTPUT] JSON Version Output
 
 Every component SHOULD also support:
 
@@ -61,7 +61,7 @@ The JSON shape must conform to `schemas/version-manifest.schema.json`:
 
 The plain text contract is mandatory because it works for existing tools and simple shell tests. The JSON form is for richer diagnostics and future compatibility checks.
 
-## Protocol Handshake Version
+## [SWR-VERSION-HANDSHAKE] Protocol Handshake Version
 
 Long-running components MUST report the same version during protocol initialization.
 
@@ -93,7 +93,7 @@ Custom sidecar protocols MUST either support `--version` before launch or send a
 }
 ```
 
-## Matching Rules
+## [SWR-VERSION-MATCHING] Matching Rules
 
 The expected version comes from `shipwright.json`. Version comparison rules:
 
@@ -123,7 +123,7 @@ Rules:
 6. Stamping MUST use structured parsers for structured files. Ad hoc `sed` rewrites of JSON, YAML,
    TOML, XML, or lock files are not acceptable.
 
-## Product Manifest
+## [SWR-VERSION-MANIFEST] Product Manifest
 
 Each package that launches binaries MUST include `shipwright.json`. Minimal example:
 
@@ -149,7 +149,7 @@ Each package that launches binaries MUST include `shipwright.json`. Minimal exam
 
 The manifest is the single source of truth for startup validation, package assembly, release checks, and CI tests.
 
-## Language Bindings
+## [SWR-VERSION-BINDINGS] Language Bindings
 
 Rust binaries MUST use `shipwright` to wire version output from `CARGO_PKG_VERSION` and build metadata.
 
@@ -159,7 +159,7 @@ Node/MCP binaries MUST use `@nimblesite/shipwright-mcp` to derive `serverInfo.ve
 
 IDE extensions MUST use `@nimblesite/shipwright-vscode`, `shipwright-host`, or the appropriate host library instead of custom per-product parsers.
 
-## Test Requirements
+## [SWR-VERSION-TEST-REQ] Test Requirements
 
 Every product repo MUST include tests that prove:
 

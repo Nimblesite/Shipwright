@@ -5,7 +5,7 @@ Spec prefix: SWR-IDE-*
 Status: Draft
 ```
 
-## Purpose
+## [SWR-IDE-PURPOSE] Purpose
 
 IDE extensions using Shipwright must install with minimal friction while guaranteeing that the matching binaries are present and compatible. A user should normally install one VSIX, JetBrains plugin, Zed extension, or package-manager entry and get the right language server, MCP server, CLI, sidecar, and helper tools without manual setup.
 
@@ -13,7 +13,7 @@ For VS Code extensions with native binaries, the Microsoft platform-specific sam
 the installed extension package is the runtime source. The extension MUST execute the binary from
 the unpacked extension directory, not from PATH or a package-manager global install.
 
-## Required Startup Behavior
+## [SWR-IDE-STARTUP] Required Startup Behavior
 
 Every IDE extension MUST validate required binaries before reporting itself ready.
 
@@ -28,7 +28,7 @@ Startup sequence:
 
 The extension MUST NOT silently continue with a missing or incompatible binary.
 
-## Bundling Rule
+## [SWR-IDE-BUNDLING] Bundling Rule
 
 VSIX and JetBrains plugin packages MUST bundle required runtime binaries by default.
 
@@ -62,7 +62,7 @@ shipwright.json
 
 Zed extensions may download and cache release assets when marketplace packaging prevents bundling native binaries. In that case, the extension MUST validate the server version from LSP initialize before enabling product features.
 
-## Extension Test Isolation
+## [SWR-IDE-TEST-ISOLATION] Extension Test Isolation
 
 Extension tests MUST prove the installed-package path, not a developer machine fallback.
 
@@ -76,7 +76,7 @@ Required test behavior:
 
 Tests MUST NOT point an IDE extension at `target/release`, `~/.cargo/bin`, Homebrew, Scoop, npm-global, dotnet tools, or any other external install. A missing or stale extension bundle must fail the test instead of being masked by a binary installed on the developer or CI runner machine.
 
-## User Override Settings
+## [SWR-IDE-USER-OVERRIDES] User Override Settings
 
 Every IDE extension MUST provide a user setting for external binaries.
 
@@ -95,7 +95,7 @@ Suggested setting names:
 | JetBrains | Settings → Tools → `<Product>` → Binary directory / component paths |
 | Zed | LSP setting `binary.path` where supported |
 
-## Resolution Order
+## [SWR-IDE-RESOLUTION] Resolution Order
 
 For each component, resolvers SHOULD use this order:
 
@@ -112,7 +112,7 @@ manager as a normal startup source.
 
 If the user explicitly configured a path and it mismatches, do not fall back. The user needs a precise error so they can fix the configured path.
 
-## Error Reporting
+## [SWR-IDE-ERROR] Error Reporting
 
 Startup errors MUST include:
 
@@ -192,7 +192,7 @@ This is the authoritative pattern from Microsoft. Downstream products MUST follo
 - `.NET Install Tool` extension: https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.vscode-dotnet-runtime
 - C# Dev Kit `extensionDependencies` declaration is the canonical reference implementation.
 
-## Package-Manager Repair
+## [SWR-IDE-PKG-REPAIR] Package-Manager Repair
 
 Package managers can be used as repair flows, but not as hidden startup side effects.
 
@@ -204,7 +204,7 @@ Allowed repair flows:
 
 The extension MUST ask before running Homebrew, Scoop, npm, cargo install, or dotnet tool commands.
 
-## Required Host Library Capabilities
+## [SWR-IDE-HOST-LIB] Required Host Library Capabilities
 
 Every host resolver library MUST provide:
 

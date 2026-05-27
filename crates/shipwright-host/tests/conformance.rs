@@ -375,7 +375,7 @@ fn env_dir_joins_windows_exe_suffix() {
     let result = resolve_with(
         &input,
         Box::new(|path| {
-            assert_eq!(path, "C:\\tools\\forge/forge-lsp.exe");
+            assert_eq!(path, "C:\\tools\\forge\\forge-lsp.exe");
             Some(probed("forge-lsp", "1.2.3"))
         }),
     );
@@ -384,7 +384,7 @@ fn env_dir_joins_windows_exe_suffix() {
         result,
         Resolution::ok(
             Source::Env,
-            "C:\\tools\\forge/forge-lsp.exe".to_string(),
+            "C:\\tools\\forge\\forge-lsp.exe".to_string(),
             "1.2.3".to_string()
         )
     );

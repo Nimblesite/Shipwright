@@ -2,6 +2,12 @@ import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
+  envPath,
+  executableName,
+  exeSuffix,
+  joinBinary,
+  pathCandidate,
+  platformSeparator,
   resolve,
   type DotnetToolConfig,
   type EnvConfig,
@@ -167,6 +173,7 @@ export async function loadShipwrightManifest(
   manifestPath: string,
   readText: (file: string) => Promise<string> = (file) => readFile(file, "utf8")
 ): Promise<DeploymentManifest> {
+  // Safety: schema validated at build time by @nimblesite/shipwright-validate-manifest
   return JSON.parse(await readText(manifestPath)) as DeploymentManifest;
 }
 
@@ -196,6 +203,7 @@ function toResolveInput(
 ): ResolveInput {
   const configuredPath = configuredBinaryPath(component, manifest, resolveContext.platform, resolveContext.vscode);
   const sources = configuredPath && !component.sources.includes("user-setting")
+    // Safety: "user-setting" is a valid Source literal; spread preserves Source[]
     ? (["user-setting", ...component.sources] as Source[])
     : component.sources;
 
@@ -214,13 +222,15 @@ function toResolveInput(
   if (component.pkgmgr) input.pkgmgr = component.pkgmgr;
   if (component.dotnetTool) input.dotnetTool = component.dotnetTool;
 
-  const bundledPath = bundledBinaryPath(component, resolveContext.extensionRoot, resolveContext.platform);
-  if (bundledPath) {
-    input.bundledDir = path.dirname(bundledPath);
+  const bundledDir = bundledBinaryDir(component, resolveContext.extensionRoot, resolveContext.platform);
+  if (bundledDir) {
+    input.bundledDir = bundledDir;
   }
 
   if (component.sources.includes("cargo-bin")) {
-    input.cargoBin = path.join(resolveContext.env.CARGO_HOME ?? path.join(os.homedir(), ".cargo"), "bin", executableName(component.binaryName, resolveContext.platform));
+    const cargoHome = resolveContext.env.CARGO_HOME ?? path.join(os.homedir(), ".cargo");
+    const cargoBinDir = path.join(cargoHome, "bin");
+    input.cargoBin = joinBinary(cargoBinDir, component.binaryName, resolveContext.platform);
   }
 
   return input;
@@ -259,7 +269,7 @@ function candidatePaths(input: ResolveInput): string[] {
   }
 
   if (input.bundledDir) {
-    candidates.add(path.join(input.bundledDir, executableName(input.binaryName, platform)));
+    candidates.add(joinBinary(input.bundledDir, input.binaryName, platform));
   }
 
   if (input.cargoBin) candidates.add(input.cargoBin);
@@ -284,7 +294,7 @@ function configuredBinaryPath(
 
   const directory = settingString(config, `${manifest.product.id}.binaries.path`);
   if (directory && component.binaryName) {
-    return path.join(directory, executableName(component.binaryName, platform));
+    return joinBinary(directory, component.binaryName, platform);
   }
 
   return undefined;
@@ -421,47 +431,21 @@ function isExecutableComponent(component: ManifestComponent): component is Execu
   return Boolean(component.binaryName && component.expectedVersion && component.sources);
 }
 
-function bundledBinaryPath(component: ManifestComponent, extensionRoot: string, platform: Platform): string | undefined {
+function bundledBinaryDir(component: ManifestComponent, extensionRoot: string, platform: Platform): string | undefined {
   if (!component.bundled || !component.binaryName) return undefined;
   const manifestPlatform = component.platforms?.includes(platform) ? platform : component.platforms?.includes("all") ? "all" : platform;
   const relative = component.bundled.bundlePath
     .replaceAll("${platform}", manifestPlatform)
     .replaceAll("${binaryName}", component.binaryName)
     .replaceAll("${exe}", exeSuffix(platform));
-  return path.join(extensionRoot, relative);
+  const dir = path.dirname(path.join(extensionRoot, relative));
+  // Normalize to target platform separators so resolve keys match probe keys
+  const sep = platformSeparator(platform);
+  return sep === "\\" ? dir.replaceAll("/", "\\") : dir;
 }
 
 function resolveExpectedVersion(expectedVersion: string, productVersion: string): string {
   return expectedVersion.replaceAll("${PRODUCT_VERSION}", productVersion);
-}
-
-function envPath(input: ResolveInput, platform: Platform): string | undefined {
-  const env = input.env ?? {};
-  const config = input.envConfig ?? {};
-  if (config.pathVar && env[config.pathVar]) {
-    return env[config.pathVar];
-  }
-  const configuredDir = config.dirVar ? env[config.dirVar] : undefined;
-  if (configuredDir) {
-    return path.join(configuredDir, executableName(input.binaryName, platform));
-  }
-  return undefined;
-}
-
-function pathCandidate(entry: string, binaryName: string, platform: Platform): string {
-  const expectedFile = executableName(binaryName, platform);
-  if (entry.endsWith(`/${expectedFile}`) || entry.endsWith(`\\${expectedFile}`) || entry.endsWith(expectedFile)) {
-    return entry;
-  }
-  return path.join(entry, expectedFile);
-}
-
-function executableName(binaryName: string, platform: Platform): string {
-  return `${binaryName}${exeSuffix(platform)}`;
-}
-
-function exeSuffix(platform: Platform): string {
-  return platform === "win32-x64" || platform === "win32-arm64" ? ".exe" : "";
 }
 
 function splitPath(value: string | undefined): string[] {
