@@ -51,6 +51,13 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
+      # ── stamp the release version ────────────────────────────────────────────
+      # Source carries the 0.0.0-dev placeholder; the real version lives only in
+      # the git tag. Stamp every manifest (Cargo.toml, package.json, *.csproj,
+      # pubspec.yaml) + build-info.json before CI, build, or publish runs.
+      - name: Stamp version from tag
+        run: cargo run --manifest-path tools/shipwright-version-stamp/Cargo.toml -- --tag "${{ github.ref_name }}" --root .
+
       # ── CI gate ─────────────────────────────────────────────────────────────
       - name: CI
         run: make ci
