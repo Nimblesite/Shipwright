@@ -10,7 +10,7 @@ output=$(cargo publish --locked -p "$crate" 2>&1)
 code=$?
 printf '%s\n' "$output"
 
-if [ "$code" -ne 0 ] && printf '%s' "$output" | grep -q 'is already uploaded'; then
+if [ "$code" -ne 0 ] && printf '%s' "$output" | grep -qE 'is already uploaded|already exists'; then
     printf '::notice::%s at this version is already on crates.io — skipping\n' "$crate"
     exit 0
 fi

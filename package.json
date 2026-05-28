@@ -11,9 +11,11 @@
     "test:ts-core": "pnpm --filter @nimblesite/shipwright-core test",
     "test:ts-mcp": "pnpm --filter @nimblesite/shipwright-mcp test",
     "test:ts-vscode": "pnpm --filter @nimblesite/shipwright-vscode test",
+    "website:build": "pnpm --dir website build",
+    "website:dev": "pnpm --dir website dev",
     "validate:fixtures": "node --test tests/fixtures.test.mjs",
     "validate:manifest": "node tools/validate-manifest/index.mjs"
   },
   "type": "module",
-  "version": "0.2.0"
+  "version": "0.0.0-dev"
 }

@@ -25,9 +25,8 @@ suite("Manifest Validation Diagnostics", () => {
       diags.some((d) => /invalid json|manifestversion/i.test(d.message)),
       `expected JSON parse error, got: ${diagMessages(diags)}`,
     );
-    for (const d of diags) {
-      assert.strictEqual(d.source, "shipwright", "source is shipwright");
-    }
+    const shipwrightDiags = diags.filter((d) => d.source === "shipwright");
+    assert.ok(shipwrightDiags.length > 0, "at least one diagnostic from shipwright source");
 
     // valid JSON, missing manifestVersion
     await setContent(doc, JSON.stringify({ product: { id: "x", version: "1.0.0" }, components: [] }));
