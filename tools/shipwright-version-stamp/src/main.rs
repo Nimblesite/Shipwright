@@ -8,7 +8,8 @@
 //! ```
 //!
 //! Files rewritten (idempotent, skipped if absent):
-//! - `Cargo.toml` — `[workspace.package] version` and/or `[package] version`
+//! - every `Cargo.toml` — `[workspace.package]`/`[package] version` plus the
+//!   `version` requirement of each workspace-internal path dependency
 //! - every `package.json` under `clients/` and repo root — top-level `version`
 //! - every `*.csproj` — `<Version>` element (creates one if missing)
 //! - `pubspec.yaml` — top-level `version:` key
@@ -200,26 +201,71 @@ struct Summary {
     build_info: usize,
 }
 
-/// Rewrite `Cargo.toml` workspace/package version.
+/// Rewrite every `Cargo.toml` under `root`: the workspace/package version and
+/// the version requirement of each workspace-internal path dependency. Walking
+/// every manifest (not just the root) is required because the path-dep version
+/// requirements live in the member crates. SWR-VERSION-BUILD-STAMPING
 fn stamp_cargo(
     root: &Path,
     version: &str,
     dry_run: bool,
     mut s: Summary,
 ) -> Result<Summary, StampError> {
-    let path = root.join("Cargo.toml");
-    if !path.is_file() {
-        return Ok(s);
-    }
-    let original = read_to_string(&path)?;
-    let replaced = replace_cargo_version_lines(&original, version);
-    if replaced != original {
-        if !dry_run {
-            write_string(&path, &replaced)?;
+    for path in walk_for("Cargo.toml", root)? {
+        let original = read_to_string(&path)?;
+        let replaced =
+            replace_cargo_dep_versions(&replace_cargo_version_lines(&original, version), version);
+        if replaced != original {
+            if !dry_run {
+                write_string(&path, &replaced)?;
+            }
+            s.cargo = s.cargo.saturating_add(1);
         }
-        s.cargo = s.cargo.saturating_add(1);
     }
     Ok(s)
+}
+
+/// Rewrite the `version = "..."` requirement of every workspace-internal path
+/// dependency — any line carrying both `path =` and `version =`. Without this,
+/// stamping bumps each crate's own version to the release tag while its sibling
+/// path-deps still require `0.0.0-dev`, so `cargo` cannot resolve the workspace
+/// at build/publish time. Narrow line-based rewrite, mirroring
+/// [`replace_cargo_version_lines`]. SWR-VERSION-BUILD-STAMPING
+fn replace_cargo_dep_versions(src: &str, version: &str) -> String {
+    let mut out = String::with_capacity(src.len());
+    for line in src.lines() {
+        out.push_str(&rewrite_dep_version_line(line, version));
+        out.push('\n');
+    }
+    if !src.ends_with('\n') && out.ends_with('\n') {
+        let _ = out.pop();
+    }
+    out
+}
+
+/// Replace the quoted value after `version =` on a path-dependency line; every
+/// other line (including external deps and `version.workspace` markers) is
+/// returned unchanged.
+fn rewrite_dep_version_line(line: &str, version: &str) -> String {
+    if !line.contains("path =") {
+        return line.to_string();
+    }
+    let Some(key) = line.find("version =") else {
+        return line.to_string();
+    };
+    let Some(open_rel) = line[key..].find('"') else {
+        return line.to_string();
+    };
+    let open = key + open_rel;
+    let Some(close_rel) = line[open + 1..].find('"') else {
+        return line.to_string();
+    };
+    let close = open + 1 + close_rel;
+    let mut s = String::with_capacity(line.len() + version.len());
+    s.push_str(&line[..=open]);
+    s.push_str(version);
+    s.push_str(&line[close..]);
+    s
 }
 
 /// Rewrite every `version = "..."` line found under `[workspace.package]` or
