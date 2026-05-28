@@ -16,14 +16,14 @@ import dev.shipwright.*
 
 val resolution = resolve(
   ResolveInput(
-    binaryName = "forge-lsp",
+    binaryName = "sharplsp-lsp",
     expectedVersion = "1.0.3",
     sources = listOf(Source.UserSetting, Source.Env, Source.Path, Source.Pkgmgr),
-    userSettingPath = settings.getOrNull("forge.lspPath"),
+    userSettingPath = settings.getOrNull("sharplsp.lspPath"),
     env = System.getenv(),
-    envConfig = EnvConfig(pathVar = "FORGE_LSP_PATH"),
+    envConfig = EnvConfig(pathVar = "SHARPLSP_LSP_PATH"),
     pathEntries = System.getenv("PATH").orEmpty().split(File.pathSeparatorChar),
-    pkgmgr = PkgmgrConfig(brew = "nimblesite/tap/forge-lsp", scoop = "nimblesite/forge-lsp"),
+    pkgmgr = PkgmgrConfig(brew = "nimblesite/tap/sharplsp-lsp", scoop = "nimblesite/sharplsp-lsp"),
   ),
 ) { path -> probeVersionFlag(path, timeoutMs = 1500) }
 ```

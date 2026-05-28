@@ -1,0 +1,23 @@
+{
+  "main": [
+    { "text": "Home", "url": "/" },
+    { "text": "Docs", "url": "/docs/" },
+    { "text": "Security", "url": "/docs/specs/supply-chain-security/" },
+    { "text": "Specs", "url": "/docs/specs/" }
+  ],
+  "footer": [
+    {
+      "title": "Docs",
+      "items": [
+        { "text": "Security", "url": "/docs/specs/supply-chain-security/" },
+        { "text": "Specs", "url": "/docs/specs/" }
+      ]
+    },
+    {
+      "title": "Source",
+      "items": [
+        { "text": "README", "url": "/docs/" }
+      ]
+    }
+  ]
+}

@@ -13,6 +13,7 @@ concurrency:
 permissions:
   contents: read
   id-token: write  # npm OIDC trusted publishing (no NPM_TOKEN secret)
+  pages: write     # GitHub Pages deployment
 
 jobs:
   release:
@@ -165,3 +166,37 @@ jobs:
             --skip-duplicate
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+  # ── GitHub Pages ──────────────────────────────────────────────────────────
+  pages:
+    name: Deploy website to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: release
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install website dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Build website
+        working-directory: website
+        run: npx eleventy
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/_site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

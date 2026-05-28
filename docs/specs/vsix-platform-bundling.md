@@ -276,7 +276,7 @@ For extensions with only platform-agnostic components (pure-Node/TypeScript, `"p
 - Package without `--target` OR package once for each target with identical content (latter avoids Marketplace routing ambiguity).
 - Fat VSIX is acceptable only when the extension contains zero native (compiled) binaries.
 
-`too-many-cooks` uses the fat strategy (`tmc-server` is pure Node); `deslop` and `forge` use the per-platform strategy.
+`too-many-cooks` uses the fat strategy (`tmc-server` is pure Node); `deslop` and `sharplsp` use the per-platform strategy.
 
 ## [SWR-VSIX-DOTNET] .NET Sidecar Runtime Requirements
 

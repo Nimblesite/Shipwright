@@ -39,16 +39,22 @@ suite("Extension Commands", () => {
     }
   });
 
-  test("shipwright.validate finds and reports issues across multiple files", async () => {
+  test("shipwright.validate finds and reports issues across multiple shipwright.json files", async () => {
     const bad = JSON.stringify({
       manifestVersion: 1,
       product: { id: "bad-cmd", version: "1.0.0" },
       components: [{ id: "broken", kind: "lsp", language: "rust" }],
     }, null, 2);
-    const uriBad = await createTempFile("cmd-bad.shipwright.json", bad);
+    const folder = vscode.workspace.workspaceFolders![0];
+    const subDir = vscode.Uri.joinPath(folder.uri, "sub-pkg");
+    await vscode.workspace.fs.createDirectory(subDir);
+    const uriBad = vscode.Uri.joinPath(subDir, "shipwright.json");
+    await vscode.workspace.fs.writeFile(uriBad, new TextEncoder().encode(bad));
 
     try {
+      const diagPromise = waitForDiagnostics(uriBad);
       await vscode.commands.executeCommand("shipwright.validate");
+      await diagPromise;
 
       const badDiags = vscode.languages.getDiagnostics(uriBad);
       assert.ok(badDiags.length >= 3,
@@ -58,13 +64,13 @@ suite("Extension Commands", () => {
       assert.ok(badDiags.some((d) => d.message.includes("source")));
 
       const mainDiags = vscode.languages.getDiagnostics(
-        vscode.Uri.joinPath(vscode.workspace.workspaceFolders![0].uri, "shipwright.json"),
+        vscode.Uri.joinPath(folder.uri, "shipwright.json"),
       );
       assert.strictEqual(mainDiags.length, 0,
         `main manifest still clean, got: ${diagMessages(mainDiags)}`);
     } finally {
       await closeAllEditors();
-      await deleteTempFile(uriBad);
+      await vscode.workspace.fs.delete(subDir, { recursive: true });
     }
   });
 

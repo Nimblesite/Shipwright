@@ -82,6 +82,14 @@
       "templates/gh-actions/publish-scoop-bucket.yml"
     ]
   },
+  "docs/specs/supply-chain-security.md": {
+    "defaultTicket": "SWR-SPEC-SUPPLY-CHAIN-SECURITY",
+    "fixtures": [
+      "docs/specs/binary-version-contract.md",
+      "docs/specs/binary-signing-notarization.md",
+      "docs/specs/acceptance-gates.md"
+    ]
+  },
   "docs/specs/vsix-platform-bundling.md": {
     "defaultTicket": "SWR-SPEC-VSIX-PLATFORM-BUNDLING",
     "fixtures": [

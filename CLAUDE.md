@@ -90,6 +90,10 @@ make setup   # post-create dev environment setup
 
 **`make fmt`** formats code in-place. **`make lint`** runs linters/analyzers (read-only, no formatting). **`make test`** runs tests with coverage. Three separate targets — no overlap.
 
+## Placeholder Versions — NON-NEGOTIABLE
+
+All version fields in source (`Cargo.toml`, `package.json`, `*.csproj`, `pubspec.yaml`, `shipwright.json`) MUST be `0.0.0-dev`. Real versions are stamped at release time by `shipwright-version-stamp` from the git tag — **never hard-coded in source**. Hard-coded release versions in source are a release-engineering defect. See `[SWR-VERSION-BUILD-STAMPING]` in `docs/specs/binary-version-contract.md`.
+
 ## Repo Structure
 
 ```
@@ -117,6 +121,14 @@ tests/fixtures.test.mjs            # Node test runner over fixtures
 2. The JSON schemas in `schemas/` are the source of truth for the manifest format. Generated client code (Rust, TS, Dart, .NET, Kotlin) consumes these schemas.
 3. Every fixture in `fixtures/` is exercised by `tests/fixtures.test.mjs` against the AJV validator in `tools/validate-manifest/`.
 4. `templates/gh-actions/` is shipped as-is to downstream products — never inline-modify; treat as published interface.
+
+## VS Code Version Targeting — NON-NEGOTIABLE
+
+All VS Code extension tests, builds, and CI pipelines MUST target the **latest stable VS Code release**. NEVER pin or downgrade to an older VS Code version to work around test infrastructure issues. Fix the infrastructure instead.
+
+- Extension E2E tests run against the latest VS Code via `@vscode/test-electron` (downloads latest automatically).
+- `engines.vscode` in `package.json` declares the **minimum** supported version, not the test version.
+- If `@vscode/test-electron` breaks on a new VS Code release, fix the launcher — do NOT pin a version.
 
 ## .NET Runtime in VS Code Extensions — NON-NEGOTIABLE
 

@@ -1,0 +1,13 @@
+{
+  "name": "shipwright-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "eleventy",
+    "dev": "eleventy --serve --watch"
+  },
+  "dependencies": {
+    "@11ty/eleventy": "^3.1.2",
+    "eleventy-plugin-techdoc": "0.1.0"
+  }
+}

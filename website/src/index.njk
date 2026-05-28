@@ -1,0 +1,37 @@
+---
+layout: layouts/base.njk
+title: Shipwright
+description: Secure supply-chain contracts for IDE extensions and developer-tool binaries.
+---
+
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Secure Supply Chain For IDE Tooling</p>
+    <h1>Shipwright keeps shipped binaries honest.</h1>
+    <p class="lede">Manifest-driven packaging, version attestation, resolver isolation, and release gates for products that bundle LSPs, MCP servers, CLIs, and sidecars.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="/docs/specs/supply-chain-security/">Security posture</a>
+      <a class="button" href="/docs/specs/">Published specs</a>
+    </div>
+  </div>
+  <img class="hero-logo" src="/assets/img/shipwright.png" width="320" height="320" alt="Shipwright logo">
+</section>
+
+<section class="control-strip" aria-label="Supply-chain controls">
+  <a href="/docs/specs/binary-version-contract/">
+    <strong>Version attestation</strong>
+    <span>Every component reports the expected version before launch.</span>
+  </a>
+  <a href="/docs/specs/ide-extension-deployment/">
+    <strong>No hidden PATH fallback</strong>
+    <span>IDE startup uses bundled or explicit user-selected binaries.</span>
+  </a>
+  <a href="/docs/specs/acceptance-gates/">
+    <strong>Package gates</strong>
+    <span>Artifacts prove contents, platform layout, and test isolation.</span>
+  </a>
+  <a href="/docs/specs/binary-signing-notarization/">
+    <strong>Signing</strong>
+    <span>Native binaries follow platform trust requirements.</span>
+  </a>
+</section>

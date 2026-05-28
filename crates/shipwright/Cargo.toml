@@ -10,7 +10,7 @@ documentation = "https://docs.rs/shipwright"
 readme = "README.md"
 
 [dependencies]
-shipwright-manifest = { path = "../shipwright-manifest", version = "0.2" }
+shipwright-manifest = { path = "../shipwright-manifest", version = "0.0.0-dev" }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 

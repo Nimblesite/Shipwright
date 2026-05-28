@@ -15,7 +15,7 @@ experience. Signing is not optional.
 
 **Default rule: every binary distributed to end users MUST be signed and, on macOS,
 notarized before upload.** This applies to all products that consume Shipwright
-(`too-many-cooks`, `Deslop`, `Basilisk`, `forge`, `dart_mutant`) and to Shipwright's own
+(`too-many-cooks`, `Deslop`, `Basilisk`, `SharpLsp`, `dart_mutant`) and to Shipwright's own
 `shipwright-version-stamp` binary.
 
 ---

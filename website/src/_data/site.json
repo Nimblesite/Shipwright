@@ -1,0 +1,10 @@
+{
+  "name": "Shipwright",
+  "title": "Shipwright",
+  "description": "Secure supply-chain contracts for IDE extensions and developer-tool binaries.",
+  "url": "https://shipwright.nimblesite.dev",
+  "stylesheet": "/assets/css/styles.css",
+  "themeColor": "#007acc",
+  "logo": "/assets/img/shipwright.png",
+  "organizationName": "Nimblesite"
+}

@@ -1,0 +1,20 @@
+---
+layout: layouts/docs.njk
+title: Specs
+description: Published specs from docs/specs.
+permalink: /docs/specs/
+tags: docs
+eleventyNavigation:
+  key: Specs
+  order: 30
+---
+
+# Specs
+
+Published directly from `docs/specs`.
+
+<ul class="doc-index">
+{% for doc in collections.specDocs %}
+  <li><a href="{{ doc.url }}">{{ doc.data.title }}</a><span>{{ doc.data.sourcePath }}</span></li>
+{% endfor %}
+</ul>
