@@ -191,13 +191,18 @@ jobs:
         with:
           node-version: '22'
 
+      - uses: pnpm/action-setup@v4
+
+      # The website is a standalone pnpm project (its own pnpm-lock.yaml); it is
+      # NOT a member of the root pnpm-workspace.yaml, so --ignore-workspace keeps
+      # pnpm from resolving up to the root workspace and skipping its deps.
       - name: Install website dependencies
         working-directory: website
-        run: npm ci
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Build website
         working-directory: website
-        run: npx eleventy
+        run: pnpm exec eleventy
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
