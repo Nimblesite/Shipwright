@@ -28,7 +28,7 @@ Create a product manifest at the product repo root or package root. Start from t
 | --- | --- |
 | CLI-only | `fixtures/manifests/dart-mutant.json` |
 | Rust CLI/LSP/MCP | `fixtures/manifests/deslop.json` |
-| Rust LSP plus .NET sidecars | `fixtures/manifests/forge.json` |
+| Rust LSP plus .NET sidecars | `fixtures/manifests/sharplsp.json` |
 | VS Code plus Zed | `fixtures/manifests/basilisk.json` |
 | Node/npm MCP server | `fixtures/manifests/too-many-cooks.json` |
 

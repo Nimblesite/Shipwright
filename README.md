@@ -1,8 +1,10 @@
 # Shipwright
 
-Shipwright is a shared deployment contract for teams shipping binaries and IDE extensions that must stay version-matched across multiple ecosystems and package registries.
+Shipwright is a secure supply-chain deployment contract for teams shipping binaries and IDE extensions that must stay version-matched across multiple ecosystems and package registries.
 
 It defines the version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them.
+
+Security stance: Shipwright prevents IDE tooling from launching hidden PATH binaries, stale bundled artifacts, mismatched user overrides, or package contents that do not match the manifest.
 
 ## What This Solves
 
@@ -69,6 +71,10 @@ tool-name --version        # prints "tool-name 1.2.3"
 tool-name --version --json # prints JSON per schemas/version-manifest.schema.json
 ```
 
+## Placeholder Versions
+
+Source-controlled version fields MUST be `0.0.0-dev`. Real versions are stamped at release time by `shipwright-version-stamp` from the git tag. This applies to `Cargo.toml`, `package.json`, `*.csproj`, `pubspec.yaml`, and `shipwright.json`. Hard-coded release versions in source are a release-engineering defect. See [SWR-VERSION-BUILD-STAMPING](docs/specs/binary-version-contract.md#swr-version-build-stamping-build-time-version-stamping).
+
 ## Product Manifest
 
 Each product declares its components in `shipwright.json`:
@@ -79,7 +85,7 @@ Each product declares its components in `shipwright.json`:
   "product": {
     "id": "my-tool",
     "displayName": "My Tool",
-    "version": "0.1.0"
+    "version": "0.0.0-dev"
   },
   "components": [
     {
@@ -87,7 +93,7 @@ Each product declares its components in `shipwright.json`:
       "kind": "lsp",
       "language": "rust",
       "binaryName": "my-tool-lsp",
-      "expectedVersion": "0.1.0",
+      "expectedVersion": "${PRODUCT_VERSION}",
       "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"],
       "sources": ["bundled", "github-release"],
       "required": true
@@ -99,6 +105,7 @@ Each product declares its components in `shipwright.json`:
 ## Docs
 
 - [Binary Version Contract](docs/specs/binary-version-contract.md)
+- [Supply Chain Security](docs/specs/supply-chain-security.md)
 - [IDE Extension Deployment](docs/specs/ide-extension-deployment.md)
 - [Library Architecture](docs/specs/library-architecture.md)
 - [Compatibility Matrix](docs/specs/compatibility-matrix.md)

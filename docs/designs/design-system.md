@@ -8,9 +8,26 @@ Date: 2026-05-27
 
 ## [SWR-DESIGN-OVERVIEW] Overview
 
-Shipwright is a portfolio-shared library that standardizes binary deployment and IDE-extension scaffolding across multiple downstream products. This document describes the system-level design: how the layers compose, where data flows, and which invariants each layer owns.
+Shipwright is a portfolio-shared library that standardizes secure binary deployment and IDE-extension scaffolding across multiple downstream products. It protects the supply chain by making every executable declared, packaged intentionally, version-attested, and rejected when it does not match.
 
-Products: Too Many Cooks, Deslop, Basilisk, Forge, dart_mutant.
+This document describes the system-level design: how the layers compose, where data flows, and which invariants each layer owns.
+
+Products: Too Many Cooks, Deslop, Basilisk, SharpLsp, dart_mutant.
+
+---
+
+## [SWR-DESIGN-SECURITY-POSTURE] Security Posture
+
+Shipwright's security position is narrow and strict:
+
+- `shipwright.json` is the executable inventory.
+- Bundled binaries and explicit overrides are verified before use.
+- PATH/global installs are not normal startup sources.
+- Version mismatches stop activation.
+- Package contents are checked before release.
+- Native signing and notarization are part of the release contract.
+
+Canonical spec: [supply-chain-security.md](../specs/supply-chain-security.md).
 
 ---
 
@@ -19,7 +36,7 @@ Products: Too Many Cooks, Deslop, Basilisk, Forge, dart_mutant.
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   Product Repos                         │
-│  (too-many-cooks, deslop, basilisk, forge, dart_mutant) │
+│  (too-many-cooks, deslop, basilisk, sharplsp, dart_mutant) │
 ├─────────────────────────────────────────────────────────┤
 │                  Host Libraries                         │
 │  shipwright-vscode · shipwright-host · shipwright-zed   │

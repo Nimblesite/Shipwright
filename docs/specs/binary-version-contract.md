@@ -107,21 +107,27 @@ User overrides MUST NOT bypass this check. A configured path, environment overri
 
 ## [SWR-VERSION-BUILD-STAMPING] Build-Time Version Stamping
 
-Source-controlled version files SHOULD use the valid semantic placeholder `0.0.0-dev`.
+Source-controlled version files MUST use the placeholder `0.0.0-dev`. Real versions are stamped
+at release time by `shipwright-version-stamp` from the git tag — never hard-coded in source.
 Release and package jobs MUST treat the release version as an explicit build input and stamp the
 runner working tree before compiling, verifying, or packaging artifacts.
 
 Rules:
 
-1. The tag-triggered release MUST build the exact tagged source SHA.
-2. Release jobs MUST NOT commit, push, or move source-control refs after the tag exists.
-3. Stamping MUST be implemented as a first-class script or build target that accepts the version.
-4. Tests MUST be able to pass an arbitrary semantic version into the same stamper.
-5. Stamping MUST update every deployed version carrier: project manifests, package manifests,
+1. All version fields in source (`Cargo.toml`, `package.json`, `*.csproj`, `pubspec.yaml`,
+   `shipwright.json`) MUST be `0.0.0-dev` on every branch at all times. Hard-coded release
+   versions in source are a release-engineering defect.
+2. The tag-triggered release MUST build the exact tagged source SHA.
+3. Release jobs MUST NOT commit, push, or move source-control refs after the tag exists.
+4. Stamping MUST be implemented as a first-class script or build target that accepts the version.
+5. Tests MUST be able to pass an arbitrary semantic version into the same stamper.
+6. Stamping MUST update every deployed version carrier: project manifests, package manifests,
    lock files that carry project versions, `shipwright.json` product version, and every component
    `expectedVersion`.
-6. Stamping MUST use structured parsers for structured files. Ad hoc `sed` rewrites of JSON, YAML,
+7. Stamping MUST use structured parsers for structured files. Ad hoc `sed` rewrites of JSON, YAML,
    TOML, XML, or lock files are not acceptable.
+8. Post-release, source-controlled versions MUST remain at `0.0.0-dev`. Any PR that changes a
+   placeholder to a release version MUST be rejected in review.
 
 ## [SWR-VERSION-MANIFEST] Product Manifest
 
