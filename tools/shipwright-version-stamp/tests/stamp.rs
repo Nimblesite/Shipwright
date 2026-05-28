@@ -227,6 +227,54 @@ fn stamps_manifest_formats_and_ignored_dirs() {
 }
 
 #[test]
+fn stamps_internal_path_dependency_versions() {
+    // SWR-VERSION-BUILD-STAMPING: path-deps must move off the 0.0.0-dev
+    // placeholder with the rest of the workspace, or cargo cannot resolve the
+    // workspace once each crate's own version is bumped to the release tag.
+    let tmp = TempDir::new().unwrap();
+    let root = tmp.path();
+    write(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"crates/app\"]\n\n[workspace.package]\nversion = \"0.0.0-dev\"\n",
+    );
+    // Covers every branch of the path-dep rewrite: a normal path-dep (stamped),
+    // an external dep with no `path` (untouched), a path-dep with no `version`
+    // requirement (untouched), and two malformed `version =` lines with missing
+    // open/close quotes (returned verbatim).
+    write(
+        root,
+        "crates/app/Cargo.toml",
+        "[package]\nname = \"app\"\nversion.workspace = true\n\n[dependencies]\nlib = { path = \"../lib\", version = \"0.0.0-dev\" }\nserde = { version = \"1.0\" }\nlocal = { path = \"../local\" }\nnoopen = { path = \"../n\", version = }\nnoclose = { path = \"../c\", version = \"y }\n",
+    );
+
+    let out = run_in(root, &["--tag", "v1.2.3"]);
+    assert_success(&out);
+
+    let member = read(root, "crates/app/Cargo.toml");
+    assert!(
+        member.contains("lib = { path = \"../lib\", version = \"1.2.3\" }"),
+        "internal path-dep version not stamped: {member}"
+    );
+    // External (non-path) dependency versions are left untouched.
+    assert!(member.contains("serde = { version = \"1.0\" }"));
+    // Path-dep without a version requirement is left untouched.
+    assert!(member.contains("local = { path = \"../local\" }"));
+    // Malformed version requirements are returned verbatim, never corrupted.
+    assert!(member.contains("noopen = { path = \"../n\", version = }"));
+    assert!(member.contains("noclose = { path = \"../c\", version = \"y }"));
+    // Workspace inheritance markers are not rewritten into a literal version.
+    assert!(member.contains("version.workspace = true"));
+    // Root workspace version is still stamped.
+    assert!(read(root, "Cargo.toml").contains("version = \"1.2.3\""));
+
+    // Idempotent: a second run finds nothing to change.
+    let second = run_in(root, &["--tag", "1.2.3"]);
+    assert_success(&second);
+    assert!(String::from_utf8_lossy(&second.stdout).contains("Cargo.toml        : 0"));
+}
+
+#[test]
 fn default_root_with_absent_manifests_only_writes_build_info() {
     let tmp = TempDir::new().unwrap();
     let out = run_in(tmp.path(), &["--tag", "4.5.6"]);
