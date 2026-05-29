@@ -126,15 +126,13 @@ jobs:
       #   1) shipwright-manifest (no internal deps)
       #   2) shipwright-host + shipwright (both depend only on manifest)
       #   3) shipwright-zed (depends on shipwright-host) + shipwright-version-stamp
-      # Sleep between batches lets the crates.io sparse index publish each
-      # batch's metadata before the next batch resolves its path-and-version deps.
+      # `cargo publish` (>=1.66) polls for each crate to appear in the index
+      # before returning (default 60s timeout, longer than the old 30s sleep),
+      # so the next crate resolves its path-and-version deps without a manual wait.
       - name: Publish shipwright-manifest to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-manifest
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-      - name: Wait for crates.io index (batch 1 → 2)
-        run: sleep 30
 
       - name: Publish shipwright-host to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-host
@@ -145,9 +143,6 @@ jobs:
         run: scripts/cargo-publish-or-skip.sh shipwright
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-      - name: Wait for crates.io index (batch 2 → 3)
-        run: sleep 30
 
       - name: Publish shipwright-zed to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-zed
