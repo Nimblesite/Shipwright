@@ -131,9 +131,13 @@ pnpm --filter @nimblesite/shipwright-vscode build
 pnpm --filter @nimblesite/shipwright-vscode publish --access public --no-git-checks
 ```
 
-### 4.3 Secret
+### 4.3 Authentication — OIDC Trusted Publishing
 
-`NPM_TOKEN` — granular npm access token with publish rights to the `@nimblesite` scope.
+No `NPM_TOKEN` secret is used. `release.yml` publishes via npm OIDC trusted publishing
+(`npm publish --provenance`, npm CLI ≥ 11.5.1, `id-token: write` permission). Each package
+must be registered as a Trusted Publisher on npmjs.com pointing at
+`repo=Nimblesite/Shipwright`, `workflow=.github/workflows/release.yml`, `environment=release`.
+The GitHub-issued OIDC token is exchanged for a short-lived publish token at publish time.
 
 ---
 
@@ -223,35 +227,33 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
 ```
 
-### 9.2 Job DAG
+### 9.2 Job Structure
+
+Current `release.yml` is a single `release` job (stamp → `make ci` gate → publish), followed
+by a `pages` job that deploys the website to GitHub Pages. The publish steps run in order:
 
 ```
-ci-gate (make ci)
-  ├── dry-run-crates
-  ├── dry-run-npm
-  ├── dry-run-nuget
-  ├── dry-run-dart
-  │
-  ├── [after all dry-runs pass]
-  │     ├── publish-manifest → publish-shipwright + publish-host → publish-zed + publish-version-stamp
-  │     ├── publish-npm-core → publish-npm-vscode
-  │     │                    └── publish-npm-mcp / publish-npm-validate-manifest
-  │     ├── publish-nuget
-  │     ├── publish-dart
-  │     └── publish-maven
-  │
-  ├── build-binaries (matrix: 5 platforms)
-  │     └── release-assets (GitHub Release)
-  │
-  └── post-release-summary
+release (ubuntu-latest, environment: release)
+  ├── stamp version from tag (shipwright-version-stamp)
+  ├── make ci  (CI gate)
+  ├── npm:    core, mcp, vscode (workspace:* repacked), validate-manifest  (OIDC, idempotent skip-if-published)
+  ├── crates: shipwright-manifest → [host, shipwright] → [zed, version-stamp]  (batched, index-wait sleeps)
+  └── nuget:  pack + push --skip-duplicate
+
+pages (needs: release)
+  └── build website + deploy-pages
 ```
+
+Not yet wired into `release.yml` (see TODO Phases 3–4 and §13 Gaps): pub.dev publish,
+Maven Central publish, per-platform binary build/release-assets, and the dedicated dry-run
+gate jobs. The DAG above is the current implemented shape, not the eventual target.
 
 ### 9.3 Required Secrets
 
 | Secret | Used By |
 |---|---|
 | `CARGO_REGISTRY_TOKEN` | crates.io jobs |
-| `NPM_TOKEN` | npm jobs |
+| _(none)_ | npm jobs — OIDC trusted publishing, no secret (see [SWR-REL-NPM]) |
 | `NUGET_API_KEY` | NuGet job |
 | `DART_PUB_TOKEN` | pub.dev job |
 | `SONATYPE_USERNAME` | Maven job |
@@ -368,7 +370,7 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 ### Phase 5 — GitHub Secrets (one-time manual setup)
 
 - [ ] `CARGO_REGISTRY_TOKEN`
-- [ ] `NPM_TOKEN`
+- [x] npm — no secret; register each package as a Trusted Publisher on npmjs.com (OIDC, see [SWR-REL-NPM])
 - [ ] `NUGET_API_KEY`
 - [ ] `DART_PUB_TOKEN`
 - [ ] `SONATYPE_USERNAME` / `SONATYPE_PASSWORD`

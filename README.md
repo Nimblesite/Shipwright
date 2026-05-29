@@ -48,7 +48,7 @@ Shipwright makes that consistent. Every product declares its deployable componen
 | `tools/validate-manifest/` | AJV-backed manifest validator. |
 | `templates/gh-actions/` | Reusable release workflow templates for downstream product repos. |
 | `docs/specs/` | Contract and architecture specs. |
-| `docs/plans/` | Implementation and migration plans. |
+| `docs/plans/` | Implementation plans. |
 
 ## Build
 
