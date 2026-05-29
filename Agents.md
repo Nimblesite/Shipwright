@@ -1,4 +1,4 @@
-<!-- agent-pmo:f481f8d -->
+<!-- agent-pmo:74cf183 -->
 @CLAUDE.md
 
 Spec, plan, ticket, and coverage IDs MUST be hierarchical and non-numeric.
