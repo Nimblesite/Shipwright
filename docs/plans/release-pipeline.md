@@ -351,8 +351,8 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 
 ### Phase 2 — crates.io
 
-- [ ] Publish `shipwright-manifest` first, then `shipwright` + `shipwright-host` in parallel, then `shipwright-zed`, then `shipwright-version-stamp`
-- [ ] Add crates publish jobs to `release.yml`
+- [x] Publish `shipwright-manifest` first, then `shipwright` + `shipwright-host` in parallel, then `shipwright-zed`, then `shipwright-version-stamp`
+- [x] Add crates publish jobs to `release.yml` (implemented via `scripts/cargo-publish-or-skip.sh`, batched with index-wait sleeps)
 
 ### Phase 3 — pub.dev
 

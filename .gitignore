@@ -1,4 +1,4 @@
-# agent-pmo:f481f8d
+# agent-pmo:74cf183
 # =============================================================================
 # UNIVERSAL — applies to every repo in this portfolio
 # =============================================================================
@@ -13,16 +13,18 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# IDE / Editor
-.idea/
+# Editor swap/temp files only — never ignore the config dirs themselves
 *.swp
 *.swo
 *~
-.project
-.classpath
-.settings/
 *.sublime-project
 *.sublime-workspace
+
+# IDE config dirs MUST be committed — they carry VS Code settings, extensions,
+# launch configs, and title-bar colorization that the team shares.
+# AI agent config dirs MUST also be committed — they carry skills and instructions.
+# DO NOT add .vscode/, .idea/, .claude/, .codex/, .agents/, .cline/, .opencode/,
+# .github/copilot-instructions.md, .cursorrules, .windsurfrules, or similar.
 
 # Portfolio-wide tooling
 .too_many_cooks/
