@@ -106,7 +106,7 @@ help:
 	@echo "  ci     - lint + test + build (full CI simulation)"
 	@echo "  setup  - Post-create dev environment setup"
 	@echo "Repo-specific targets:"
-	@echo "  deploy-skill-claude - Install shipwright-audit skill to ~/.claude/skills/"
+	@echo "  deploy-skill-claude - Install shipwright-compliance skill to ~/.claude/skills/"
 
 # =============================================================================
 # Repo-Specific Targets
@@ -153,13 +153,17 @@ build-nuget:
 build-dart:
 	cd clients/dart/shipwright && dart pub get && dart analyze
 
-## deploy-skill-claude: Install the shipwright-audit skill into ~/.claude/skills/
+## deploy-skill-claude: Install the shipwright-compliance skill (SKILL.md + reference/) into ~/.claude/skills/
 deploy-skill-claude:
 ifeq ($(OS),Windows_NT)
-	$(MKDIR) "$(HOME)\.claude\skills\shipwright-audit"
-	Copy-Item -Force "docs\agents\shipwright-audit\SKILL.md" "$(HOME)\.claude\skills\shipwright-audit\SKILL.md"
+	$(RM) "$(HOME)\.claude\skills\shipwright-audit"
+	$(RM) "$(HOME)\.claude\skills\shipwright-compliance"
+	$(MKDIR) "$(HOME)\.claude\skills\shipwright-compliance"
+	Copy-Item -Recurse -Force "docs\agents\shipwright-compliance\*" "$(HOME)\.claude\skills\shipwright-compliance\"
 else
-	$(MKDIR) "$(HOME)/.claude/skills/shipwright-audit"
-	cp "docs/agents/shipwright-audit/SKILL.md" "$(HOME)/.claude/skills/shipwright-audit/SKILL.md"
+	$(RM) "$(HOME)/.claude/skills/shipwright-audit"
+	$(RM) "$(HOME)/.claude/skills/shipwright-compliance"
+	$(MKDIR) "$(HOME)/.claude/skills/shipwright-compliance"
+	cp -R docs/agents/shipwright-compliance/. "$(HOME)/.claude/skills/shipwright-compliance/"
 endif
-	@echo "==> shipwright-audit skill installed. Restart Claude Code if it was already running."
+	@echo "==> shipwright-compliance skill installed to ~/.claude/skills/. Restart Claude Code if it was already running."
