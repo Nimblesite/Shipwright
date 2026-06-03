@@ -1,6 +1,6 @@
-<!-- agent-pmo:f481f8d -->
+<!-- agent-pmo:74cf183 -->
 @CLAUDE.md
 
 Spec, plan, ticket, and coverage IDs MUST be hierarchical and non-numeric.
-Use semantic words, such as `SWR-MIG-DESLOP-IDE` or `SWR-SPEC-BINARY-VERSION`.
-Do not create sequential numeric IDs such as `SWR-MIG-003`, `SWR-SPEC-001`, or `[SPEC-001]`.
+Use semantic words, such as `SWR-REL-VERSION-VERIFY` or `SWR-IDE-DOTNET-RUNTIME`.
+Do not create sequential numeric IDs such as `SWR-REL-003`, `SWR-SPEC-001`, or `[SPEC-001]`.
