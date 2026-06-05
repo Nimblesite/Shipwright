@@ -31,11 +31,18 @@ on:
       tap_token:
         required: true
 
+# SWR-SEC-TOKEN-PRIVILEGE: this job checks out an EXTERNAL tap repo via tap_token
+# and pushes to it; its own GITHUB_TOKEN needs no write.
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ inputs.tap_repo }}
           token: ${{ secrets.tap_token }}

@@ -8,6 +8,11 @@ on:
 
 jobs:
   release:
+    # SWR-SEC-ACTION-PINNING: pin the reusable-workflow ref to a full 40-char
+    # commit SHA of the Shipwright release you adopt, with the version in a
+    # comment, e.g.  ...release.reusable.yml@<40-char-sha> # v1.2.3
+    # Let templates/gh-actions/dependabot.yml bump it. `@v1` is shown for
+    # readability only and MUST be replaced before use.
     uses: nimblesite/Shipwright/.github/workflows/release.reusable.yml@v1
     with:
       tag: ${{ github.ref_name }}

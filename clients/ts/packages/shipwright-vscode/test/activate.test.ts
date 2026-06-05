@@ -285,6 +285,91 @@ describe("activateShipwright", () => {
     expect(vscode.warnings).toHaveLength(1);
     expect(vscode.warnings[0]?.items).toEqual(["brew install Nimblesite/tap/dart-mutant"]);
   });
+
+  it("reports the real bundled path (not 'no resolved source') when the probe times out — issue #5", async () => {
+    const root = await extensionRootWithManifest({
+      product: { id: "napper", displayName: "Napper", version: "0.12.2" },
+      components: [
+        {
+          id: "napper",
+          kind: "cli",
+          binaryName: "napper",
+          expectedVersion: "0.12.2",
+          platforms: ["win32-x64"],
+          bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
+          sources: ["bundled"],
+          required: true
+        }
+      ],
+      hosts: {
+        vscode: {
+          activationVerifies: ["napper"],
+          onMismatch: "error"
+        }
+      }
+    });
+    const execFile: ExecFile = (_file, _args, _options, callback) => {
+      callback(Object.assign(new Error("timed out"), { killed: true, signal: "SIGTERM" }), "", "");
+    };
+    const vscode = fakeVscode();
+
+    const result = await activateShipwright(
+      { extensionUri: { fsPath: root } },
+      { env: { PATH: "" }, execFile, platform: "win32-x64", vscode: vscode.api }
+    );
+
+    expect(result.ok).toBe(false);
+    const diag = result.diagnostics[0]!;
+    expect(diag.resolution.errorCode).toBe("no-source-resolved");
+    // The candidate path MUST be preserved — this is the core of the bug.
+    expect(diag.resolution.path).toContain("\\bin\\win32-x64\\napper.exe");
+
+    const message = vscode.errors[0]?.message ?? "";
+    expect(message).toContain("napper.exe");
+    expect(message).not.toContain("no resolved source");
+    expect(message).not.toContain("version check failed");
+    expect(message.toLowerCase()).toContain("respond");
+  });
+
+  it("reports the bundled path as missing (not 'no resolved source') when the binary is absent — issue #5", async () => {
+    const root = await extensionRootWithManifest({
+      product: { id: "napper", displayName: "Napper", version: "0.12.2" },
+      components: [
+        {
+          id: "napper",
+          kind: "cli",
+          binaryName: "napper",
+          expectedVersion: "0.12.2",
+          platforms: ["win32-x64"],
+          bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
+          sources: ["bundled"],
+          required: true
+        }
+      ],
+      hosts: {
+        vscode: {
+          activationVerifies: ["napper"],
+          onMismatch: "error"
+        }
+      }
+    });
+    const execFile: ExecFile = (_file, _args, _options, callback) => {
+      callback(Object.assign(new Error("not found"), { code: "ENOENT" }), "", "");
+    };
+    const vscode = fakeVscode();
+
+    const result = await activateShipwright(
+      { extensionUri: { fsPath: root } },
+      { env: { PATH: "" }, execFile, platform: "win32-x64", vscode: vscode.api }
+    );
+
+    expect(result.ok).toBe(false);
+    const message = vscode.errors[0]?.message ?? "";
+    expect(message).toContain("napper.exe");
+    expect(message).not.toContain("no resolved source");
+    expect(message).not.toContain("version check failed");
+    expect(message.toLowerCase()).toMatch(/missing|not found|was not found/);
+  });
 });
 
 async function extensionRootWithManifest(partial: Record<string, unknown>): Promise<string> {

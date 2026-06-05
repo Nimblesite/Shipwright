@@ -91,8 +91,11 @@ concurrency:
   group: shipwright-release-${{ github.ref }}
   cancel-in-progress: false
 
+# SWR-SEC-TOKEN-PRIVILEGE: default read; only release-assets opts up to write.
+# stamp/target-matrix/build only produce artifacts; publish-brew/scoop push to
+# EXTERNAL repos with publish_token and only need read on this repo.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   stamp:
@@ -102,7 +105,7 @@ jobs:
     outputs:
       version: ${{ steps.normalize.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.ref }}
 
@@ -116,7 +119,9 @@ jobs:
 
       - name: Install stable toolchain
         if: hashFiles('tools/shipwright-version-stamp/Cargo.toml') != ''
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
+        with:
+          toolchain: stable
 
       - name: Stamp product versions
         if: hashFiles('tools/shipwright-version-stamp/Cargo.toml') != ''
@@ -127,7 +132,7 @@ jobs:
 
       - name: Upload build-info
         if: hashFiles('build-info.json') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: build-info
           path: build-info.json
@@ -202,19 +207,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.ref }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
         with:
+          toolchain: stable
           targets: ${{ matrix.rust_target }}
 
       - name: Install cross
         if: matrix.cross
         run: cargo install cross --locked --version 0.2.5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         if: hashFiles('tools/validate-manifest/package.json') != ''
         with:
           node-version: 24
@@ -223,7 +229,7 @@ jobs:
       - name: Install manifest validator deps
         if: hashFiles('tools/validate-manifest/package.json') != ''
         working-directory: tools/validate-manifest
-        run: npm install --no-audit --no-fund
+        run: npm ci   # SWR-SEC-FROZEN-INSTALL
 
       - name: Validate deployment manifest
         if: hashFiles('tools/validate-manifest/index.mjs') != ''
@@ -276,7 +282,7 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 "dist/$stage.zip").Hash.ToLower()
           "$hash  $stage.zip" | Out-File -FilePath "dist/$stage.zip.sha256" -Encoding ascii
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ inputs.bin_name }}-${{ matrix.platform }}
           path: dist/*
@@ -287,14 +293,16 @@ jobs:
     needs: [stamp, build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write   # SWR-SEC-TOKEN-PRIVILEGE: only this job creates the Release
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: dist
           pattern: ${{ inputs.bin_name }}-*
           merge-multiple: true
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ inputs.tag }}
           files: dist/*
@@ -342,7 +350,7 @@ jobs:
             echo "description=$description"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ inputs.tap_repo }}
           token: ${{ secrets.publish_token }}
@@ -418,13 +426,13 @@ jobs:
             echo "description=$description"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ inputs.bucket_repo }}
           token: ${{ secrets.publish_token }}
           path: bucket-repo
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 

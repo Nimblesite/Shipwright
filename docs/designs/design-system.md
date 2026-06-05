@@ -224,7 +224,7 @@ Build binary
   → Package into VSIX
 ```
 
-Unsigned binaries are blocked by Gatekeeper (macOS) and SmartScreen (Windows). Full spec: [binary-signing-notarization.md](../specs/binary-signing-notarization.md).
+Unsigned binaries are blocked by Gatekeeper (macOS) and SmartScreen (Windows). Full spec: [supply-chain-security.md](../specs/supply-chain-security.md) (OS Code Signing, `SWR-SIGN-*`).
 
 ---
 

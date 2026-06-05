@@ -17,7 +17,7 @@ Collect everything, then emit the report once (format at the bottom).
 9. Language-registry publishing — `[SWR-REL-CRATES/NPM/NUGET/DART/MAVEN]`
 10. IDE extension deployment — `[SWR-IDE-*]`
 11. VSIX build pipeline — `[SWR-VSIX-*]`
-12. Binary signing / notarization — `[SWR-SIGN-*]`
+12. Supply-chain security, all channels — `[SWR-SEC-*]`, `[SWR-SIGN-*]`
 13. Acceptance gates in CI — `[SWR-GATE-*]`
 
 ---
@@ -104,11 +104,13 @@ instead of using `@nimblesite/shipwright-core` path helpers. `[SWR-ARCH-LIBRARIE
 
 Only for repos that publish libraries. Check each ecosystem present:
 
-- crates.io: correct publish order (deps first), `CARGO_REGISTRY_TOKEN`, index-wait between dependents. `[SWR-REL-CRATES]`.
+Prefer OIDC trusted publishing (no stored long-lived token) on every registry that supports it — see §12c.
+
+- crates.io: correct publish order (deps first), index-wait between dependents; OIDC trusted publishing (retire `CARGO_REGISTRY_TOKEN`). `[SWR-REL-CRATES]`, `[SWR-SEC-OIDC-PUBLISH]`.
 - npm: OIDC trusted publishing (`--provenance`, `id-token: write`) — no `NPM_TOKEN`. `[SWR-REL-NPM]`.
-- NuGet: `dotnet nuget push --skip-duplicate`, `NUGET_API_KEY`. `[SWR-REL-NUGET]`.
-- pub.dev: `dart pub publish --force` with `DART_PUB_TOKEN`. `[SWR-REL-DART]`.
-- Maven Central: Sonatype + GPG signing. `[SWR-REL-MAVEN]`.
+- NuGet: trusted publishing on nuget.org (OIDC short-lived key) — retire `NUGET_API_KEY`; `--skip-duplicate`. `[SWR-REL-NUGET]`.
+- pub.dev: automated publishing via GitHub Actions OIDC (tag-triggered, dart-lang reusable workflow) — retire `DART_PUB_TOKEN`. `[SWR-REL-DART]`.
+- Maven Central: Central Portal (OSSRH sunset 2025-06-30) + mandatory GPG signature on every artifact. `[SWR-REL-MAVEN]`.
 
 ## 10. IDE extension deployment — `[SWR-IDE-*]` (skip if no extension)
 
@@ -133,12 +135,48 @@ Only for repos that publish libraries. Check each ecosystem present:
    placeholders, no `out/`/`src/`/unbundled `node_modules/`, no caches. `[SWR-VSIX-VERIFY]`.
 7. Publish job runs on tag only, after all builds, single atomic `vsce publish`, `VSCE_PAT` secret. `[SWR-VSIX-PUBLISH]`.
 
-## 12. Binary signing / notarization — `[SWR-SIGN-*]` (skip if no darwin binaries)
+## 12. Supply-chain security, all channels — `[SWR-SEC-*]`, `[SWR-SIGN-*]`
 
-1. darwin build legs sign with `codesign --options runtime --timestamp` before upload/staging. `[SWR-SIGN-APPLE-WORKFLOW]`.
-2. Signed binary submitted via `xcrun notarytool submit --wait` and stapled (`xcrun stapler staple`).
-3. App Store Connect API key secrets used (not Apple ID + password).
-4. darwin VSIX legs sign the embedded binary **before** the `SWR-VSIX-STAGING` copy. `[SWR-SIGN-APPLE-INTEGRATION]`.
+This is the security audit. Run it for **every** channel the repo ships to — a complete release
+pipeline can still be full of holes. Cite the `SWR-SEC-*` / `SWR-SIGN-*` id on each finding.
+
+### 12a. Shared controls (apply to every workflow / channel)
+
+1. **Pinned actions** — every `uses:` and reusable-workflow ref is a full 40-char commit SHA (not
+   `@v4`/`@stable`/`@master`). A committed `.github/dependabot.yml` (github-actions) keeps pins fresh. `[SWR-SEC-ACTION-PINNING]`.
+2. **Least-privilege token** — every workflow has a top-level `permissions:` block defaulting to
+   `contents: read`; write/`id-token`/`attestations` are job-scoped, never top-level; `persist-credentials: false` off the push path. `[SWR-SEC-TOKEN-PRIVILEGE]`.
+3. **Frozen install** — `npm ci` / `pnpm install --frozen-lockfile` / `cargo --locked` everywhere (workflows AND scripts); no bare `npm install`; lockfiles committed. `[SWR-SEC-FROZEN-INSTALL]`.
+4. **Provenance** — release produces `actions/attest-build-provenance` per artifact; consumers can `gh attestation verify --repo … --signer-workflow …`. `[SWR-SEC-PROVENANCE]`.
+5. **SBOM** — a CycloneDX SBOM is generated and attested per artifact; Rust binaries built with `cargo-auditable`. `[SWR-SEC-SBOM]`.
+6. **Signed checksums** — one `SHA256SUMS` over all release assets, cosign keyless-signed (`.sigstore.json`). A bare per-asset `.sha256` with no signature is FAIL. `[SWR-SEC-CHECKSUM]`.
+7. **Vuln gate** — `osv-scanner` + `cargo-deny`/`cargo audit` + `npm audit` + `grype` against the SBOM, failing at high; suppressions carry reason + expiry. `[SWR-SEC-VULN-GATE]`.
+
+### 12b. OS code signing (skip if no darwin binaries) — `[SWR-SIGN-*]`
+
+1. darwin legs sign with `codesign --options runtime --timestamp` and notarize via `xcrun notarytool submit --wait` + `xcrun stapler staple`, using App Store Connect API-key secrets (not Apple ID + password). `[SWR-SIGN-APPLE-WORKFLOW]`.
+2. darwin VSIX legs sign the embedded binary **before** the `SWR-VSIX-STAGING` copy. `[SWR-SIGN-APPLE-INTEGRATION]`.
+3. cosign signing is present **in addition to** OS signing — two signatures, neither substitutes. `[SWR-SIGN-COSIGN]`.
+
+### 12c. Per-channel verification (check each channel in play)
+
+| Channel | What to verify (FAIL if missing) | Spec ID |
+|---|---|---|
+| GitHub Releases | cosign-signed `SHA256SUMS` + provenance + SBOM; macOS notarized | SWR-SEC-CHECKSUM/PROVENANCE/SBOM, SWR-SIGN |
+| VS Code Marketplace | per-VSIX provenance; bundled binary verified vs signed release (`SWR-VSIX-BUNDLE-VERIFY`); PAT in a protected env, `Marketplace → Manage` scope | SWR-SEC-OIDC-PUBLISH |
+| Open VSX | `node-ovsx-sign`; a **separate** short-expiry PAT in a protected env | SWR-SEC-OIDC-PUBLISH |
+| JetBrains / Android Studio | `signPlugin` certificate signature; publish token in a protected env | SWR-SEC-OIDC-PUBLISH |
+| Zed | no committed `.wasm` drift; runtime `github-release` download verifies checksum + signature; version via LSP `initialize` | SWR-SEC-CHECKSUM |
+| Homebrew / Scoop | `sha256`/`hash` sourced from the verified `SHA256SUMS`; scoped `tap_token`/`bucket_token` in a protected env | SWR-SEC-CHECKSUM |
+| Neovim | downloader verifies `SHA256SUMS` + cosign before exec; pins the resolved tag (never `/latest`) | SWR-SEC-CHECKSUM |
+| crates.io / npm / NuGet / pub.dev | OIDC trusted publishing — no long-lived token (npm also `--provenance`) | SWR-SEC-OIDC-PUBLISH |
+| Maven Central | detached GPG signature on every artifact; Central Portal (OSSRH sunset) | SWR-SEC-OIDC-PUBLISH |
+
+### 12d. Manifest declares the posture
+
+`shipwright.json` sets a top-level `supplyChain` block and per-component `githubRelease`
+`signature`/`provenance`/`sbom`/`signerWorkflow` so the host verifies before exec. A `github-release`
+source with no integrity fields is FAIL. `[SWR-SEC-MANIFEST]`.
 
 ## 13. Acceptance gates in CI — `[SWR-GATE-*]`
 

@@ -206,12 +206,23 @@ git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin v0.2.0
 ```
 
-### 8.2 Binary Artifacts
+### 8.2 Binary Artifacts — SWR-REL-PROVENANCE / SWR-REL-SBOM
 
 `shipwright-version-stamp` is the only binary in this repo. Archives per platform:
 
-- `shipwright-version-stamp-{version}-{platform}.tar.gz` + `.sha256` (Unix)
-- `shipwright-version-stamp-{version}-win32-x64.zip` + `.sha256` (Windows)
+- `shipwright-version-stamp-{version}-{platform}.tar.gz` (Unix)
+- `shipwright-version-stamp-{version}-win32-x64.zip` (Windows)
+
+Each archive additionally ships, per the supply-chain contract
+([supply-chain-security.md](../specs/supply-chain-security.md)):
+
+- A **CycloneDX SBOM** (`cargo cyclonedx` / Syft), attested with `actions/attest-sbom`
+  (`SWR-SEC-SBOM`). Rust binaries are built with `cargo-auditable`.
+- A signed **SLSA build provenance** attestation from `actions/attest-build-provenance`
+  (`SWR-SEC-PROVENANCE`).
+- A single **`SHA256SUMS`** over all assets, **cosign keyless-signed** — replacing the prior
+  per-asset `.sha256` model — published as `SHA256SUMS` + `SHA256SUMS.sigstore.json`
+  (`SWR-SEC-CHECKSUM`).
 
 ---
 
@@ -247,6 +258,24 @@ pages (needs: release)
 Not yet wired into `release.yml` (see TODO Phases 3–4 and §13 Gaps): pub.dev publish,
 Maven Central publish, per-platform binary build/release-assets, and the dedicated dry-run
 gate jobs. The DAG above is the current implemented shape, not the eventual target.
+
+Per the supply-chain contract, the eventual binary-release DAG adds, after build/pack and before
+the release-assets upload:
+
+```
+build/pack
+  ├── cargo-auditable build + cargo cyclonedx (SBOM)              SWR-REL-SBOM
+  ├── attest-build-provenance (per artifact, job: id-token:write) SWR-REL-PROVENANCE
+  └── attest-sbom (per artifact)
+sign-checksums (job: id-token:write)
+  └── cosign sign-blob over SHA256SUMS                            SWR-SEC-CHECKSUM
+release-assets
+  └── upload archives + SHA256SUMS + SHA256SUMS.sigstore.json + SBOMs
+```
+
+All jobs run with job-scoped `permissions` and SHA-pinned actions (`SWR-SEC-ACTION-PINNING` /
+`SWR-SEC-TOKEN-PRIVILEGE`). The npm side already uses OIDC + `--provenance`; the native-binary
+side is raised to the same authenticity bar.
 
 ### 9.3 Required Secrets
 
@@ -305,7 +334,7 @@ gate jobs. The DAG above is the current implemented shape, not the eventual targ
 ## 12. macOS Binary Signing — SWR-REL-SIGN
 
 All macOS binaries MUST be signed with a Developer ID Application certificate and notarized
-before upload. The full signing spec is in `docs/specs/binary-signing-notarization.md`.
+before upload. The full signing spec is in `docs/specs/supply-chain-security.md` (OS Code Signing, `SWR-SIGN-*`).
 
 Summary of what changes in the release pipeline:
 
@@ -337,7 +366,12 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 |---|---|---|
 | SWR-REL-GAP-GRADLE-STAMP | `shipwright-version-stamp` does not stamp `build.gradle.kts` | `tools/shipwright-version-stamp/src/main.rs` |
 | SWR-REL-GAP-MAVEN-PUBLISH | `publications {}` block empty, no signing, no KDoc, no Sonatype config | `clients/kotlin/shipwright-intellij/build.gradle.kts` |
-| SWR-REL-GAP-APPLE-SIGNING | Sign/notarize/staple steps not yet in `release.reusable.yml` or `publish-vsix-per-platform.yml` | See `docs/specs/binary-signing-notarization.md` [SWR-SIGN-GAPS] |
+| SWR-REL-GAP-APPLE-SIGNING | Sign/notarize/staple steps not yet in `release.reusable.yml` or `publish-vsix-per-platform.yml` | See `docs/specs/supply-chain-security.md` [SWR-SIGN-GAPS] |
+| SWR-REL-GAP-PROVENANCE | No `actions/attest-build-provenance` in `release.reusable.yml` or binary templates | `release.reusable.yml`; `templates/gh-actions/*` — see [SWR-SEC-PROVENANCE] |
+| SWR-REL-GAP-SBOM | No SBOM generation/attestation (`cargo cyclonedx`/Syft + `attest-sbom`) | `release.reusable.yml` build job — see [SWR-SEC-SBOM] |
+| SWR-REL-GAP-COSIGN | `SHA256SUMS` not cosign-signed; per-asset `.sha256` still used | `release.reusable.yml` release-assets job — see [SWR-SEC-CHECKSUM] |
+| SWR-REL-GAP-ACTION-PINNING | `uses:` refs on mutable tags in `release.reusable.yml`/`release.yml`/`ci.yml` | All `.github/workflows/*.yml` — see [SWR-SEC-ACTION-PINNING] |
+| SWR-REL-GAP-TOKEN-PRIVILEGE | `release.reusable.yml` top-level `contents: write` inherited by build/matrix jobs | `release.reusable.yml` — see [SWR-SEC-TOKEN-PRIVILEGE] |
 
 ---
 

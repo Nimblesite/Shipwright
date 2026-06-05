@@ -1,4 +1,5 @@
 export type {
+  AttemptedCandidate,
   DeferredCheck,
   DotnetToolConfig,
   EnvConfig,

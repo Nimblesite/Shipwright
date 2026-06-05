@@ -21,7 +21,12 @@
       },
       "githubRelease": {
         "repo": "Nimblesite/Deslop",
-        "assetPattern": "deslop-${version}-${platform}.tar.gz"
+        "assetPattern": "deslop-${version}-${platform}.tar.gz",
+        "checksum": true,
+        "signature": "cosign",
+        "signerWorkflow": "Nimblesite/Deslop/.github/workflows/release.yml",
+        "provenance": true,
+        "sbom": true
       },
       "verifyStartup": true,
       "versionCheckStrategy": "version-flag",
@@ -46,7 +51,12 @@
       },
       "githubRelease": {
         "repo": "Nimblesite/Deslop",
-        "assetPattern": "deslop-lsp-${version}-${platform}.tar.gz"
+        "assetPattern": "deslop-lsp-${version}-${platform}.tar.gz",
+        "checksum": true,
+        "signature": "cosign",
+        "signerWorkflow": "Nimblesite/Deslop/.github/workflows/release.yml",
+        "provenance": true,
+        "sbom": true
       },
       "verifyStartup": true,
       "versionCheckStrategy": "version-flag",
@@ -71,7 +81,12 @@
       },
       "githubRelease": {
         "repo": "Nimblesite/Deslop",
-        "assetPattern": "deslop-mcp-${version}-${platform}.tar.gz"
+        "assetPattern": "deslop-mcp-${version}-${platform}.tar.gz",
+        "checksum": true,
+        "signature": "cosign",
+        "signerWorkflow": "Nimblesite/Deslop/.github/workflows/release.yml",
+        "provenance": true,
+        "sbom": true
       },
       "verifyStartup": true,
       "versionCheckStrategy": "version-flag",
@@ -108,5 +123,15 @@
       "activationVerifies": ["deslop"],
       "onMismatch": "error"
     }
+  },
+  "supplyChain": {
+    "slsaBuildLevel": 2,
+    "provenance": true,
+    "sbom": "cyclonedx",
+    "signedChecksums": true,
+    "frozenInstall": true,
+    "pinnedActions": true,
+    "oidcPublish": true,
+    "vulnGate": "high"
   }
 }

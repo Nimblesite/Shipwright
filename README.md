@@ -104,11 +104,11 @@ Each product declares its components in `shipwright.json`:
 
 ## Docs
 
-- [Binary Version Contract](docs/specs/binary-version-contract.md)
-- [Supply Chain Security](docs/specs/supply-chain-security.md)
+- [Binary Version Contract](docs/specs/binary-version-contract.md) (includes platform coverage & host compatibility)
+- [Supply Chain Security](docs/specs/supply-chain-security.md) (threat model, per-channel security plan, OS signing)
 - [IDE Extension Deployment](docs/specs/ide-extension-deployment.md)
+- [VSIX Platform Bundling](docs/specs/vsix-platform-bundling.md)
 - [Library Architecture](docs/specs/library-architecture.md)
-- [Compatibility Matrix](docs/specs/compatibility-matrix.md)
 - [Acceptance Gates](docs/specs/acceptance-gates.md)
 - [Release Pipeline](docs/plans/release-pipeline.md)
 

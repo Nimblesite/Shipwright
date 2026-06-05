@@ -1,0 +1,30 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "id": "bad-supplychain",
+    "version": "0.1.0"
+  },
+  "components": [
+    {
+      "id": "bad-supplychain-cli",
+      "kind": "cli",
+      "language": "rust",
+      "binaryName": "bad-supplychain",
+      "expectedVersion": "0.1.0",
+      "platforms": ["linux-x64"],
+      "sources": ["github-release"],
+      "githubRelease": {
+        "repo": "Nimblesite/bad-supplychain",
+        "assetPattern": "bad-supplychain-${version}-${platform}.tar.gz",
+        "signature": "gpg"
+      },
+      "verifyStartup": true,
+      "versionCheckStrategy": "version-flag",
+      "required": true
+    }
+  ],
+  "supplyChain": {
+    "slsaBuildLevel": 3,
+    "unknownPolicyField": true
+  }
+}

@@ -49,6 +49,56 @@
         "cli": { "$ref": "#/$defs/hostPolicy" },
         "pkgmgr": { "$ref": "#/$defs/hostPolicy" }
       }
+    },
+    "supplyChain": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Portfolio supply-chain posture this product enforces in its build, distribution, and host-resolution paths. Absent = inherit the Shipwright secure-by-default posture (see docs/specs/supply-chain-security.md [SWR-SEC-*]).",
+      "properties": {
+        "slsaBuildLevel": {
+          "type": "integer",
+          "enum": [2],
+          "default": 2,
+          "description": "[SWR-SEC-PROVENANCE] Required SLSA v1.0 Build Level. Only L2 is claimable on GitHub-hosted runners (Artifact Attestations); L3 (run isolation + inaccessible signing material) is NOT achievable there and MUST NOT be claimed."
+        },
+        "provenance": {
+          "type": "boolean",
+          "default": true,
+          "description": "[SWR-SEC-PROVENANCE] Require a signed build-provenance attestation for every released artifact and published package."
+        },
+        "sbom": {
+          "type": "string",
+          "enum": ["cyclonedx", "spdx", "none"],
+          "default": "cyclonedx",
+          "description": "[SWR-SEC-SBOM] SBOM format attested per artifact."
+        },
+        "signedChecksums": {
+          "type": "boolean",
+          "default": true,
+          "description": "[SWR-SEC-CHECKSUM] Releases publish a cosign-signed SHA256SUMS; the host verifies digest AND identity-pinned signature before exec."
+        },
+        "frozenInstall": {
+          "type": "boolean",
+          "default": true,
+          "description": "[SWR-SEC-FROZEN-INSTALL] CI/release installs are lockfile-frozen (npm ci / pnpm --frozen-lockfile / cargo --locked)."
+        },
+        "pinnedActions": {
+          "type": "boolean",
+          "default": true,
+          "description": "[SWR-SEC-ACTION-PINNING] Every `uses:` and reusable-workflow ref is a full 40-char commit SHA."
+        },
+        "oidcPublish": {
+          "type": "boolean",
+          "default": true,
+          "description": "[SWR-SEC-OIDC-PUBLISH] Registry publishing uses OIDC trusted publishing with no long-lived token; the VSIX Marketplace PAT runs inside a protected environment."
+        },
+        "vulnGate": {
+          "type": "string",
+          "enum": ["critical", "high", "off"],
+          "default": "high",
+          "description": "[SWR-SEC-VULN-GATE] Severity at which the dependency-vulnerability gate fails the build."
+        }
+      }
     }
   },
   "$defs": {
@@ -100,6 +150,11 @@
               "type": "boolean",
               "default": true,
               "description": "True = one artifact per platform (VSIX --target). False = single fat artifact."
+            },
+            "checksum": {
+              "type": "boolean",
+              "default": true,
+              "description": "SWR-VSIX-BUNDLE-VERIFY: verify the staged binary's SHA-256 against the signed release SHA256SUMS before `vsce package`, and have the host re-verify the bundled binary at activation."
             }
           }
         },
@@ -154,11 +209,16 @@
         "githubRelease": {
           "type": "object",
           "additionalProperties": false,
+          "description": "GitHub Release source plus the integrity contract the host MUST honor before executing a downloaded asset. See [SWR-SEC-CHECKSUM] / [SWR-SEC-PROVENANCE] / [SWR-SEC-SBOM] in docs/specs/supply-chain-security.md.",
           "properties": {
             "repo": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
             "assetPattern": { "type": "string", "description": "e.g. `basilisk-${version}-${platform}.tar.gz`" },
-            "checksum": { "type": "boolean", "default": true },
-            "cosign": { "type": "boolean", "default": false }
+            "checksum": { "type": "boolean", "default": true, "description": "SWR-SEC-CHECKSUM: host recomputes SHA-256 and matches the published SHA256SUMS before exec." },
+            "signature": { "type": "string", "enum": ["cosign", "none"], "default": "cosign", "description": "SWR-SEC-CHECKSUM: signature scheme over SHA256SUMS. `cosign` = keyless Sigstore (Fulcio cert + Rekor log); host runs an identity-pinned `cosign verify-blob`, never --insecure-ignore-tlog." },
+            "signerWorkflow": { "type": "string", "description": "SWR-SEC-CHECKSUM/PROVENANCE: expected signing workflow ref, e.g. `Nimblesite/Deslop/.github/workflows/release.yml`. Host pins the certificate identity / `gh attestation verify --signer-workflow` to this, so a token stolen in another repo cannot forge a passing release." },
+            "provenance": { "type": "boolean", "default": true, "description": "SWR-SEC-PROVENANCE: a signed SLSA build provenance attestation accompanies the asset; host runs `gh attestation verify` and fails closed before exec." },
+            "sbom": { "type": "boolean", "default": true, "description": "SWR-SEC-SBOM: an attested CycloneDX SBOM accompanies the asset." },
+            "predicateType": { "type": "string", "default": "https://cyclonedx.org/bom", "description": "SWR-SEC-SBOM: predicate type the host asserts when verifying the SBOM attestation." }
           }
         },
         "verifyStartup": {
@@ -185,6 +245,11 @@
             "target": { "type": "string" },
             "bundle": { "type": "boolean" },
             "contentHash": { "type": "boolean" },
+            "requireHashes": {
+              "type": "boolean",
+              "default": true,
+              "description": "SWR-SEC-FROZEN-INSTALL: when the asset has a pip/url source, the bundler MUST install it with --require-hashes against a pinned hash (a tampered/yanked upstream artifact then aborts the build instead of shipping in the VSIX)."
+            },
             "downloadOnFirstUse": { "type": "boolean" }
           }
         }
