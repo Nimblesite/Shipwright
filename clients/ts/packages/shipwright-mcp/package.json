@@ -23,7 +23,7 @@
     "deployment",
     "versioning"
   ],
-  "license": "MIT OR Apache-2.0",
+  "license": "MIT",
   "name": "@nimblesite/shipwright-mcp",
   "publishConfig": {
     "access": "public"

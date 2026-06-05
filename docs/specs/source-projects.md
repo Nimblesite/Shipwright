@@ -19,13 +19,13 @@ Shipwright pipeline and are the templates the others follow.
 
 ## [SWR-SRC-SURVEY] Survey of Current Shapes
 
-| Repo | Tool shape | Deployment / version evidence | Gaps the framework must close |
-| --- | --- | --- | --- |
-| Too Many Cooks | TypeScript MCP server published as an npm binary plus a VS Code extension. | `packages/too-many-cooks/package.json` declares version and bin `too-many-cooks`. The VSIX spawns `too-many-cooks` from PATH in `connectionManager.ts`. MCP metadata created in `packages/core/src/server.ts`. | Server version hard-coded and out of sync with the package; no CLI `--version` contract; the VSIX assumes a global npm install and does not verify version before startup. |
-| Deslop | Rust workspace: CLI, LSP, MCP, VS Code extension, JetBrains plugin. | Binaries `deslop`, `deslop-lsp`, `deslop-mcp`. The VSIX resolver checks PATH with `--version` and falls back to bundled `bin/<platform>/<binary>`; `package.json` contributes an MCP server from `${extensionPath}/bin/${platform}/deslop-mcp`. | Closest template, but the LSP did not visibly implement `--version`; `DESLOP_BINARY_DIR` bypassed exact version comparison; JetBrains resolution found a binary but did not verify version. |
-| Basilisk | Rust workspace: `basilisk` CLI/LSP, Zed extension, VS Code extension, profiler helper. | Clap `version` wired; `basilisk-common` centralizes GitHub-release asset naming; the Zed extension downloads platform assets from GitHub releases and caches `basilisk-<version>`. | VSIX did not bundle or verify the server binary; the profiler helper was not in a package-level manifest; Zed cannot spawn a preflight `--version`, so it needs handshake-level verification. |
-| SharpLsp | Rust LSP, VS Code + Zed extensions, Rider plugin, .NET sidecars. | `sharplsp-lsp --version` prints the contract line; C#/F# sidecars print theirs; VS Code has Homebrew/Scoop/dotnet-tool install logic; Rider resolves from settings, `~/.local/bin`, or PATH. | `ensureBinaries` exists but was not called by VSIX startup; resolution did not enforce version; Zed needs LSP-initialize enforcement. |
-| dart_mutant | Single Rust CLI for Dart mutation testing. | `Cargo.toml` bin `dart_mutant`; Clap `version` wired; integration tests call `--version`. | No IDE extension yet — the simplest CLI-only consumer and the first low-risk adopter for the shared Rust version library. |
+| Repo | Tool shape | Shipwright checklist |
+| --- | --- | --- |
+| [Too Many Cooks](https://github.com/Nimblesite/too-many-cooks) | TypeScript MCP server (npm binary) plus a VS Code extension. | Source the server version from package metadata; add a CLI `--version` contract; have the VSIX verify the binary before startup instead of assuming a global npm install. |
+| [Deslop](https://github.com/Nimblesite/Deslop) | Rust workspace: CLI, LSP, MCP, VS Code extension, JetBrains plugin. | Add `--version` to the LSP; stop the `DESLOP_BINARY_DIR` override from bypassing the version check; have JetBrains verify version after resolving the binary. |
+| [Basilisk](https://github.com/Nimblesite/Basilisk) | Rust workspace: `basilisk` CLI/LSP, Zed + VS Code extensions, profiler helper. | Bundle and verify the server binary in the VSIX; list the profiler helper in the manifest; verify version via the Zed LSP `initialize` handshake. |
+| [SharpLsp](https://github.com/Nimblesite/SharpLsp) | Rust LSP, VS Code + Zed extensions, Rider plugin, .NET sidecars. | Call `ensureBinaries` on VSIX startup; enforce the expected version during resolution; add Zed LSP-initialize version enforcement. |
+| [dart_mutant](https://github.com/Nimblesite/dart_mutant) | Single Rust CLI for Dart mutation testing. | CLI-only and already conformant; adopt the manifest contract if an IDE extension is added later. |
 
 ## [SWR-SRC-REQUIREMENTS] Requirements Distilled From the Survey
 

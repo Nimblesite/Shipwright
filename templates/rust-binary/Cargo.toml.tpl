@@ -2,7 +2,7 @@
 name = "{{BINARY_NAME}}"
 version = "{{VERSION}}"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 description = "{{BINARY_NAME}} — Rust binary using Shipwright."
 
 [[bin]]

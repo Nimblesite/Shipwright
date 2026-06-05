@@ -50,10 +50,11 @@ Shipwright Compliance Progress:
 - [ ] Emit the change summary
 ```
 
-The **security audit is not optional**. Basilisk and Deslop are the reference adopters and both still
-have open supply-chain holes (unpinned actions, no provenance/SBOM/signed checksums, downloaders with
-no integrity check). Every audit MUST report the supply-chain posture per channel, not just whether the
-release pipeline exists.
+The **security audit is not optional**. Treat the shared supply-chain controls as a required checklist —
+pinned actions, least-privilege tokens, frozen installs, provenance, SBOM, signed checksums, OIDC
+publishing, and download-time integrity verification — and report the posture per channel, not just
+whether the release pipeline exists. A release pipeline can be complete and still have hardening items
+outstanding; every audit MUST surface each remaining item per channel.
 
 Default behavior is **audit then implement** the fixes. If the user passed `--audit-only`, stop after
 the audit report. If the repo already conforms, say so and make no changes.

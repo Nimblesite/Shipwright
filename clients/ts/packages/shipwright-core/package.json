@@ -24,7 +24,7 @@
     "ide-extension",
     "binary"
   ],
-  "license": "MIT OR Apache-2.0",
+  "license": "MIT",
   "name": "@nimblesite/shipwright-core",
   "publishConfig": {
     "access": "public"

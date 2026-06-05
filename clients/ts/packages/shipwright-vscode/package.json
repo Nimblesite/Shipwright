@@ -27,7 +27,7 @@
     "vscode",
     "ide-extension"
   ],
-  "license": "MIT OR Apache-2.0",
+  "license": "MIT",
   "name": "@nimblesite/shipwright-vscode",
   "peerDependencies": {
     "vscode": "*"
