@@ -2,7 +2,7 @@
   "description": "Shipwright MCP helpers for the version contract.",
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   },
   "exports": {
