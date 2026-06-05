@@ -159,12 +159,23 @@ Shipwright's `activateShipwright()` abstracts this — it reads `shipwright.json
 
 The matrix shape follows the official Microsoft sample exactly. Source: https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.github/workflows/ci.yml
 
-Key rules derived directly from that file:
+Key rules derived directly from that file (with the mandatory Shipwright supply-chain
+hardening from [supply-chain-security.md](supply-chain-security.md) layered on top):
 
 - **Node version: `22.x`** — the sample uses `node-version: 22.x`. This is the required version. Do not use 20 or 24.
 - **`platform` and `arch` are separate matrix fields** — the vsce target is constructed at runtime as `${{ matrix.platform }}-${{ matrix.arch }}` via a `pwsh` step writing to `$GITHUB_ENV`.
-- **`npm_config_arch`** is set as an env var on the `npm install` step (not globally), matching the sample exactly.
+- **`npm_config_arch`** is set as an env var on the install step (not globally), matching the sample exactly.
 - **`fail-fast: false`** is required. A single-platform failure must not cancel other platforms.
+- **Frozen install (`SWR-SEC-FROZEN-INSTALL`)** — Shipwright requires `npm ci`, not the sample's
+  `npm install`. The build feeds a Marketplace-published VSIX; it MUST come strictly from the
+  committed lockfile.
+- **SHA-pinned actions (`SWR-SEC-ACTION-PINNING`)** — every `uses:` is a full 40-char commit SHA.
+- **Least-privilege token (`SWR-SEC-TOKEN-PRIVILEGE`)** — top-level `permissions: contents: read`;
+  the provenance attest step (below) is the only place granted `id-token`/`attestations`.
+- **`GITHUB_TOKEN` on install is Pattern-A only.** It is required when a platform npm package
+  downloads its binary from GitHub during install (the MS sample). For Pattern B (manually staged
+  Rust binaries — Shipwright's usual case), the install needs **no** token; do not pass one into
+  a step that runs dependency lifecycle scripts.
 
 ```yaml
 # Derived from: https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.github/workflows/ci.yml
@@ -197,25 +208,40 @@ strategy:
         arch: arm64
         npm_config_arch: arm
 
-steps:
-  - uses: actions/checkout@v4
-  - uses: actions/setup-node@v4
-    with:
-      node-version: 22.x          # Official MS sample: node-version: 22.x
-  - run: npm install
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      npm_config_arch: ${{ matrix.npm_config_arch }}
-  - shell: pwsh
-    run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
-  - run: npx vsce package --target ${{ env.target }}
-  - uses: actions/upload-artifact@v4
-    with:
-      name: ${{ env.target }}     # Artifact named darwin-arm64, win32-x64, etc — no vsix- prefix
-      path: "*.vsix"
+permissions:
+  contents: read                  # SWR-SEC-TOKEN-PRIVILEGE: top-level default
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write             # SWR-VSIX-PROVENANCE: attest the packaged VSIX
+      attestations: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x      # Official MS sample: node-version: 22.x
+      - run: npm ci               # SWR-SEC-FROZEN-INSTALL (sample uses npm install)
+        env:
+          npm_config_arch: ${{ matrix.npm_config_arch }}
+          # GITHUB_TOKEN: only for Pattern A (npm-delivered binary download); omit for Pattern B.
+      - shell: pwsh
+        run: echo "target=${{ matrix.platform }}-${{ matrix.arch }}" >> $env:GITHUB_ENV
+      - run: npx vsce package --target ${{ env.target }}
+      - uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: "*.vsix"  # SWR-VSIX-PROVENANCE: attest AFTER package
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.target }} # Artifact named darwin-arm64, win32-x64, etc — no vsix- prefix
+          path: "*.vsix"
 ```
 
-For Rust-binary extensions, add a binary build and staging step between `npm install` and `npx vsce package` — see [SWR-VSIX-STAGING].
+For Rust-binary extensions, add a binary build and staging step between `npm ci` and `npx vsce package` — see [SWR-VSIX-STAGING].
 
 ## [SWR-VSIX-STAGING] Binary Staging Before Packaging
 
@@ -242,6 +268,47 @@ Rules:
   embedded binary is — Gatekeeper quarantines it on first execution. An unsigned embedded binary
   will be blocked by macOS.
 
+## [SWR-VSIX-BUNDLE-VERIFY] Verify the Bundled Binary Before Packaging
+
+A platform VSIX ships a backing binary (LSP/MCP/sidecar) to every user. Between building/
+downloading that binary and `vsce package`, an attacker who can write the release or poison the
+download can swap it — the GlassWorm VS Code extension supply-chain class
+(see [supply-chain-security.md](supply-chain-security.md) [SWR-SEC-CHECKSUM]). A `--version`
+check does **not** catch this: a malicious binary self-reports any version it likes.
+
+Rules:
+
+- Before copying a binary into `bin/<target>/`, the staging step MUST verify its **SHA-256**
+  against the signed release `SHA256SUMS` (or the binary's provenance attestation) — not just run
+  `--version`. Build-once-then-reuse-the-attested-artifact is preferred over rebuilding per job.
+- When a component declares `"bundled": { "checksum": true }` in `shipwright.json`, the host MUST
+  re-verify the bundled binary's digest at activation, before launching it.
+- A digest mismatch MUST fail the build (in CI) or block activation (at runtime). Fail closed.
+
+```bash
+# SWR-VSIX-BUNDLE-VERIFY — verify before staging into bin/<target>/
+grep -F "$(shasum -a 256 "target/release/${BIN}" | awk '{print $1}')" SHA256SUMS \
+  || { echo "bundled binary digest not in signed SHA256SUMS"; exit 1; }
+```
+
+## [SWR-VSIX-PROVENANCE] VSIX Attestation
+
+After `vsce package` (the `.vsix` is now final), each **per-platform** VSIX MUST be attested with
+`actions/attest-build-provenance` (subject = the `.vsix`). Each platform VSIX is a distinct
+subject. The job holds `id-token: write` + `attestations: write` and nothing more; the top-level
+token stays `contents: read` ([SWR-SEC-TOKEN-PRIVILEGE]).
+
+```yaml
+- uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+  with:
+    subject-path: "*.vsix"
+```
+
+Note the Marketplace also signs every extension on upload and VS Code verifies that signature at
+install (`@vscode/vsce-sign`); that covers the Marketplace→client hop only. Provenance here covers
+*who built this VSIX and from what source*, and [SWR-VSIX-BUNDLE-VERIFY] covers the binary inside.
+See [supply-chain-security.md](supply-chain-security.md) [SWR-SEC-VSIX-MARKETPLACE].
+
 ## [SWR-VSIX-PUBLISH] Marketplace Publish Job
 
 Copied verbatim from the official sample: https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.github/workflows/ci.yml
@@ -266,6 +333,11 @@ Rules:
 - `VSCE_PAT` secret is required. Never log it.
 - All platform packages are published in a single job. Split publishing creates race conditions on the Marketplace.
 - Pre-release builds: append `--pre-release` to `npx vsce publish`.
+- **`VSCE_PAT` is a long-lived standing secret.** The publish job MUST run inside a protected
+  GitHub `environment:` (required reviewers + tag restriction `v*.*.*`), with the PAT stored as an
+  **environment-scoped** secret, scoped to **Marketplace → Manage** only, and short-expiry/rotated.
+  Open VSX publishing uses a separate PAT under the same rule. This is the GlassWorm containment —
+  see [supply-chain-security.md](supply-chain-security.md) [SWR-SEC-OIDC-PUBLISH].
 
 ## [SWR-VSIX-FAT] Fat VSIX Strategy
 
@@ -319,3 +391,6 @@ The verifier MUST also fail when any of these are present:
    except the exact Microsoft-style platform package whitelist.
 5. Runtime caches, post-install binary copies, or protocol runtime directories such as `--stdio/`,
    `.shipwright-cache/`, or product-specific cache folders.
+6. Secret or VCS material: `.env`/`.env.*`, `.git/`, `*.pem`, `*.key`, `*.secret`. The
+   `.vscodeignore` SHOULD be an allowlist (the MS-sample `**/*` then un-ignore pattern) so these
+   never ship even when an unexpected file lands in the package root.

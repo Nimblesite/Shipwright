@@ -448,6 +448,49 @@ See: https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-sign
 
 ---
 
+## [SWR-SIGN-COSIGN] Sigstore Keyless Signing — Complementary to OS Signing
+
+OS code signing and Sigstore signing answer **different** questions and are **both** required;
+neither substitutes for the other.
+
+| Mechanism | Question it answers | Enforced by |
+|---|---|---|
+| Apple Developer ID + notarization / Windows Authenticode | "Will the OS run this without blocking it?" | Gatekeeper / SmartScreen, at launch |
+| Sigstore cosign (keyless) | "Who built this, from what source, and is it unmodified?" | Shipwright host / consumer, at download |
+
+A macOS release binary therefore carries **two** independent signatures: the Developer ID
+signature + notarization ticket (so Gatekeeper lets it run), and the cosign signature over the
+release `SHA256SUMS` (so the consumer can verify build authenticity against the Rekor transparency
+log). Notarization is Apple scanning *your* binary; cosign provenance is a tamper-evident, publicly
+logged statement of *who produced it*. Removing either leaves a real gap — an unnotarized binary is
+blocked by macOS; an un-cosigned one can be substituted on the release with its checksum.
+
+Cosign signing is keyless: a GitHub OIDC identity obtains a short-lived Fulcio certificate, the
+signature is logged in Rekor, and no long-lived key exists. Sign the combined `SHA256SUMS`, not
+each asset individually:
+
+```bash
+# release job, permissions: id-token: write
+cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+```
+
+Consumers verify with an identity pinned to the exact release workflow ref (never
+`--insecure-ignore-tlog`):
+
+```bash
+cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/Nimblesite/<repo>/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS
+```
+
+This is owned end-to-end by [supply-chain-security.md](supply-chain-security.md)
+[SWR-SEC-CHECKSUM] / [SWR-SEC-PROVENANCE]; this section exists so the signing pipeline treats OS
+signing and Sigstore as the two-signature requirement they are.
+
+Authorities: Sigstore docs (cosign signing/verifying blobs); Apple notarization docs; Microsoft
+SmartScreen reputation docs.
+
 ## [SWR-SIGN-GAPS] Known Gaps
 
 | ID | Gap | Location |
@@ -456,3 +499,4 @@ See: https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-sign
 | SWR-SIGN-GAP-VSIX-SIGNING | Sign step not yet in `publish-vsix-per-platform.yml` | `templates/gh-actions/publish-vsix-per-platform.yml` |
 | SWR-SIGN-GAP-SECRETS | Apple signing secrets not yet created in GitHub org | GitHub org/repo settings |
 | SWR-SIGN-GAP-VERIFY | No CI check that a darwin binary is signed before upload | `release.reusable.yml` build job |
+| SWR-SIGN-GAP-COSIGN | Release `SHA256SUMS` not yet cosign-signed in `release.reusable.yml` | `release.reusable.yml` release-assets job; see [SWR-SEC-CHECKSUM] |

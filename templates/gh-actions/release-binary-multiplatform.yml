@@ -1,3 +1,15 @@
+# release-binary-multiplatform.yml — Shipwright-shipped reusable workflow.
+#
+# Builds platform binaries and publishes them to a GitHub Release with the full
+# Shipwright supply-chain contract (docs/specs/supply-chain-security.md):
+#   - SWR-SEC-ACTION-PINNING  every `uses:` is a full 40-char commit SHA.
+#   - SWR-SEC-TOKEN-PRIVILEGE top-level read; write/id-token granted per job.
+#   - SWR-SEC-FROZEN-INSTALL  pnpm install --frozen-lockfile.
+#   - SWR-SEC-SBOM            CycloneDX SBOM per artifact, attested.
+#   - SWR-SEC-PROVENANCE      attest-build-provenance per artifact (SLSA L2).
+#   - SWR-SEC-CHECKSUM        one cosign-signed SHA256SUMS over all assets.
+# Pins are kept fresh by templates/gh-actions/dependabot.yml.
+
 name: release-binary-multiplatform
 
 on:
@@ -25,6 +37,10 @@ on:
         type: boolean
         default: true
 
+# SWR-SEC-TOKEN-PRIVILEGE: default read-only; jobs opt up to exactly what they need.
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
@@ -40,16 +56,22 @@ jobs:
           - platform: win32-x64
             os: windows-latest
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write       # SWR-SEC-PROVENANCE/SBOM: mint the Sigstore signing token
+      attestations: write   # persist the attestations
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 10.10.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile   # SWR-SEC-FROZEN-INSTALL
       - name: Validate deployment manifest
         shell: bash
         run: node tools/validate-manifest/index.mjs "${{ inputs.manifest_path }}"
@@ -64,31 +86,71 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then exe=".exe"; fi
           "./target/release/${{ inputs.binary_name }}${exe}" --version | grep -Fx "${{ inputs.binary_name }} ${{ inputs.version }}"
       - name: Package archive
+        id: pkg
         shell: bash
         run: |
           set -euo pipefail
           prefix="${{ inputs.artifact_prefix }}"
           if [ -z "$prefix" ]; then prefix="${{ inputs.binary_name }}"; fi
+          stage="${prefix}-${{ inputs.version }}-${{ matrix.platform }}"
           mkdir -p dist
-          tar -czf "dist/${prefix}-${{ inputs.version }}-${{ matrix.platform }}.tar.gz" -C target/release "${{ inputs.binary_name }}"
-          shasum -a 256 "dist/${prefix}-${{ inputs.version }}-${{ matrix.platform }}.tar.gz" > "dist/${prefix}-${{ inputs.version }}-${{ matrix.platform }}.sha256"
-      - uses: actions/upload-artifact@v4
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a "dist/${stage}.zip" "./target/release/${{ inputs.binary_name }}.exe" >/dev/null
+            echo "archive=dist/${stage}.zip" >> "$GITHUB_OUTPUT"
+          else
+            tar -czf "dist/${stage}.tar.gz" -C target/release "${{ inputs.binary_name }}"
+            echo "archive=dist/${stage}.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
+      # SWR-SEC-SBOM: CycloneDX SBOM bound to the archive (Syft is language-agnostic).
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          file: ${{ steps.pkg.outputs.archive }}
+          format: cyclonedx-json
+          output-file: ${{ steps.pkg.outputs.archive }}.cdx.json
+      # SWR-SEC-PROVENANCE: SLSA L2 provenance for the final archive.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: ${{ steps.pkg.outputs.archive }}
+      - name: Attest SBOM
+        uses: actions/attest-sbom@10926c72720ffc3f7b666661c8e55b1344e2a365 # v2
+        with:
+          subject-path: ${{ steps.pkg.outputs.archive }}
+          sbom-path: ${{ steps.pkg.outputs.archive }}.cdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ inputs.binary_name }}-${{ matrix.platform }}
           path: dist/*
+          if-no-files-found: error
 
   publish:
     if: ${{ inputs.upload_release }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # create/upload the GitHub Release
+      id-token: write   # SWR-SEC-CHECKSUM: cosign keyless signing
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: dist
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+      # SWR-SEC-CHECKSUM: one SHA256SUMS over every asset, then cosign-signed.
+      - name: Generate SHA256SUMS
+        shell: bash
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          files="$(ls -1 | grep -v '^SHA256SUMS' || true)"
+          test -n "$files"
+          # shellcheck disable=SC2086
+          shasum -a 256 $files > SHA256SUMS
+      - uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+      - name: Sign SHA256SUMS (cosign keyless)
+        shell: bash
+        run: cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: v${{ inputs.version }}
           files: dist/*

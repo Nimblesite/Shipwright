@@ -87,7 +87,10 @@
     "fixtures": [
       "docs/specs/binary-version-contract.md",
       "docs/specs/binary-signing-notarization.md",
-      "docs/specs/acceptance-gates.md"
+      "docs/specs/acceptance-gates.md",
+      "fixtures/invalid-manifests/bad-supplychain.json",
+      "templates/gh-actions/lint-supply-chain.yml",
+      "templates/gh-actions/dependabot.yml"
     ]
   },
   "docs/specs/vsix-platform-bundling.md": {

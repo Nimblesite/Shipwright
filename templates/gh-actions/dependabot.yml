@@ -1,0 +1,38 @@
+# dependabot.yml — Shipwright-shipped template.
+#
+# Copy verbatim to `.github/dependabot.yml` in every product repo.
+#
+# SHA-pinning GitHub Actions (SWR-SEC-ACTION-PINNING) and freezing lockfiles
+# (SWR-SEC-FROZEN-INSTALL) makes builds immutable — but immutable pins rot into
+# never-updated, vulnerable dependencies if nothing refreshes them. Dependabot
+# bumps the pinned SHAs and lockfiles with a reviewable PR, which is the
+# documented counter to the "pinning is too much maintenance" objection that
+# pushes teams back onto mutable `@v4` tags.
+#
+# See docs/specs/supply-chain-security.md [SWR-SEC-ACTION-PINNING].
+version: 2
+updates:
+  # Keep every `uses:` SHA pin current. Dependabot understands SHA-pinned
+  # actions and bumps the SHA while preserving the `# vX.Y.Z` comment.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  # Rust dependency graph (Cargo.lock).
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Node/npm dependency graph (package-lock.json / pnpm-lock.yaml).
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

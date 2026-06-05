@@ -31,16 +31,23 @@ on:
       bucket_token:
         required: true
 
+# SWR-SEC-TOKEN-PRIVILEGE: this job checks out an EXTERNAL bucket repo via
+# bucket_token and pushes to it; its own GITHUB_TOKEN needs no write.
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ inputs.bucket_repo }}
           token: ${{ secrets.bucket_token }}
           path: bucket
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - name: Write Scoop manifest

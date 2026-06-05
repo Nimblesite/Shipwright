@@ -86,7 +86,7 @@ test("all invalid manifests fail schema validation", () => {
   const invalidManifests = listJsonFiles(invalidDir);
   assert.deepEqual(
     invalidManifests.map((file) => relative(invalidDir, file)),
-    ["bad-semver.json", "missing-component-id.json", "missing-required-binary.json", "unsupported-platform.json"]
+    ["bad-semver.json", "bad-supplychain.json", "missing-component-id.json", "missing-required-binary.json", "unsupported-platform.json"]
   );
 
   for (const manifest of invalidManifests) {

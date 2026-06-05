@@ -1,0 +1,26 @@
+# Keeps SHA-pinned GitHub Actions (SWR-SEC-ACTION-PINNING) and lockfiles
+# (SWR-SEC-FROZEN-INSTALL) fresh so immutable pins do not rot into stale,
+# vulnerable dependencies. See docs/specs/supply-chain-security.md.
+# templates/gh-actions/dependabot.yml is the copy shipped to downstream products.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
