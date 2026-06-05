@@ -111,6 +111,7 @@ Prefer OIDC trusted publishing (no stored long-lived token) on every registry th
 - NuGet: trusted publishing on nuget.org (OIDC short-lived key) — retire `NUGET_API_KEY`; `--skip-duplicate`. `[SWR-REL-NUGET]`.
 - pub.dev: automated publishing via GitHub Actions OIDC (tag-triggered, dart-lang reusable workflow) — retire `DART_PUB_TOKEN`. `[SWR-REL-DART]`.
 - Maven Central: Central Portal (OSSRH sunset 2025-06-30) + mandatory GPG signature on every artifact. `[SWR-REL-MAVEN]`.
+- License metadata: each package's declared license (SPDX in `package.json`/`Cargo.toml` `license`, `<PackageLicenseExpression>`, `pubspec`) matches a LICENSE file that actually ships in the package. Never declare an expression (e.g. `MIT OR Apache-2.0`) unless every named license's text is present — default to single `MIT` with the real copyright holder. `[SWR-REL-LICENSE]`.
 
 ## 10. IDE extension deployment — `[SWR-IDE-*]` (skip if no extension)
 
@@ -138,7 +139,7 @@ Prefer OIDC trusted publishing (no stored long-lived token) on every registry th
 ## 12. Supply-chain security, all channels — `[SWR-SEC-*]`, `[SWR-SIGN-*]`
 
 This is the security audit. Run it for **every** channel the repo ships to — a complete release
-pipeline can still be full of holes. Cite the `SWR-SEC-*` / `SWR-SIGN-*` id on each finding.
+pipeline can still have required controls outstanding. Cite the `SWR-SEC-*` / `SWR-SIGN-*` id on each finding.
 
 ### 12a. Shared controls (apply to every workflow / channel)
 
@@ -152,11 +153,14 @@ pipeline can still be full of holes. Cite the `SWR-SEC-*` / `SWR-SIGN-*` id on e
 6. **Signed checksums** — one `SHA256SUMS` over all release assets, cosign keyless-signed (`.sigstore.json`). A bare per-asset `.sha256` with no signature is FAIL. `[SWR-SEC-CHECKSUM]`.
 7. **Vuln gate** — `osv-scanner` + `cargo-deny`/`cargo audit` + `npm audit` + `grype` against the SBOM, failing at high; suppressions carry reason + expiry. `[SWR-SEC-VULN-GATE]`.
 
-### 12b. OS code signing (skip if no darwin binaries) — `[SWR-SIGN-*]`
+### 12b. OS code signing — `[SWR-SIGN-*]`
 
+**macOS — required, solved, roll out per binary** (skip only if no darwin binaries):
 1. darwin legs sign with `codesign --options runtime --timestamp` and notarize via `xcrun notarytool submit --wait` + `xcrun stapler staple`, using App Store Connect API-key secrets (not Apple ID + password). `[SWR-SIGN-APPLE-WORKFLOW]`.
 2. darwin VSIX legs sign the embedded binary **before** the `SWR-VSIX-STAGING` copy. `[SWR-SIGN-APPLE-INTEGRATION]`.
 3. cosign signing is present **in addition to** OS signing — two signatures, neither substitutes. `[SWR-SIGN-COSIGN]`.
+
+**Windows — unsolved; do NOT FAIL on unsigned.** Native Authenticode is an open problem (see `[SWR-SIGN-WINDOWS]`). Do not flag Windows binaries as a failure for being unsigned. Instead verify: the repo distributes Windows via **Scoop and Homebrew** (which carry their own trust), every Windows binary ships **cosign provenance**, and the repo records the current Windows-signing position (a short note + tracked issue). `[SWR-SIGN-WINDOWS]`.
 
 ### 12c. Per-channel verification (check each channel in play)
 
@@ -172,7 +176,7 @@ pipeline can still be full of holes. Cite the `SWR-SEC-*` / `SWR-SIGN-*` id on e
 | crates.io / npm / NuGet / pub.dev | OIDC trusted publishing — no long-lived token (npm also `--provenance`) | SWR-SEC-OIDC-PUBLISH |
 | Maven Central | detached GPG signature on every artifact; Central Portal (OSSRH sunset) | SWR-SEC-OIDC-PUBLISH |
 
-### 12d. Manifest declares the posture
+### 12d. Manifest declares the required controls
 
 `shipwright.json` sets a top-level `supplyChain` block and per-component `githubRelease`
 `signature`/`provenance`/`sbom`/`signerWorkflow` so the host verifies before exec. A `github-release`

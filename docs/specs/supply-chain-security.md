@@ -213,9 +213,9 @@ These do not build anything; they point users at the GitHub-Release archive. The
 same for all three: the artifact they reference is verified against the cosign-signed `SHA256SUMS`
 before the formula/manifest is written (brew, scoop) or before the binary is executed (Neovim).
 Homebrew and Scoop embed the `sha256` so the package manager re-checks it on install; the tap/bucket
-push uses a dedicated, scoped token in a protected environment. The Neovim downloader — historically
-the weakest link, having shipped with no integrity check at all — MUST fetch and verify `SHA256SUMS`
-and the cosign signature, and pin the resolved tag rather than `/releases/latest`.
+push uses a dedicated, scoped token in a protected environment. The Neovim downloader MUST fetch and
+verify `SHA256SUMS` and the cosign signature before executing the binary, and pin the resolved tag
+rather than `/releases/latest`.
 
 ### Language registries — crates.io, npm, NuGet, pub.dev, Maven Central
 
@@ -303,28 +303,33 @@ artifact. In `publish-vsix-per-platform.yml`, darwin legs sign the binary *befor
 the VSIX itself is not notarized (extensions are not subject to Gatekeeper), but the embedded binary
 must be signed so Gatekeeper passes when VS Code first executes it.
 
-### [SWR-SIGN-WINDOWS] Windows Authenticode — currently declined
+### [SWR-SIGN-WINDOWS] Windows code signing — unsolved
 
-Nimblesite is not pursuing Authenticode signing yet. A new certificate carries zero SmartScreen
-reputation — identical first-run UX to unsigned — and reputation cannot be bought; the EV bypass was
-removed in 2024, and the February 2026 one-year certificate-lifespan cap means reputation resets
-annually. When a larger Windows user base or enterprise sales make it worthwhile, evaluate **Azure
-Trusted Signing** (~$10/month, integrates with Actions) before a traditional CA cert. Until then,
-Windows binaries rely on cosign provenance for authenticity, not Authenticode.
+Windows native code signing is **not solved yet, and we have not forgotten it** — we intend to do it,
+but there is no good long-term answer today. A fresh Authenticode certificate carries zero SmartScreen
+reputation (identical first-run UX to unsigned), reputation cannot be bought, the EV bypass was removed
+in 2024, and the February 2026 one-year certificate-lifespan cap resets reputation annually. We are
+evaluating **Azure Trusted Signing** (~$10/month, integrates with Actions) for when it becomes
+worthwhile. **In the interim, Windows users should install via Scoop or Homebrew** — those channels
+carry their own signing/trust — and every Windows binary still ships with cosign provenance for
+authenticity. Getting all releases onto fully-trusted Scoop and Homebrew is the current priority.
 
-### [SWR-SIGN-GAPS] Known gaps
+### [SWR-SIGN-GAPS] Outstanding signing work
 
-| ID | Gap | Location |
+macOS signing is a solved problem and is being rolled out binary by binary, tracked per repo. The items
+below are the remaining required work:
+
+| ID | Required control | Location |
 |---|---|---|
-| SWR-SIGN-GAP-CERT-IMPORT | Developer ID cert import not yet in `release.reusable.yml` | `.github/workflows/release.reusable.yml` |
-| SWR-SIGN-GAP-VSIX-SIGNING | Sign step not yet in `publish-vsix-per-platform.yml` | `templates/gh-actions/publish-vsix-per-platform.yml` |
-| SWR-SIGN-GAP-SECRETS | Apple signing secrets not yet created in the GitHub org | GitHub org/repo settings |
-| SWR-SIGN-GAP-VERIFY | No CI check that a darwin binary is signed before upload | `release.reusable.yml` build job |
-| SWR-SIGN-GAP-COSIGN | Release `SHA256SUMS` not yet cosign-signed | `release.reusable.yml` release-assets job (`SWR-SEC-CHECKSUM`) |
+| SWR-SIGN-GAP-CERT-IMPORT | Import the Developer ID cert in the release workflow | `.github/workflows/release.reusable.yml` |
+| SWR-SIGN-GAP-VSIX-SIGNING | Add the macOS sign step to the per-platform VSIX publish | `templates/gh-actions/publish-vsix-per-platform.yml` |
+| SWR-SIGN-GAP-SECRETS | Create the Apple signing secrets in the GitHub org | GitHub org/repo settings |
+| SWR-SIGN-GAP-VERIFY | Add a CI check that a darwin binary is signed before upload | `release.reusable.yml` build job |
+| SWR-SIGN-GAP-COSIGN | Cosign-sign the release `SHA256SUMS` | `release.reusable.yml` release-assets job (`SWR-SEC-CHECKSUM`) |
 
 ## [SWR-SEC-MANIFEST] Manifest surface
 
-`shipwright.json` encodes this posture so products opt in declaratively and the host enforces it:
+`shipwright.json` encodes these requirements so products opt in declaratively and the host enforces them:
 
 - Top-level **`supplyChain`** policy: `slsaBuildLevel` (only `2`), `provenance`, `sbom`,
   `signedChecksums`, `frozenInstall`, `pinnedActions`, `oidcPublish`, `vulnGate`. Absent = inherit the

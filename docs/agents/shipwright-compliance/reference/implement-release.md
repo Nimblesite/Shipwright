@@ -213,6 +213,12 @@ own workflows, apply the same:
    `lint-supply-chain.yml` (zizmor). `[SWR-SEC-VULN-GATE]`.
 8. **Manifest** — set `supplyChain` and per-component `githubRelease` `signature`/`provenance`/`sbom`/
    `signerWorkflow` so the host enforces it. `[SWR-SEC-MANIFEST]`.
+9. **License** — declare a single SPDX license (default `MIT`, real copyright holder) that matches a
+   LICENSE file shipped in every published package; never declare an expression (e.g. `MIT OR Apache-2.0`)
+   whose second license text is absent. `[SWR-REL-LICENSE]`.
+10. **macOS signing + Windows position** — sign and notarize darwin binaries (`[SWR-SIGN-APPLE-WORKFLOW]`).
+    Windows native signing is unsolved: distribute Windows via Scoop/Homebrew + cosign provenance and
+    record the position in a short note + tracked issue — do not block the release on it. `[SWR-SIGN-WINDOWS]`.
 
 ## 9. Acceptance gates in CI
 

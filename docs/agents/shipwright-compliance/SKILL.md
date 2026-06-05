@@ -52,7 +52,7 @@ Shipwright Compliance Progress:
 
 The **security audit is not optional**. Treat the shared supply-chain controls as a required checklist —
 pinned actions, least-privilege tokens, frozen installs, provenance, SBOM, signed checksums, OIDC
-publishing, and download-time integrity verification — and report the posture per channel, not just
+publishing, and download-time integrity verification — and report the required controls per channel, not just
 whether the release pipeline exists. A release pipeline can be complete and still have hardening items
 outstanding; every audit MUST surface each remaining item per channel.
 
@@ -146,6 +146,12 @@ Prove the changes locally before declaring done:
   with no provenance/SBOM/cosign-signed `SHA256SUMS`, a downloader (Neovim/Zed/host) that executes a
   fetched binary without verifying its checksum AND signature, or a long-lived registry/marketplace
   token outside a protected environment are all FAIL. `[SWR-SEC-*]`, `[SWR-SIGN-*]`.
+- **License must be honest.** A package's declared SPDX license (default single `MIT`) MUST match a
+  LICENSE file that actually ships; declaring `MIT OR Apache-2.0` (or any expression) without the
+  second license's text present is FAIL. `[SWR-REL-LICENSE]`.
+- **macOS signing required; Windows signing is unsolved (not a FAIL).** Sign + notarize darwin binaries.
+  Do NOT fail Windows binaries for being unsigned — native Authenticode is an open problem; require
+  Scoop/Homebrew distribution + cosign provenance and a recorded Windows-signing position instead. `[SWR-SIGN-WINDOWS]`.
 
 ## Change summary format
 
