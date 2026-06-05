@@ -68,6 +68,12 @@ export type PromptAction =
   | { kind: "pkgmgr-install"; commands: Record<string, string> }
   | { kind: "dotnet-tool-update"; command: string };
 
+/** A concrete filesystem path that was constructed and probed, plus the source that produced it. */
+export interface AttemptedCandidate {
+  source: Source;
+  path: string;
+}
+
 export interface Resolution {
   source: Source | null;
   path?: string | null;
@@ -79,6 +85,8 @@ export interface Resolution {
     expected: string;
     found: string;
     at: string;
+    /** Every candidate path that was tried and failed to probe (for `no-source-resolved`). */
+    attempted?: AttemptedCandidate[];
   };
   action?: PromptAction;
   deferredCheck?: DeferredCheck;
@@ -146,6 +154,9 @@ export function envPath(input: ResolveInput, platform: Platform): string | undef
 export function resolve(input: ResolveInput, probe: Probe): Resolution {
   let deferredPath: { source: Source; path: string } | undefined;
   const platform = input.platform ?? "darwin-arm64";
+  // Every concrete path we build and probe but that fails to answer --version.
+  // Preserved so the final error can report WHERE we looked instead of "no resolved source".
+  const attempted: AttemptedCandidate[] = [];
 
   for (const source of input.sources) {
     if (source === "user-setting" && input.userSettingPath) {
@@ -167,7 +178,10 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
       const path = envPath(input, platform);
       if (!path) continue;
       const got = probe(path);
-      if (!got) continue;
+      if (!got) {
+        attempted.push({ source, path });
+        continue;
+      }
       if (!nameMatches(input, got)) {
         return error("binary-name-mismatch");
       }
@@ -181,7 +195,10 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
       for (const entry of input.path ?? []) {
         const candidate = pathCandidate(entry, input.binaryName, platform);
         const got = probe(candidate);
-        if (!got) continue;
+        if (!got) {
+          attempted.push({ source, path: candidate });
+          continue;
+        }
         if (!nameMatches(input, got)) {
           return error("binary-name-mismatch");
         }
@@ -194,7 +211,10 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
     if (source === "bundled" && input.bundledDir) {
       const candidate = joinBinary(input.bundledDir, input.binaryName, platform);
       const got = probe(candidate);
-      if (!got) continue;
+      if (!got) {
+        attempted.push({ source, path: candidate });
+        continue;
+      }
       if (!nameMatches(input, got)) {
         return error("binary-name-mismatch");
       }
@@ -213,6 +233,8 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
         if (got.version === input.expectedVersion) {
           return ok(source, input.cargoBin, got.version);
         }
+      } else {
+        attempted.push({ source, path: input.cargoBin });
       }
       deferredPath = { source, path: input.cargoBin };
     }
@@ -220,7 +242,10 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
     if (source === "dotnet-tool" && input.dotnetTool) {
       const command = input.dotnetTool.command ?? input.binaryName;
       const got = probe(command);
-      if (!got) continue;
+      if (!got) {
+        attempted.push({ source, path: command });
+        continue;
+      }
       if (!nameMatches(input, got)) {
         return error("binary-name-mismatch");
       }
@@ -260,7 +285,27 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
     }
   }
 
-  return error("no-source-resolved");
+  return noSourceResolved(input, attempted);
+}
+
+/**
+ * No source resolved. Report the last concrete path we actually tried (and the full
+ * attempted list) so the host can render an actionable, truthful error instead of the
+ * misleading "found not found at no resolved source".
+ */
+function noSourceResolved(input: ResolveInput, attempted: AttemptedCandidate[]): Resolution {
+  const last = attempted.length > 0 ? attempted[attempted.length - 1] : undefined;
+  if (!last) {
+    return { source: null, path: null, version: null, status: "error", errorCode: "no-source-resolved" };
+  }
+  return {
+    source: null,
+    path: last.path,
+    version: null,
+    status: "error",
+    errorCode: "no-source-resolved",
+    errorDetails: { expected: input.expectedVersion, found: "not found", at: last.path, attempted }
+  };
 }
 
 function ok(source: Source, path: string, version: string): Resolution {

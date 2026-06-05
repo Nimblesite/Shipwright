@@ -18,7 +18,7 @@ import {
   type ResolveInput,
   type Source
 } from "@nimblesite/shipwright-core";
-import { probeBinaryVersion, type ExecFile } from "./probe.js";
+import { probeBinaryVersionResult, type ExecFile, type ProbeFailure } from "./probe.js";
 
 export interface DeploymentManifest {
   manifestVersion: number;
@@ -150,9 +150,9 @@ export async function activateShipwright(
     if (options.vscode) resolveContext.vscode = options.vscode;
 
     const input = toResolveInput(component, manifest, context, resolveContext);
-    const probes = await probeCandidates(input, options);
+    const { probes, failures } = await probeCandidates(input, options);
     const resolution = resolve(input, (candidate) => probes.get(candidate));
-    const diagnostic = diagnosticForResolution(component, manifest, resolution, hostPolicy);
+    const diagnostic = diagnosticForResolution(component, manifest, resolution, hostPolicy, failures);
 
     if (options.showMessages !== false && diagnostic.blocking) {
       const selectedAction = await showDiagnostic(options.vscode, diagnostic);
@@ -236,11 +236,17 @@ function toResolveInput(
   return input;
 }
 
+interface ProbeOutcome {
+  probes: Map<string, ProbedVersion | undefined>;
+  failures: Map<string, ProbeFailure>;
+}
+
 async function probeCandidates(
   input: ResolveInput,
   options: Pick<ActivateShipwrightOptions, "env" | "execFile" | "timeoutMs">
-): Promise<Map<string, ProbedVersion | undefined>> {
+): Promise<ProbeOutcome> {
   const probes = new Map<string, ProbedVersion | undefined>();
+  const failures = new Map<string, ProbeFailure>();
   const candidates = candidatePaths(input);
   await Promise.all(
     candidates.map(async (candidate) => {
@@ -249,10 +255,16 @@ async function probeCandidates(
       };
       if (options.execFile) Object.assign(probeOptions, { execFile: options.execFile });
       if (options.timeoutMs !== undefined) Object.assign(probeOptions, { timeoutMs: options.timeoutMs });
-      probes.set(candidate, await probeBinaryVersion(candidate, probeOptions));
+      const result = await probeBinaryVersionResult(candidate, probeOptions);
+      if (result.ok) {
+        probes.set(candidate, result.version);
+      } else {
+        probes.set(candidate, undefined);
+        failures.set(candidate, result.failure);
+      }
     })
   );
-  return probes;
+  return { probes, failures };
 }
 
 function candidatePaths(input: ResolveInput): string[] {
@@ -316,14 +328,15 @@ function diagnosticForResolution(
   component: ManifestComponent,
   manifest: DeploymentManifest,
   resolution: Resolution,
-  hostPolicy: HostPolicy | undefined
+  hostPolicy: HostPolicy | undefined,
+  failures: Map<string, ProbeFailure>
 ): ActivationDiagnostic {
   const onMismatch = hostPolicy?.onMismatch ?? "error";
   const blocking = component.required !== false && resolution.status !== "ok" && resolution.status !== "deferred" && onMismatch !== "warn";
   return {
     blocking,
     componentId: component.id,
-    message: formatDiagnosticMessage(component, manifest, resolution),
+    message: formatDiagnosticMessage(component, manifest, resolution, failures),
     resolution
   };
 }
@@ -347,7 +360,12 @@ function actionCommands(resolution: Resolution): string[] {
   return [...new Set(Object.values(resolution.action.commands))];
 }
 
-function formatDiagnosticMessage(component: ManifestComponent, manifest: DeploymentManifest, resolution: Resolution): string {
+function formatDiagnosticMessage(
+  component: ManifestComponent,
+  manifest: DeploymentManifest,
+  resolution: Resolution,
+  failures: Map<string, ProbeFailure>
+): string {
   const productName = manifest.product.displayName ?? manifest.product.id;
   const expected = resolveExpectedVersion(component.expectedVersion ?? manifest.product.version, manifest.product.version);
   const found = resolution.errorDetails?.found || resolution.version || "not found";
@@ -369,7 +387,41 @@ function formatDiagnosticMessage(component: ManifestComponent, manifest: Deploym
     return `${productName} will verify ${component.id} during protocol initialization.`;
   }
 
+  // Issue #5: a discovery/launch failure is NOT a "version check failed". Report the concrete
+  // path we tried and WHY it failed, instead of the false "found not found at no resolved source".
+  if (resolution.errorCode === "no-source-resolved") {
+    return noSourceResolvedMessage(productName, component, expected, resolution, failures);
+  }
+
   return `${productName} cannot start: ${component.id} version check failed. Expected ${expected}; found ${found} at ${at}.`;
+}
+
+function noSourceResolvedMessage(
+  productName: string,
+  component: ManifestComponent,
+  expected: string,
+  resolution: Resolution,
+  failures: Map<string, ProbeFailure>
+): string {
+  const at = resolution.path ?? resolution.errorDetails?.at;
+  if (!at) {
+    return `${productName} cannot start: no installed ${component.id} ${expected} was found. Reinstall the extension or set its path in settings.`;
+  }
+
+  const reason = failures.get(at)?.reason;
+  if (reason === "timeout") {
+    return `${productName} cannot start: ${component.id} ${expected} did not respond to --version in time at ${at}. A first-run antivirus scan can cause this; retrying or raising the probe timeout usually resolves it.`;
+  }
+  if (reason === "not-found") {
+    return `${productName} cannot start: ${component.id} ${expected} was not found at ${at}. The bundled binary is missing — reinstall the extension.`;
+  }
+  if (reason === "permission-denied") {
+    return `${productName} cannot start: ${component.id} ${expected} could not be executed at ${at} (permission denied).`;
+  }
+  if (reason === "unparseable") {
+    return `${productName} cannot start: ${component.id} ${expected} produced unrecognized --version output at ${at}.`;
+  }
+  return `${productName} cannot start: ${component.id} ${expected} could not be launched at ${at}.`;
 }
 
 function missingComponentDiagnostic(componentId: string, manifest: DeploymentManifest): ActivationDiagnostic {

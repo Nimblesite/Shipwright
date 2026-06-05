@@ -30,30 +30,90 @@ export interface ProbeBinaryVersionOptions {
   env?: NodeJS.ProcessEnv;
   execFile?: ExecFile;
   timeoutMs?: number;
+  /** Retry once when the first attempt times out (first-run AV scan). Default true. */
+  retryOnTimeout?: boolean;
 }
 
-const defaultTimeoutMs = 1500;
+/** Why a probe failed. Collapsing all of these into `undefined` is what made issue #5 undiagnosable. */
+export type ProbeFailureReason = "timeout" | "not-found" | "permission-denied" | "launch-error" | "unparseable";
+
+export interface ProbeFailure {
+  reason: ProbeFailureReason;
+  timedOut: boolean;
+  code?: string | number | null;
+  signal?: string | null;
+}
+
+export type ProbeResult = { ok: true; version: ProbedVersion } | { ok: false; failure: ProbeFailure };
+
+// Issue #6: 1.5s is too tight for a ~10 MB unsigned NativeAOT exe whose first run triggers a
+// Defender scan. 10s comfortably covers the first-run scan while still returning the instant the
+// binary answers on the happy path. Hosts may override per-call via `timeoutMs`.
+const defaultTimeoutMs = 10000;
 const semverPattern = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 export async function probeBinaryVersion(
   file: string,
   options: ProbeBinaryVersionOptions = {}
 ): Promise<ProbedVersion | undefined> {
+  const result = await probeBinaryVersionResult(file, options);
+  return result.ok ? result.version : undefined;
+}
+
+/**
+ * Probe `<file> --version`, returning either the parsed version or a structured failure reason.
+ * Retries once on timeout (issue #6) so a first-run antivirus scan does not brick activation.
+ */
+export async function probeBinaryVersionResult(
+  file: string,
+  options: ProbeBinaryVersionOptions = {}
+): Promise<ProbeResult> {
   const execFile = options.execFile ?? defaultExecFile;
   const timeout = options.timeoutMs ?? defaultTimeoutMs;
+  const maxAttempts = options.retryOnTimeout === false ? 1 : 2;
+
+  let failure: ProbeFailure = { reason: "launch-error", timedOut: false };
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await runProbeOnce(execFile, file, timeout, options.env);
+    if (result.ok) return result;
+    failure = result.failure;
+    if (failure.reason !== "timeout") break;
+  }
+  return { ok: false, failure };
+}
+
+async function runProbeOnce(
+  execFile: ExecFile,
+  file: string,
+  timeout: number,
+  env: NodeJS.ProcessEnv | undefined
+): Promise<ProbeResult> {
+  const execOptions: ExecFileOptions = {
+    timeout,
+    windowsHide: true
+  };
+  if (env) execOptions.env = env;
 
   try {
-    const execOptions: ExecFileOptions = {
-      timeout,
-      windowsHide: true
-    };
-    if (options.env) execOptions.env = options.env;
-
     const stdout = await execFileStdout(execFile, file, ["--version"], execOptions);
-    return parseVersionOutput(stdout);
-  } catch {
-    return undefined;
+    const version = parseVersionOutput(stdout);
+    if (version) return { ok: true, version };
+    return { ok: false, failure: { reason: "unparseable", timedOut: false } };
+  } catch (error) {
+    // Safety: execFileStdout only rejects with the Node ExecFile error passed to its callback.
+    return { ok: false, failure: classifyExecError(error as ExecFileError) };
   }
+}
+
+function classifyExecError(error: ExecFileError): ProbeFailure {
+  if (error?.killed === true) {
+    const signal = typeof error.signal === "string" ? error.signal : null;
+    return { reason: "timeout", timedOut: true, signal };
+  }
+  const code = error?.code ?? null;
+  if (code === "ENOENT") return { reason: "not-found", timedOut: false, code };
+  if (code === "EACCES" || code === "EPERM") return { reason: "permission-denied", timedOut: false, code };
+  return { reason: "launch-error", timedOut: false, code };
 }
 
 export function parseVersionOutput(stdout: string | Buffer): ProbedVersion | undefined {
