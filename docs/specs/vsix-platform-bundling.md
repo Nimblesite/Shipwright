@@ -7,7 +7,17 @@ Status: Draft
 
 ## [SWR-VSIX-PURPOSE] Purpose
 
-This spec defines the canonical pipeline for building, staging, and publishing platform-specific VS Code VSIX packages that bundle native binaries. It complements [ide-extension-deployment.md](ide-extension-deployment.md) (which owns the runtime resolution algorithm and bundling layout rule) and [acceptance-gates.md](acceptance-gates.md) (which owns the `verify-extension-package` gate).
+A VS Code extension that ships a native binary cannot be one fat package — VS Code installs a
+*platform-specific* VSIX per OS/arch, and each must carry exactly the right binary and nothing from
+another platform. Getting that wrong means a user on Apple Silicon downloads an x64 binary, or a
+package leaks every platform's binaries and balloons in size. This spec is the canonical pipeline that
+makes per-platform VSIX bundling correct and repeatable, pinned to the official Microsoft sample.
+
+It owns the build/stage/package/publish mechanics; it complements
+[ide-extension-deployment.md](ide-extension-deployment.md) (the runtime resolution algorithm and
+bundling layout rule), [acceptance-gates.md](acceptance-gates.md) (the `verify-extension-package`
+gate), and [supply-chain-security.md](supply-chain-security.md) (provenance, bundle-verify, and the
+Marketplace/Open VSX trust chain).
 
 ## [SWR-VSIX-REFS] External References
 
@@ -19,7 +29,7 @@ Agents working on VSIX bundling or the `publish-vsix-per-platform.yml` template 
   - `extension.js` (exact source for runtime binary path resolution): https://github.com/microsoft/vscode-platform-specific-sample/blob/main/extension.js
 - **REFERENCE** — VS Code bundling guide: https://code.visualstudio.com/api/working-with-extensions/bundling-extension
 - **Inspiration** — Rust Analyzer release workflow: https://github.com/rust-lang/rust-analyzer/blob/2024-06-11/.github/workflows/release.yaml#L105
-- **RELATED** — Binary signing and notarization spec (mandatory for darwin-* binaries staged into VSIX): [binary-signing-notarization.md](binary-signing-notarization.md)
+- **RELATED** — OS code signing (mandatory for darwin-* binaries staged into VSIX) lives in [supply-chain-security.md](supply-chain-security.md) (`SWR-SIGN-*`)
 
 ## [SWR-VSIX-TARGETS] Supported Platform Targets
 
@@ -264,7 +274,7 @@ Rules:
 - Staged binaries MUST appear in `package.json` `files` or be present in a directory that `.vscodeignore` does not exclude.
 - The staging step MUST run after the binary build and before `npx vsce package`.
 - **darwin-\* legs MUST sign the binary before staging.** See [SWR-SIGN-APPLE-INTEGRATION] in
-  `binary-signing-notarization.md`. VS Code extensions are not subject to Gatekeeper, but the
+  [supply-chain-security.md](supply-chain-security.md). VS Code extensions are not subject to Gatekeeper, but the
   embedded binary is — Gatekeeper quarantines it on first execution. An unsigned embedded binary
   will be blocked by macOS.
 

@@ -190,7 +190,29 @@ platform-specific sample exactly. Confirm/produce:
   platform bins, placeholders, `out/`, `src/`, unbundled `node_modules/`, or caches. `[SWR-VSIX-VERIFY]`.
 - `publish` job: `if: success() && startsWith(github.ref, 'refs/tags/')`, single `vsce publish`, `VSCE_PAT`. `[SWR-VSIX-PUBLISH]`.
 - darwin legs sign the embedded binary before staging (Gatekeeper). `[SWR-SIGN-APPLE-INTEGRATION]`.
+- per-VSIX `actions/attest-build-provenance`; the staged binary is verified vs the signed release before packaging. `[SWR-VSIX-PROVENANCE]`, `[SWR-VSIX-BUNDLE-VERIFY]`.
 - `engines.vscode` `^1.99.0`+. .NET sidecars wire `ms-dotnettools.vscode-dotnet-runtime`. `[SWR-IDE-DOTNET-RUNTIME]`.
+
+## 8b. Supply-chain hardening — apply to every channel `[SWR-SEC-*]`
+
+Fix every §12 FAIL from the audit. These land in the shipped templates already; when adapting a repo's
+own workflows, apply the same:
+
+1. **Pin every action** to a 40-char SHA (`# vX.Y.Z` comment); add `.github/dependabot.yml` (copy
+   `templates/gh-actions/dependabot.yml`). `[SWR-SEC-ACTION-PINNING]`.
+2. **Top-level `permissions: contents: read`**; grant write/`id-token`/`attestations` per job only;
+   `persist-credentials: false`. `[SWR-SEC-TOKEN-PRIVILEGE]`.
+3. **Frozen installs** — replace `npm install` with `npm ci`, add `--frozen-lockfile`/`--locked`. `[SWR-SEC-FROZEN-INSTALL]`.
+4. **Provenance + SBOM** — `actions/attest-build-provenance` + a CycloneDX SBOM (`anchore/sbom-action` /
+   `cargo cyclonedx`) attested per artifact; `cargo-auditable` for Rust. `[SWR-SEC-PROVENANCE]`, `[SWR-SEC-SBOM]`.
+5. **Signed checksums** — one `SHA256SUMS`, cosign keyless-signed; replace per-asset `.sha256`. The
+   host / brew / scoop / Neovim / Zed download path verifies digest **and** signature before exec. `[SWR-SEC-CHECKSUM]`.
+6. **OIDC publishing** — move crates.io / NuGet / pub.dev off long-lived tokens; npm keeps
+   `--provenance`; marketplace/Open VSX/JetBrains PATs run in a protected `environment:`. `[SWR-SEC-OIDC-PUBLISH]`.
+7. **Vuln gate + supply-chain lint** — add `osv-scanner` + `cargo-deny`/`grype`, and call the shipped
+   `lint-supply-chain.yml` (zizmor). `[SWR-SEC-VULN-GATE]`.
+8. **Manifest** — set `supplyChain` and per-component `githubRelease` `signature`/`provenance`/`sbom`/
+   `signerWorkflow` so the host enforces it. `[SWR-SEC-MANIFEST]`.
 
 ## 9. Acceptance gates in CI
 
@@ -209,17 +231,21 @@ manifest-declared binary at `bin/<platform>/`. `[SWR-GATE-VERIFY-EXT-PKG]`.
 
 These cannot be done from code — list them as manual follow-ups in the change summary. `[SWR-REL-WORKFLOW]`.
 
+Prefer OIDC trusted publishing (no stored token) wherever the registry supports it — see §8b.6.
+
 | Need | Secret / setup |
 | --- | --- |
-| GitHub Release | none (built-in `GITHUB_TOKEN`, `contents: write`) |
+| GitHub Release | none (built-in `GITHUB_TOKEN`, `contents: write` on the release job only) |
 | Homebrew | `HOMEBREW_TAP_TOKEN`; create `homebrew-<tap>` repo |
 | Scoop | `SCOOP_BUCKET_TOKEN`; create `scoop-<bucket>` repo |
-| VS Code Marketplace | `VSCE_PAT` |
-| crates.io | `CARGO_REGISTRY_TOKEN` |
+| VS Code Marketplace | `VSCE_PAT` (`Marketplace → Manage`), in a protected `release` env |
+| Open VSX | a **separate** Open VSX PAT, short-expiry, in a protected env |
+| JetBrains / Android Studio | `signPlugin` cert chain + key + publish token, in a protected env |
+| crates.io | none — register a Trusted Publisher (OIDC); retire `CARGO_REGISTRY_TOKEN` |
 | npm | none — register each pkg as a Trusted Publisher (OIDC) |
-| NuGet | `NUGET_API_KEY` |
-| pub.dev | `DART_PUB_TOKEN` |
-| Maven Central | `SONATYPE_USERNAME/PASSWORD`, `GPG_SIGNING_KEY/PASSWORD` |
+| NuGet | none — register a Trusted Publisher (OIDC); retire `NUGET_API_KEY` |
+| pub.dev | none — enable automated publishing (OIDC); retire `DART_PUB_TOKEN` |
+| Maven Central | Central Portal token + `GPG_SIGNING_KEY/PASSWORD` (GPG mandatory) |
 | Apple signing | `APPLE_DEVELOPER_ID_CERT_P12(+PASSWORD)`, `APPLE_TEAM_ID`, `NOTARIZATION_API_KEY_P8`, `NOTARIZATION_KEY_ID`, `NOTARIZATION_ISSUER_ID` |
 | Release env | create a `release` GitHub environment with reviewer + tag restriction `v*.*.*` |
 

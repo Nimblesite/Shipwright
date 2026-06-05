@@ -334,7 +334,7 @@ side is raised to the same authenticity bar.
 ## 12. macOS Binary Signing — SWR-REL-SIGN
 
 All macOS binaries MUST be signed with a Developer ID Application certificate and notarized
-before upload. The full signing spec is in `docs/specs/binary-signing-notarization.md`.
+before upload. The full signing spec is in `docs/specs/supply-chain-security.md` (OS Code Signing, `SWR-SIGN-*`).
 
 Summary of what changes in the release pipeline:
 
@@ -366,7 +366,7 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 |---|---|---|
 | SWR-REL-GAP-GRADLE-STAMP | `shipwright-version-stamp` does not stamp `build.gradle.kts` | `tools/shipwright-version-stamp/src/main.rs` |
 | SWR-REL-GAP-MAVEN-PUBLISH | `publications {}` block empty, no signing, no KDoc, no Sonatype config | `clients/kotlin/shipwright-intellij/build.gradle.kts` |
-| SWR-REL-GAP-APPLE-SIGNING | Sign/notarize/staple steps not yet in `release.reusable.yml` or `publish-vsix-per-platform.yml` | See `docs/specs/binary-signing-notarization.md` [SWR-SIGN-GAPS] |
+| SWR-REL-GAP-APPLE-SIGNING | Sign/notarize/staple steps not yet in `release.reusable.yml` or `publish-vsix-per-platform.yml` | See `docs/specs/supply-chain-security.md` [SWR-SIGN-GAPS] |
 | SWR-REL-GAP-PROVENANCE | No `actions/attest-build-provenance` in `release.reusable.yml` or binary templates | `release.reusable.yml`; `templates/gh-actions/*` — see [SWR-SEC-PROVENANCE] |
 | SWR-REL-GAP-SBOM | No SBOM generation/attestation (`cargo cyclonedx`/Syft + `attest-sbom`) | `release.reusable.yml` build job — see [SWR-SEC-SBOM] |
 | SWR-REL-GAP-COSIGN | `SHA256SUMS` not cosign-signed; per-asset `.sha256` still used | `release.reusable.yml` release-assets job — see [SWR-SEC-CHECKSUM] |

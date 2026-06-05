@@ -176,3 +176,33 @@ Every product repo MUST include tests that prove:
 5. A matching bundled binary starts successfully.
 6. Test-time version stamping updates every deployed version carrier.
 7. A packaged artifact contains the stamped manifest and binaries reporting the stamped version.
+
+## Platform Coverage and Host Compatibility
+
+The version contract is the same everywhere, but *how* a host enforces it differs by what that host
+can do at startup — some can spawn a subprocess to read `--version`, some can only inspect a protocol
+handshake, and some cannot run the binary at all before they are ready. This section pins those
+differences and the platform set every product must cover.
+
+### [SWR-COMPAT-HOST-REQ] Host Requirements
+
+| Host | Can spawn `--version` | Can bundle binaries | Required verification path |
+| --- | --- | --- | --- |
+| VS Code | Yes | Yes, under `bin/<platform>` for native binaries or `bin/all` for platform-agnostic tools. | Resolve user setting, env, bundled binary, package manager, and PATH; block activation on mismatches. |
+| JetBrains | Yes | Generally no for per-platform marketplace artifacts; prefer external/package-manager binaries. | Resolve user setting, env, package manager, dotnet tool, and PATH; block LSP startup on mismatches. |
+| Zed | Not before extension startup. | No native binary bundling in the WASM extension. | Verify through LSP initialize metadata or cached download metadata before ready state. |
+| CLI | Yes | Not applicable. | Verify `--version` and `--version --json` against release tag and manifest version. |
+| Package manager | No runtime spawn during publishing. | Not applicable. | Verify formula/manifest version, asset URL, and sha256 against release artifacts. |
+
+### [SWR-COMPAT-PLATFORMS] Platform Coverage
+
+The first release gate covers the platform ids defined in `schemas/platforms.json`: `darwin-arm64`,
+`darwin-x64`, `linux-x64`, `linux-arm64`, `win32-x64`, `win32-arm64`, and `all` (platform-agnostic).
+The platform fixture at `fixtures/platforms/platform-ids.json` MUST stay aligned with
+`schemas/platforms.json`.
+
+### [SWR-COMPAT-MANIFEST-VERSION] Manifest Versioning
+
+The manifest schema is versioned via `manifestVersion`. Host libraries MUST reject an incompatible
+newer manifest schema, MAY warn on an older compatible schema, and MUST keep component `kind`s
+extensible so future products can add host types without changing existing fields.

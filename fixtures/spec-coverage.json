@@ -18,15 +18,9 @@
       "fixtures/version-outputs/node/tmc-server.txt",
       "fixtures/version-outputs/node/tmc-server.json",
       "fixtures/version-outputs/dart/dart-mutant.txt",
-      "fixtures/version-outputs/dart/dart-mutant.json"
-    ]
-  },
-  "docs/specs/binary-signing-notarization.md": {
-    "defaultTicket": "SWR-SIGN-COVERAGE",
-    "fixtures": [
-      "templates/gh-actions/release-binary-multiplatform.yml",
-      "templates/gh-actions/publish-vsix-per-platform.yml",
-      "templates/rust-binary/release.yml"
+      "fixtures/version-outputs/dart/dart-mutant.json",
+      "schemas/compatibility-matrix.json",
+      "fixtures/platforms/platform-ids.json"
     ]
   },
   "docs/specs/ide-extension-deployment.md": {
@@ -46,16 +40,6 @@
       "pnpm-workspace.yaml"
     ]
   },
-  "docs/specs/repo-survey.md": {
-    "defaultTicket": "SWR-SPEC-REPO-SURVEY",
-    "fixtures": [
-      "fixtures/manifests/deslop.json",
-      "fixtures/manifests/basilisk.json",
-      "fixtures/manifests/sharplsp.json",
-      "fixtures/manifests/too-many-cooks.json",
-      "fixtures/manifests/dart-mutant.json"
-    ]
-  },
   "docs/specs/source-projects.md": {
     "defaultTicket": "SWR-SPEC-SOURCE-PROJECTS",
     "fixtures": [
@@ -64,13 +48,6 @@
       "fixtures/manifests/sharplsp.json",
       "fixtures/manifests/too-many-cooks.json",
       "fixtures/manifests/dart-mutant.json"
-    ]
-  },
-  "docs/specs/compatibility-matrix.md": {
-    "defaultTicket": "SWR-SPEC-COMPATIBILITY-MATRIX",
-    "fixtures": [
-      "schemas/compatibility-matrix.json",
-      "fixtures/platforms/platform-ids.json"
     ]
   },
   "docs/specs/acceptance-gates.md": {
@@ -86,8 +63,10 @@
     "defaultTicket": "SWR-SPEC-SUPPLY-CHAIN-SECURITY",
     "fixtures": [
       "docs/specs/binary-version-contract.md",
-      "docs/specs/binary-signing-notarization.md",
       "docs/specs/acceptance-gates.md",
+      "templates/gh-actions/release-binary-multiplatform.yml",
+      "templates/gh-actions/publish-vsix-per-platform.yml",
+      "templates/rust-binary/release.yml",
       "fixtures/invalid-manifests/bad-supplychain.json",
       "templates/gh-actions/lint-supply-chain.yml",
       "templates/gh-actions/dependabot.yml"
