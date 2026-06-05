@@ -4,7 +4,7 @@
   },
   "description": "VS Code glue for Shipwright: reads shipwright.json, resolves each component, surfaces prompts to the user.",
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.9.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.8"
   },
