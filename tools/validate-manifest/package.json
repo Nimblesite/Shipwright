@@ -3,7 +3,7 @@
     "shipwright-validate-manifest": "index.mjs"
   },
   "dependencies": {
-    "ajv": "^8.17.1",
+    "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1"
   },
   "description": "Shipwright deployment manifest validator for product CI.",
