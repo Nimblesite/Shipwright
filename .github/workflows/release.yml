@@ -42,11 +42,17 @@ jobs:
           node-version: '22'
 
       # npm OIDC trusted publishing requires npm >= 11.5.1 (action ships older).
-      - name: Upgrade npm to OIDC-capable release
+      # Set the registry EXPLICITLY but with NO auth token: npm only engages the
+      # OIDC trusted-publishing exchange when a concrete registry is configured,
+      # yet setup-node's registry-url would also inject a placeholder _authToken
+      # that pre-empts OIDC and 404s. `npm config set registry` gives the registry
+      # without any token, so OIDC runs. [SWR-SEC-OIDC-PUBLISH]
+      - name: Upgrade npm + configure registry for OIDC
         run: |
           npm install -g npm@latest
-          echo "node=$(node --version) npm=$(npm --version) which=$(which npm)"
-          echo "OIDC request URL present: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}${ACTIONS_ID_TOKEN_REQUEST_URL:-NO}"
+          npm config set registry https://registry.npmjs.org/
+          echo "npm=$(npm --version) registry=$(npm config get registry)"
+          echo "OIDC URL present: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}${ACTIONS_ID_TOKEN_REQUEST_URL:-NO}"
 
       - uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
