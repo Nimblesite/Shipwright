@@ -53,7 +53,7 @@
     "supplyChain": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Portfolio supply-chain posture this product enforces in its build, distribution, and host-resolution paths. Absent = inherit the Shipwright secure-by-default posture (see docs/specs/supply-chain-security.md [SWR-SEC-*]).",
+      "description": "Portfolio supply-chain controls this product enforces in its build, distribution, and host-resolution paths. Absent = inherit the Shipwright secure-by-default controls (see docs/specs/supply-chain-security.md [SWR-SEC-*]).",
       "properties": {
         "slsaBuildLevel": {
           "type": "integer",

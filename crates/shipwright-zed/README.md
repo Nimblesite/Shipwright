@@ -6,6 +6,6 @@ Connects a Zed extension to `shipwright-host`, reading the `shipwright.json` man
 
 ## License
 
-Licensed under either of [MIT](../../LICENSE) or [Apache-2.0](../../LICENSE) at your option.
+Licensed under the [MIT](../../LICENSE) license.
 
 Copyright (c) 2026 NIMBLESITE PTY LTD

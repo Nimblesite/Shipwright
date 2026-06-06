@@ -4,7 +4,7 @@ Shipwright is a secure supply-chain deployment contract for teams shipping binar
 
 It defines the version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them.
 
-Security stance: Shipwright prevents IDE tooling from launching hidden PATH binaries, stale bundled artifacts, mismatched user overrides, or package contents that do not match the manifest.
+Security mandate: Shipwright's contract requires IDE tooling to refuse hidden PATH binaries, stale bundled artifacts, mismatched user overrides, and package contents that do not match the manifest. Adopting products work through that mandate as a checklist; see [supply-chain-security](docs/specs/supply-chain-security.md).
 
 ## What This Solves
 
@@ -114,6 +114,6 @@ Each product declares its components in `shipwright.json`:
 
 ## License
 
-Licensed under either of [MIT](LICENSE) or [Apache-2.0](LICENSE) at your option.
+Licensed under the [MIT](LICENSE) license.
 
 Copyright (c) 2026 NIMBLESITE PTY LTD

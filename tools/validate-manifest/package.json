@@ -19,7 +19,7 @@
     "manifest",
     "validation"
   ],
-  "license": "MIT OR Apache-2.0",
+  "license": "MIT",
   "name": "@nimblesite/shipwright-validate-manifest",
   "publishConfig": {
     "access": "public"

@@ -17,10 +17,24 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
     open-pull-requests-limit: 5
 
+  # npm lives in three independent trees: the root pnpm workspace ("/"
+  # covers every clients/ts/* package), the standalone Eleventy site
+  # (website/, own pnpm-lock.yaml), and the AJV validator
+  # (tools/validate-manifest/, own package-lock.json). "/" alone never
+  # touches the latter two, so their pins silently rot — list all three.
   - package-ecosystem: npm
-    directory: "/"
+    directories:
+      - "/"
+      - "/website"
+      - "/tools/validate-manifest"
     schedule:
       interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
     open-pull-requests-limit: 5

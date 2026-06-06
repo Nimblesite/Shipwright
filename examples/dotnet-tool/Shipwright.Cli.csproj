@@ -13,7 +13,7 @@
     <IsPackable>false</IsPackable>
     <Authors>NIMBLESITE PTY LTD</Authors>
     <Description>Reference dotnet global tool example for the Shipwright version contract. Not published.</Description>
-    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Nimblesite/Shipwright</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Nimblesite/Shipwright</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>

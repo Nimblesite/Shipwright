@@ -12,7 +12,7 @@
     <Version>0.2.0</Version>
     <Authors>NIMBLESITE PTY LTD</Authors>
     <Description>Shipwright — binary resolver and version-manifest helpers for products adopting the Shipwright contract.</Description>
-    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Nimblesite/Shipwright</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Nimblesite/Shipwright</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>

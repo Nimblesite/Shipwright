@@ -29,6 +29,6 @@ println!("{}", version_output_json(&output)?);
 
 ## License
 
-Licensed under either of [MIT](../../LICENSE) or [Apache-2.0](../../LICENSE) at your option.
+Licensed under the [MIT](../../LICENSE) license.
 
 Copyright (c) 2026 NIMBLESITE PTY LTD
