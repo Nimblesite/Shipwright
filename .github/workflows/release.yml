@@ -43,7 +43,10 @@ jobs:
 
       # npm OIDC trusted publishing requires npm >= 11.5.1 (action ships older).
       - name: Upgrade npm to OIDC-capable release
-        run: npm install -g npm@latest
+        run: |
+          npm install -g npm@latest
+          echo "node=$(node --version) npm=$(npm --version) which=$(which npm)"
+          echo "OIDC request URL present: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}${ACTIONS_ID_TOKEN_REQUEST_URL:-NO}"
 
       - uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
