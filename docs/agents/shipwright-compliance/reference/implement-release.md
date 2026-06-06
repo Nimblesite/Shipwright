@@ -199,7 +199,8 @@ Fix every §12 FAIL from the audit. These land in the shipped templates already;
 own workflows, apply the same:
 
 1. **Pin every action** to a 40-char SHA (`# vX.Y.Z` comment); add `.github/dependabot.yml` (copy
-   `templates/gh-actions/dependabot.yml`). `[SWR-SEC-ACTION-PINNING]`.
+   `templates/gh-actions/dependabot.yml` — every ecosystem grouped with `patterns: ["*"]` so each opens
+   one combined PR per run, not one per package). `[SWR-SEC-ACTION-PINNING]`.
 2. **Top-level `permissions: contents: read`**; grant write/`id-token`/`attestations` per job only;
    `persist-credentials: false`. `[SWR-SEC-TOKEN-PRIVILEGE]`.
 3. **Frozen installs** — replace `npm install` with `npm ci`, add `--frozen-lockfile`/`--locked`. `[SWR-SEC-FROZEN-INSTALL]`.

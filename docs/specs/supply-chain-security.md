@@ -128,7 +128,10 @@ cosign verify-blob --bundle SHA256SUMS.sigstore.json \
 **[SWR-SEC-ACTION-PINNING] Action pinning.** Every `uses:` and every reusable-workflow ref — third-
 party and first-party — is a full 40-character commit SHA with a `# vX.Y.Z` comment. Mutable tags and
 branch refs are forbidden: a repointed tag is exactly how tj-actions and reviewdog were weaponized. A
-committed `.github/dependabot.yml` (github-actions ecosystem, weekly) keeps pins fresh.
+committed `.github/dependabot.yml` (github-actions plus every language ecosystem — cargo, npm — weekly)
+keeps pins fresh. Each ecosystem is grouped (`patterns: ["*"]`) so it opens one combined PR per run
+instead of one PR per package; grouping is per-ecosystem, so a polyglot repo gets at most one PR each
+for github-actions, cargo, and npm, never a single cross-ecosystem PR.
 
 **[SWR-SEC-TOKEN-PRIVILEGE] Least-privilege `GITHUB_TOKEN`.** Every workflow declares top-level
 `permissions: contents: read`. Write, `id-token`, and `attestations` are granted per job only.
