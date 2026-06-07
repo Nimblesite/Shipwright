@@ -51,6 +51,14 @@ jobs:
           echo "--- userconfig ($NPM_CONFIG_USERCONFIG) ---"
           cat "${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}" 2>/dev/null | sed 's/_authToken=.*/_authToken=<redacted-if-real>/' || echo "(none)"
 
+      # DIAGNOSTIC: print the exact OIDC claims npm matches a Trusted Publisher
+      # against (NOT secret). If a publish fails "package not found", compare
+      # these to the npmjs.com Trusted Publisher fields character-for-character.
+      - name: Decode OIDC claims (diagnostic)
+        run: |
+          RESP=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org") || { echo "claim fetch failed (non-fatal)"; exit 0; }
+          echo "$RESP" | python3 -c "import sys,json,base64; t=json.load(sys.stdin)['value']; p=t.split('.')[1]; p+='='*(-len(p)%4); c=json.loads(base64.urlsafe_b64decode(p)); print(json.dumps({k:c.get(k) for k in ['repository','repository_id','repository_owner','workflow_ref','job_workflow_ref','environment','ref','ref_type']}, indent=0))" || echo "claim decode failed (non-fatal)"
+
       - uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
           dotnet-version: '9.x'
@@ -110,7 +118,7 @@ jobs:
           if npm view @nimblesite/shipwright-mcp@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-mcp@$PKG already published — skipping"
           else
-            npm publish --provenance --access public
+            NODE_AUTH_TOKEN="" npm publish --provenance --access public
           fi
 
       # shipwright-vscode depends on shipwright-core via the workspace:*
@@ -124,7 +132,7 @@ jobs:
             echo "@nimblesite/shipwright-vscode@$PKG already published — skipping"
           else
             pnpm pack
-            npm publish --provenance --access public nimblesite-shipwright-vscode-${PKG}.tgz
+            NODE_AUTH_TOKEN="" npm publish --provenance --access public nimblesite-shipwright-vscode-${PKG}.tgz
           fi
 
       - name: Publish @nimblesite/shipwright-validate-manifest
@@ -134,7 +142,7 @@ jobs:
           if npm view @nimblesite/shipwright-validate-manifest@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-validate-manifest@$PKG already published — skipping"
           else
-            npm publish --provenance --access public
+            NODE_AUTH_TOKEN="" npm publish --provenance --access public
           fi
 
       # ── publish to crates.io ─────────────────────────────────────────────────
