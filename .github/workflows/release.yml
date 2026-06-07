@@ -153,30 +153,38 @@ jobs:
       # `cargo publish` (>=1.66) polls for each crate to appear in the index
       # before returning (default 60s timeout, longer than the old 30s sleep),
       # so the next crate resolves its path-and-version deps without a manual wait.
+      # crates.io OIDC Trusted Publishing: mint a short-lived registry token from
+      # the GitHub OIDC token — no stored CARGO_REGISTRY_TOKEN. Each crate has a
+      # Trusted Publisher (Nimblesite/Shipwright, release.yml, env release).
+      # [SWR-SEC-OIDC-PUBLISH]
+      - name: Authenticate to crates.io via OIDC
+        id: crates_auth
+        uses: rust-lang/crates-io-auth-action@bbd81622f20ce9e2dd9622e3218b975523e45bbe # v1.0.4
+
       - name: Publish shipwright-manifest to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-manifest
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates_auth.outputs.token }}
 
       - name: Publish shipwright-host to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-host
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates_auth.outputs.token }}
 
       - name: Publish shipwright to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates_auth.outputs.token }}
 
       - name: Publish shipwright-zed to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-zed
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates_auth.outputs.token }}
 
       - name: Publish shipwright-version-stamp to crates.io
         run: scripts/cargo-publish-or-skip.sh shipwright-version-stamp
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates_auth.outputs.token }}
 
       # ── publish NuGet ────────────────────────────────────────────────────────
       - name: Pack NuGet
@@ -184,14 +192,24 @@ jobs:
           dotnet pack clients/dotnet/Shipwright/Shipwright.csproj \
             -c Release -o ./nupkg --include-symbols
 
+      # nuget.org OIDC Trusted Publishing: exchange the GitHub OIDC token for a
+      # short-lived API key — no stored NUGET_API_KEY. Policy: package owner
+      # Nimblesite, repo Nimblesite/Shipwright, release.yml, env release.
+      # [SWR-SEC-OIDC-PUBLISH]
+      - name: Authenticate to NuGet via OIDC
+        id: nuget_login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: Nimblesite
+
       - name: Publish NuGet
         run: |
           dotnet nuget push ./nupkg/Shipwright.*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
 
   # ── GitHub Pages ──────────────────────────────────────────────────────────
   pages:
