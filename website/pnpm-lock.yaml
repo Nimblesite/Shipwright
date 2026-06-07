@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@11ty/eleventy':
-        specifier: ^3.1.2
-        version: 3.1.5
+        specifier: ^3.1.6
+        version: 3.1.6
       eleventy-plugin-techdoc:
         specifier: 0.1.0
-        version: 0.1.0(@11ty/eleventy@3.1.5)(@types/markdown-it@14.1.2)
+        version: 0.1.0(@11ty/eleventy@3.1.6)(@types/markdown-it@14.1.2)
 
 packages:
 
@@ -45,8 +45,8 @@ packages:
     resolution: {integrity: sha512-6QE+duqSQ0GY9rENXYb4iPR4AYGdrFpqnmi59tFp9VrleOl0QSh8VlBr2yd6dlhkdtj7904poZW5PvGr9cMiJQ==}
     engines: {node: '>=18'}
 
-  '@11ty/eleventy@3.1.5':
-    resolution: {integrity: sha512-hZ0g6MwZyRxCqXsPm82gIM304LraKbUz3ZmezOSjsqxttZG6cHTib3Qq8QkESJoKwnr+yX1eyfOkPC5/mEgZnQ==}
+  '@11ty/eleventy@3.1.6':
+    resolution: {integrity: sha512-ZlSiR1PLdS2lv7TelBgWAhcvMiLNZkPBlLEb+lh7kGYZ+Mk0bo9qcYgVsewvw9W7Em0RH3wd01h5fAstNDh0zA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -821,7 +821,7 @@ snapshots:
 
   '@11ty/eleventy-utils@2.0.7': {}
 
-  '@11ty/eleventy@3.1.5':
+  '@11ty/eleventy@3.1.6':
     dependencies:
       '@11ty/dependency-tree': 4.0.2
       '@11ty/dependency-tree-esm': 2.0.4
@@ -1107,9 +1107,9 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  eleventy-plugin-techdoc@0.1.0(@11ty/eleventy@3.1.5)(@types/markdown-it@14.1.2):
+  eleventy-plugin-techdoc@0.1.0(@11ty/eleventy@3.1.6)(@types/markdown-it@14.1.2):
     dependencies:
-      '@11ty/eleventy': 3.1.5
+      '@11ty/eleventy': 3.1.6
       '@11ty/eleventy-navigation': 0.3.5
       '@11ty/eleventy-plugin-rss': 2.0.4
       '@11ty/eleventy-plugin-syntaxhighlight': 5.0.2
