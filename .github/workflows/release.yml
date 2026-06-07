@@ -31,28 +31,25 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy, llvm-tools-preview
 
-      # NO registry-url here. setup-node's registry-url writes an .npmrc with
-      # `_authToken=${NODE_AUTH_TOKEN}` and defaults NODE_AUTH_TOKEN to a
-      # placeholder; npm then auth's with that bogus token instead of running
-      # OIDC trusted publishing, and the registry rejects the PUT with E404.
-      # Omitting registry-url leaves no .npmrc token, so npm >= 11.5.1 performs
-      # the OIDC exchange against the configured Trusted Publisher. [SWR-SEC-OIDC-PUBLISH]
+      # Canonical npm OIDC trusted-publishing setup: registry-url so npm knows
+      # the registry; npm >= 11.5.1 then mints a short-lived token from the
+      # GitHub OIDC token. No NODE_AUTH_TOKEN secret. [SWR-SEC-OIDC-PUBLISH]
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
 
       # npm OIDC trusted publishing requires npm >= 11.5.1 (action ships older).
-      # Set the registry EXPLICITLY but with NO auth token: npm only engages the
-      # OIDC trusted-publishing exchange when a concrete registry is configured,
-      # yet setup-node's registry-url would also inject a placeholder _authToken
-      # that pre-empts OIDC and 404s. `npm config set registry` gives the registry
-      # without any token, so OIDC runs. [SWR-SEC-OIDC-PUBLISH]
-      - name: Upgrade npm + configure registry for OIDC
+      # DIAGNOSTIC: surface the placeholder token + the generated .npmrc so we can
+      # see exactly what npm sees before deciding token-vs-OIDC.
+      - name: Upgrade npm + diagnose OIDC preconditions
         run: |
           npm install -g npm@latest
-          npm config set registry https://registry.npmjs.org/
           echo "npm=$(npm --version) registry=$(npm config get registry)"
           echo "OIDC URL present: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}${ACTIONS_ID_TOKEN_REQUEST_URL:-NO}"
+          echo "NODE_AUTH_TOKEN literal: [${NODE_AUTH_TOKEN}]"
+          echo "--- userconfig ($NPM_CONFIG_USERCONFIG) ---"
+          cat "${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}" 2>/dev/null | sed 's/_authToken=.*/_authToken=<redacted-if-real>/' || echo "(none)"
 
       - uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
@@ -99,7 +96,11 @@ jobs:
           if npm view @nimblesite/shipwright-core@$PKG version 2>/dev/null | grep -q "$PKG"; then
             echo "@nimblesite/shipwright-core@$PKG already published — skipping"
           else
-            npm publish --provenance --access public
+            # DIAGNOSTIC: override the setup-node placeholder token with empty so
+            # npm cannot auth with a bogus token; verbose log shows the OIDC path;
+            # dump npm's debug log on failure for the exact reason it falls back.
+            NODE_AUTH_TOKEN="" npm publish --provenance --access public --loglevel verbose 2>&1 \
+              || { echo "=== npm debug log ==="; cat ~/.npm/_logs/*-debug-*.log 2>/dev/null | tail -120; exit 1; }
           fi
 
       - name: Publish @nimblesite/shipwright-mcp
