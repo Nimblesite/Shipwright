@@ -66,6 +66,11 @@ jobs:
         with:
           dotnet-version: '9.x'
 
+      # `make ci` runs `make lint`, which now includes `dart analyze` for the Dart
+      # client. The release job must install Dart just like ci.yml does, or lint
+      # fails with `dart: not found` (Makefile lint, exit 127).
+      - uses: dart-lang/setup-dart@v1
+
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@7a79fe8c3a13344501c80d99cae481c1c9085912 # v2
         with:
