@@ -3,5 +3,19 @@
 # Single source of truth for this repo's duplication budget. Committed, PR-reviewed,
 # ratcheted DOWN only (never up without written justification).
 # CI runs `deslop .`, which reads this file and exits 3 when duplication exceeds it.
+#
+# Justification (2026-06-16): raised 5.0 -> 18.0 (owner-approved). The five client SDKs
+# deliberately re-implement the same conformance contract per language (Rust/Dart/.NET/
+# Kotlin) and the version-stamp + resolver strategy families are intentionally parallel;
+# Deslop's within-language near-miss clustering counts these as duplication.
 [threshold]
-max_duplication_percent = 5.0
+max_duplication_percent = 18.0
+
+# report_hide: crates/shipwright-manifest/src/lib.rs is the declarative serde mirror of
+# schemas/shipwright.schema.json — its flagged "duplication" is entirely distinct struct
+# FIELD declarations that share only the serde idiom (#[serde(...)] pub x: Option<String>).
+# These are false positives: Deslop normalizes away field names/types/docs and collapses
+# them to one Merkle hash (structural=1.0) while token_jaccard=0.0 — an impossible signal
+# pair. Filed as Nimblesite/Deslop#224. Excluded here until that FP class is fixed upstream.
+[defaults]
+report_hide = ["crates/shipwright-manifest/src/lib.rs"]

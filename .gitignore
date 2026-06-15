@@ -90,6 +90,10 @@ obj/
 
 .dart_tool/
 .deslop-cache/
+deslop-report.json
+deslop-report.txt
+deslop-report.html
+deslop-*.log
 
 
 *.vsix

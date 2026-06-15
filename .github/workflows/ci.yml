@@ -47,7 +47,9 @@ jobs:
           DESLOP_VERSION: "0.5.1"
         run: |
           curl -sSfL "https://github.com/Nimblesite/Deslop/releases/download/v${DESLOP_VERSION}/deslop-${DESLOP_VERSION}-linux-x64.tar.gz" | tar -xz
-          echo "$PWD/deslop-${DESLOP_VERSION}-linux-x64" >> "$GITHUB_PATH"
+          # $GITHUB_PATH only takes effect in *later* steps, so add the binary dir to
+          # PATH for this step explicitly before invoking the gate in the same step.
+          export PATH="$PWD/deslop-${DESLOP_VERSION}-linux-x64:$PATH"
           deslop .
 
       - name: Test
