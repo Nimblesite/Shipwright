@@ -2,112 +2,101 @@
 name: code-dedup
 description: Searches for duplicate code, duplicate tests, and dead code, then safely merges or removes them. Use when the user says "deduplicate", "find duplicates", "remove dead code", "DRY up", or "code dedup". Requires test coverage — refuses to touch untested code.
 ---
-<!-- agent-pmo:f481f8d -->
+<!-- agent-pmo:b636503 -->
 
 # Code Dedup
 
-Carefully search for duplicate code, duplicate tests, and dead code across the repo. Merge duplicates and delete dead code — but only when test coverage proves the change is safe.
+Find duplicate code, duplicate tests, and dead code across Shipwright. Merge duplicates and delete dead code only when tests and coverage prove the change is safe.
 
 ## Prerequisites — hard gate
 
-Before touching ANY code, verify these conditions. If any fail, stop and report why.
+Stop and report if any of these fail:
 
-1. Run `make test` — all tests must pass. If tests fail, stop. Do not dedup a broken codebase.
-2. Run `make test` — tests are fail-fast AND enforce the coverage threshold from `coverage-thresholds.json`. If anything fails, stop and fix it before deduping.
-3. Verify the project uses **static typing**. This repo:
-   - Rust crates in `crates/` — typed by default, proceed.
-   - Node tooling in `tools/validate-manifest/` and `tests/` — JavaScript with no type checker. **Do NOT dedup the Node code** unless TypeScript or JSDoc-with-checkJs is added first. Print: "Node tooling has no static type checking. Deduplication without types is reckless. Add `// @ts-check` or migrate to TypeScript first."
+1. Run `make test`. It is fail-fast and enforces `coverage-thresholds.json`.
+2. Confirm static typing is active for the files you will touch: Rust/C#/Dart/Kotlin are typed by default; TypeScript must pass strict `tsc`.
+3. Confirm Deslop MCP or CLI is available for Rust, C#, and Dart. TypeScript/Kotlin findings are fallback-only and must be labelled `(no-deslop fallback)`.
+
+## Required tooling — Deslop
+
+Use Deslop for supported languages: Rust, C#, Dart. Do not substitute grep for structural duplicate detection in those languages.
+
+Preferred MCP tools:
+
+- `mcp__deslop__top-offenders`
+- `mcp__deslop__report-query`
+- `mcp__deslop__cluster-by-id`
+- `mcp__deslop__report-for-file` / `report-for-range`
+- `mcp__deslop__find-similar`
+- `mcp__deslop__rescan`
+
+CLI fallback:
+
+```bash
+deslop .
+deslop . --no-fail-over
+```
+
+Parse only `deslop-report.json`. Cite every acted-on cluster by ID, bucket, score/fused value, and occurrence list.
 
 ## Steps
 
-Copy this checklist and track progress:
-
 ```
 Dedup Progress:
-- [ ] Step 1: Prerequisites passed (tests green, coverage met, typed scope identified)
+- [ ] Step 1: Prerequisites passed
 - [ ] Step 2: Dead code scan complete
-- [ ] Step 3: Duplicate code scan complete
+- [ ] Step 3: Duplicate code scan complete via Deslop where supported
 - [ ] Step 4: Duplicate test scan complete
-- [ ] Step 5: Changes applied
-- [ ] Step 6: Verification passed (tests green, coverage stable)
+- [ ] Step 5: Changes applied one at a time
+- [ ] Step 6: Verification passed
 ```
 
-### Step 1 — Inventory test coverage
+### Step 1 — Inventory coverage
 
-Before deciding what to touch, understand what is tested.
-
-1. Run `make test` to confirm green baseline. `make test` is fail-fast AND enforces the coverage threshold from `coverage-thresholds.json` (REPO-STANDARDS-SPEC [TEST-RULES], [COVERAGE-THRESHOLDS-JSON]). It exits non-zero on any test failure OR coverage shortfall.
-2. Note the current coverage percentage — this is the floor. It must not drop.
-3. Identify which Rust crates/modules have coverage and which do not. Only files WITH coverage are candidates for dedup.
+Record the green baseline from `make test`. Only files with coverage are candidates.
 
 ### Step 2 — Scan for dead code
 
-Search for code that is never called, never imported, never referenced.
+Use the language analyzer first: `cargo clippy`, TypeScript `tsc --noEmit`, `dotnet build -warnaserror`, `dart analyze`, and Gradle diagnostics. For each candidate, search the whole repo before deleting.
 
-1. Look for unused exports, unused functions, unused structs, unused variables.
-2. Use language-appropriate tools where available:
-   - Rust: workspace lints already include `dead_code = "deny"` — `make lint` will surface dead code. Also run `cargo +nightly udeps` if available for unused dependencies.
-3. For each candidate: **grep the entire codebase** for references (including tests, fixtures, scripts, schemas). Only mark as dead if truly zero references.
-4. List all dead code found with file paths and line numbers. Do NOT delete yet.
+### Step 3 — Scan duplicate code
 
-### Step 3 — Scan for duplicate code
+1. MCP: run `top-offenders`, then query `identical`, `nearly_identical`, and `loosely_similar`.
+2. CLI: run `deslop .` and inspect `deslop-report.json`.
+3. Read every occurrence for a cluster before deciding.
+4. Record decision and rationale before editing.
 
-Search for code blocks that do the same thing in multiple places.
+### Step 4 — Scan duplicate tests
 
-1. Look for functions with identical or near-identical logic (Rust only — Node code skipped per prerequisites).
-2. Look for copy-pasted blocks (same structure, maybe different variable names).
-3. Look for multiple implementations of the same algorithm or pattern across crates.
-4. Check across module boundaries — duplicates often hide between `shipwright-host` and any future workspace members.
-5. For each duplicate pair: note both locations, what they do, and how they differ (if at all).
-6. List all duplicates found. Do NOT merge yet.
+Repeat Step 3 for test paths: `tests`, `test`, `Tests`, `.test.ts`, `_test.rs`, `_test.dart`, and `ConformanceTests.cs`.
 
-### Step 4 — Scan for duplicate tests
+### Step 5 — Apply changes
 
-Search for tests that verify the same behavior.
+Work one change at a time:
 
-1. Look for `#[test]` functions with identical assertions against the same code paths.
-2. Look for test fixtures/helpers that are duplicated across test modules.
-3. Look for integration tests that fully cover what a unit test also covers (keep the integration test, mark the unit test as redundant per CLAUDE.md rules).
-4. Look at fixtures in `fixtures/manifests/` and `fixtures/golden-manifests/` — flag manifests that exercise identical schema branches.
-5. List all duplicate tests found. Do NOT delete yet.
-
-### Step 5 — Apply changes (one at a time)
-
-For each change, follow this cycle: **change → test → verify coverage → continue or revert**.
-
-#### 5a. Remove dead code
-- Delete dead code identified in Step 2
-- After each deletion: run `make test` (fail-fast + coverage + threshold all in one)
-- If `make test` exits non-zero (test failure OR coverage drop): **revert immediately** and investigate
-- Dead code removal should never break tests or drop coverage
-
-#### 5b. Merge duplicate code
-- For each duplicate pair: extract the shared logic into a single function/module
-- Update all call sites to use the shared version
-- After each merge: run `make test`
-- If tests fail: **revert immediately**. The duplicates may have subtle differences you missed.
-- If coverage drops: the shared code must have equivalent test coverage. Add tests if needed before proceeding.
-
-#### 5c. Remove duplicate tests
-- Delete the redundant test (keep the more thorough one)
-- After each deletion: run `make test`
-- If coverage drops below threshold, `make test` exits non-zero — **revert immediately**. The "duplicate" test was covering something the other wasn't.
+1. Call `find-similar` before writing replacement code.
+2. Merge/delete the smallest safe unit.
+3. Run `make test`.
+4. Run `rescan` or `deslop .` to confirm the targeted cluster is gone.
+5. Revert the change if tests fail or coverage drops.
 
 ### Step 6 — Final verification
 
-1. Run `make lint` — clippy + manifest validator must pass
-2. Run `make test` — tests must pass AND coverage must remain ≥ the baseline from Step 1
-3. Report: what was removed, what was merged, final coverage vs baseline
+Run:
 
-(Only the 7 standard targets exist — `make lint` and `make test` cover formatting and coverage checks respectively.)
+```bash
+make lint
+make test
+deslop .
+```
+
+Report every acted-on cluster, final coverage, and the remaining top offenders.
 
 ## Rules
 
-- **No test coverage = do not touch.** If a file has no tests covering it, leave it alone entirely. You cannot safely dedup what you cannot verify.
-- **Coverage must not drop.** If removing or merging code causes coverage to decrease, revert and investigate. The coverage floor from Step 1 is sacred.
-- **Untyped code = refuse to dedup.** The Node tooling here is plain JS. Do not dedup it without adding type checking first.
-- **One change at a time.** Make one dedup change, run tests, verify coverage. Never batch multiple dedup changes before testing.
-- **When in doubt, leave it.** If two code blocks look similar but you're not 100% sure they're functionally identical, leave both. False dedup is worse than duplication.
-- **Preserve public API surface.** `crates/shipwright-host` is a published library. Do not change function signatures, struct names, or module exports. Internal refactoring only.
-- **Three similar lines is fine.** Do not create abstractions for trivial duplication. Only dedup when the shared logic is substantial (>10 lines) or when there are 3+ copies.
-- **`templates/gh-actions/` is a published interface.** Do not consolidate or refactor — downstream products consume these templates as-is.
+- Deslop is mandatory for Rust/C#/Dart duplicate scanning.
+- Unsupported language findings must be labelled `(no-deslop fallback)`.
+- No coverage means no dedup.
+- Coverage must not drop.
+- One change at a time.
+- Preserve public APIs and release templates.
+- Trivial duplication is fine; focus on substantial shared logic or 3+ copies.

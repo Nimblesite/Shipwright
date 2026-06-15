@@ -1,10 +1,12 @@
 /// Binary-side helpers: emit the `--version` contract from a Dart CLI.
+library;
 
 import 'dart:convert';
 import 'dart:io';
 
 /// Declarative spec of what a binary should report.
 class VersionSpec {
+  /// Create a version output specification.
   const VersionSpec({
     required this.name,
     required this.version,
@@ -19,16 +21,37 @@ class VersionSpec {
     this.toolchain,
   });
 
+  /// Binary name.
   final String name;
+
+  /// Binary semantic version.
   final String version;
-  final String kind; // 'cli' | 'lsp' | 'mcp' | 'sidecar' | 'dap' | 'tool'
-  final String language; // 'rust' | 'dotnet' | 'dart' | 'typescript' | 'kotlin' | 'javascript'
+
+  /// Binary kind: `cli`, `lsp`, `mcp`, `sidecar`, `dap`, or `tool`.
+  final String kind;
+
+  /// Implementation language.
+  final String language;
+
+  /// Optional product identifier.
   final String? product;
+
+  /// Optional capability names.
   final List<String> capabilities;
+
+  /// Optional build timestamp.
   final String? buildTime;
+
+  /// Optional git commit SHA.
   final String? gitSha;
+
+  /// Whether the build came from a dirty git worktree.
   final bool? gitDirty;
+
+  /// Optional target triple or platform id.
   final String? target;
+
+  /// Optional toolchain description.
   final String? toolchain;
 }
 
@@ -37,14 +60,21 @@ class VersionSpec {
 /// Returns `true` when a version flag was handled (caller should exit 0);
 /// `false` means continue normal execution.
 bool handleVersion(List<String> argv, VersionSpec spec, {IOSink? out}) {
-  final sink = out ?? stdout;
   final wantsVersion = argv.contains('--version') || argv.contains('-V');
   if (!wantsVersion) return false;
   final wantsJson = argv.contains('--json');
+  void writeLine(String value) {
+    if (out == null) {
+      stdout.writeln(value);
+    } else {
+      out.writeln(value);
+    }
+  }
+
   if (wantsJson) {
-    sink.writeln(_jsonManifest(spec));
+    writeLine(_jsonManifest(spec));
   } else {
-    sink.writeln('${spec.name} ${spec.version}');
+    writeLine('${spec.name} ${spec.version}');
   }
   return true;
 }

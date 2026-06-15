@@ -1,4 +1,4 @@
-# agent-pmo:74cf183
+# agent-pmo:b636503
 # =============================================================================
 # UNIVERSAL — applies to every repo in this portfolio
 # =============================================================================
@@ -37,7 +37,9 @@ nohup.out
 
 # Coverage artifacts
 coverage/
+htmlcov/
 lcov.info
+TestResults/
 *.profraw
 *.profdata
 target/llvm-cov/
@@ -88,6 +90,10 @@ obj/
 
 .dart_tool/
 .deslop-cache/
+deslop-report.json
+deslop-report.txt
+deslop-report.html
+deslop-*.log
 
 
 *.vsix

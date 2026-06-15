@@ -33,7 +33,7 @@ describe("resolve issue #5 — preserves the attempted candidate path on probe f
       expectedVersion: "0.12.2",
       sources: ["bundled"],
       platform: "darwin-arm64",
-      bundledDir: "/ext/bin/darwin-arm64"
+      bundledDir: "/ext/bin/darwin-arm64",
     };
 
     const result = resolve(input, () => undefined);
@@ -52,7 +52,7 @@ describe("resolve issue #5 — preserves the attempted candidate path on probe f
       sources: ["path", "bundled"],
       platform: "darwin-arm64",
       path: ["/usr/local/bin"],
-      bundledDir: "/ext/bin/darwin-arm64"
+      bundledDir: "/ext/bin/darwin-arm64",
     };
 
     const result = resolve(input, () => undefined);
@@ -60,7 +60,7 @@ describe("resolve issue #5 — preserves the attempted candidate path on probe f
     expect(result.errorCode).toBe("no-source-resolved");
     expect(result.errorDetails?.attempted).toEqual([
       { source: "path", path: "/usr/local/bin/napper" },
-      { source: "bundled", path: "/ext/bin/darwin-arm64/napper" }
+      { source: "bundled", path: "/ext/bin/darwin-arm64/napper" },
     ]);
     expect(result.path).toBe("/ext/bin/darwin-arm64/napper");
   });
@@ -72,7 +72,7 @@ describe("resolve issue #5 — preserves the attempted candidate path on probe f
       expectedVersion: "0.12.2",
       sources: ["bundled"],
       platform: "darwin-arm64",
-      bundledDir: null
+      bundledDir: null,
     };
 
     const result = resolve(input, () => undefined);
@@ -89,7 +89,7 @@ function toResolveInput(input: Record<string, unknown>, probeMap: Record<string,
     binaryName: deriveBinaryName(expectedName, probeMap),
     expectedVersion: input.expectedVersion as string,
     sources: input.sources as ResolveInput["sources"],
-    env: (input.env ?? {}) as Record<string, string>
+    env: (input.env ?? {}) as Record<string, string>,
   };
 
   if (expectedName !== undefined) resolved.expectedName = expectedName;

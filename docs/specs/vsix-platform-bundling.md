@@ -321,33 +321,117 @@ See [supply-chain-security.md](supply-chain-security.md) [SWR-SEC-VSIX-MARKETPLA
 
 ## [SWR-VSIX-PUBLISH] Marketplace Publish Job
 
-Copied verbatim from the official sample: https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.github/workflows/ci.yml
+The VS Code Marketplace publishes via **Microsoft Entra OIDC (workload identity
+federation)** — **no long-lived PAT**. This is the preferred and default model
+([SWR-VSIX-PUBLISH-OIDC]). A stored `VSCE_PAT` is the legacy fallback only, and only
+inside a protected environment ([SWR-VSIX-PUBLISH-PAT]). The reference implementation
+is `templates/gh-actions/publish-vsix-per-platform.yml`.
+
+Both forms share these rules:
+
+- `if: success() && startsWith( github.ref, 'refs/tags/')` — publish only on version
+  tags AND only if all build jobs succeeded.
+- The job binds to a protected GitHub `environment:` (required reviewers + tag
+  restriction `v*.*.*`). For OIDC this environment is also **load-bearing**, not just a
+  gate (see below).
+- Publish **one `vsce publish` per platform VSIX** inside the single job — a glob of
+  several VSIXs into one `vsce publish` silently publishes only the first. Splitting
+  into separate *jobs* still races the Marketplace; loop within the one job.
+- Pre-release builds (hyphenated SemVer tag) append `--pre-release`.
+- `vsce` is **version-pinned** (`npx --yes @vscode/vsce@<pinned>`): a floating `npx
+  vsce` would download and run the latest release inside the job that holds a live
+  publish token — a supply-chain risk.
+
+### [SWR-VSIX-PUBLISH-OIDC] OIDC publish (preferred, default)
+
+GitHub Actions exchanges its OIDC token for a short-lived Entra session via federation;
+that session mints a Marketplace-scoped token at publish time. No secret is ever
+stored. See [supply-chain-security.md](supply-chain-security.md) [SWR-SEC-OIDC-PUBLISH]
+for the full per-channel rationale, and the org's private deployment runbook for the
+one-time Entra app + publisher-membership setup.
 
 ```yaml
 publish:
   runs-on: ubuntu-latest
   needs: build
+  # The environment makes the OIDC subject deterministic
+  # (repo:OWNER/REPO:environment:<name>) — Entra rejects wildcards in tag subjects,
+  # so the environment is what the federated trust matches against.
+  environment: ${{ inputs.marketplace_environment }}
+  permissions:
+    contents: read
+    id-token: write            # REQUIRED — without it GitHub won't issue the OIDC token
   if: success() && startsWith( github.ref, 'refs/tags/')
   steps:
     - uses: actions/download-artifact@v4
-    - run: npx vsce publish --packagePath $(find . -iname *.vsix)
+    # Exchange the GitHub OIDC token for an Entra session — no client secret. The
+    # publisher app has no Azure subscription role (its only authz is Marketplace
+    # publisher membership) → allow-no-subscriptions.
+    - uses: azure/login@<pinned-sha>   # v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        allow-no-subscriptions: true
+    - name: Publish each platform VSIX (Entra OIDC, no PAT)
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s globstar nullglob
+        flag=""
+        [[ "${GITHUB_REF_NAME}" == *-* ]] && flag="--pre-release"
+        # 499b84ac-... is Azure DevOps' fixed first-party app id vsce authenticates
+        # against. We mint the token explicitly and pass it via VSCE_PAT rather than
+        # `vsce publish --azure-credential`, which has a bug (vscode-vsce#1023).
+        VSCE_PAT="$(az account get-access-token \
+          --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+          --query accessToken -o tsv)"
+        echo "::add-mask::${VSCE_PAT}"
+        export VSCE_PAT
+        for vsix in **/*.vsix; do
+          npx --yes @vscode/vsce@<pinned> publish ${flag} --packagePath "${vsix}"
+        done
+```
+
+Authorization is **publisher-level**: the Entra app is added once as a **Contributor
+member of the publisher**, then it can publish every extension under that publisher —
+no per-extension Azure object. One **flexible** federated credential
+(`claimsMatchingExpression`, e.g. `claims['sub'] matches
+'repo:OWNER/*:environment:release'`) trusts every repo at once, lifting the
+20-credentials-per-app cap.
+
+Required prerequisites (one-time, outside CI — list in the change summary):
+
+- An Entra app + service principal, with a federated credential trusting
+  `repo:OWNER/REPO:environment:<env>` (or the wildcard flexible form).
+- The app added as a **Contributor** member of the Marketplace publisher. The
+  "Add member → User Id" box requires the SP's **Azure DevOps profile Identity GUID**
+  (the app name, client id, and SP object id are all rejected). It can only be read
+  while authenticated *as* the SP (`az rest .../profile/profiles/me`).
+- Repo `release` environment with `AZURE_CLIENT_ID` + `AZURE_TENANT_ID` (directory
+  identifiers, not secrets — environment-scoped for tidiness).
+
+The error `InvalidAccessException: The requested operation is not allowed.` at
+`vsce`'s `Publishing '...'` line means OIDC succeeded but the app is **not** an
+authorized publisher member — fix the membership, not the workflow.
+
+### [SWR-VSIX-PUBLISH-PAT] PAT publish (legacy fallback)
+
+Only where OIDC federation cannot be set up. `VSCE_PAT` is a **long-lived standing
+secret**: store it **environment-scoped** in a protected `environment:` (required
+reviewers + tag restriction `v*.*.*`), scoped to **Marketplace → Manage** only, short
+expiry, rotated. This is the credential class the GlassWorm campaign harvested — OIDC
+exists specifically to retire it.
+
+```yaml
+    - run: npx --yes @vscode/vsce@<pinned> publish --packagePath "${vsix}"
       env:
         VSCE_PAT: ${{ secrets.VSCE_PAT }}
 ```
 
-Rules:
-
-- `if: success() && startsWith( github.ref, 'refs/tags/')` — exact condition from the sample. Only runs on version tags AND only if all build jobs succeeded.
-- `actions/download-artifact@v4` with **no name** downloads all artifacts from the build matrix.
-- `find . -iname *.vsix` — no quotes around the glob, exactly as in the sample.
-- `VSCE_PAT` secret is required. Never log it.
-- All platform packages are published in a single job. Split publishing creates race conditions on the Marketplace.
-- Pre-release builds: append `--pre-release` to `npx vsce publish`.
-- **`VSCE_PAT` is a long-lived standing secret.** The publish job MUST run inside a protected
-  GitHub `environment:` (required reviewers + tag restriction `v*.*.*`), with the PAT stored as an
-  **environment-scoped** secret, scoped to **Marketplace → Manage** only, and short-expiry/rotated.
-  Open VSX publishing uses a separate PAT under the same rule. This is the GlassWorm containment —
-  see [supply-chain-security.md](supply-chain-security.md) [SWR-SEC-OIDC-PUBLISH].
+**Open VSX** has no OIDC / trusted-publishing path (as of 2026) and still uses a
+*separate* short-expiry PAT under the same protected-environment rule — never the VS
+Code identity. See [supply-chain-security.md](supply-chain-security.md)
+[SWR-SEC-OIDC-PUBLISH].
 
 ## [SWR-VSIX-FAT] Fat VSIX Strategy
 

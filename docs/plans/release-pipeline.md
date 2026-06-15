@@ -259,19 +259,26 @@ Not yet wired into `release.yml` (see TODO Phases 3–4 and §13 Gaps): pub.dev 
 Maven Central publish, per-platform binary build/release-assets, and the dedicated dry-run
 gate jobs. The DAG above is the current implemented shape, not the eventual target.
 
-Per the supply-chain contract, the eventual binary-release DAG adds, after build/pack and before
-the release-assets upload:
+Per the supply-chain contract, the eventual binary-release DAG adds a **CodeQL gate** that the
+release/publish jobs `needs:` (so it blocks publishing), plus, after build/pack and before
+the release-assets upload, provenance + checksum signing:
 
 ```
+codeql gate (uses ./.github/workflows/codeql.yml, gate: true)    SWR-SEC-CODE-SCANNING
+  └── FAILS on any High/Critical finding → release + all publish jobs blocked
 build/pack
   ├── cargo-auditable build + cargo cyclonedx (SBOM)              SWR-REL-SBOM
   ├── attest-build-provenance (per artifact, job: id-token:write) SWR-REL-PROVENANCE
   └── attest-sbom (per artifact)
 sign-checksums (job: id-token:write)
   └── cosign sign-blob over SHA256SUMS                            SWR-SEC-CHECKSUM
-release-assets
+release-assets (needs: codeql gate)
   └── upload archives + SHA256SUMS + SHA256SUMS.sigstore.json + SBOMs
 ```
+
+The CodeQL gate runs in parallel with build/pack; nothing publishes until it passes. Both the
+code gate (`SWR-SEC-CODE-SCANNING`) and the dependency gate (`SWR-SEC-VULN-GATE`, via `make ci`)
+must be green — a dirty scan of either is a hard stop, never advisory.
 
 All jobs run with job-scoped `permissions` and SHA-pinned actions (`SWR-SEC-ACTION-PINNING` /
 `SWR-SEC-TOKEN-PRIVILEGE`). The npm side already uses OIDC + `--provenance`; the native-binary
@@ -372,6 +379,9 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 | SWR-REL-GAP-COSIGN | `SHA256SUMS` not cosign-signed; per-asset `.sha256` still used | `release.reusable.yml` release-assets job — see [SWR-SEC-CHECKSUM] |
 | SWR-REL-GAP-ACTION-PINNING | `uses:` refs on mutable tags in `release.reusable.yml`/`release.yml`/`ci.yml` | All `.github/workflows/*.yml` — see [SWR-SEC-ACTION-PINNING] |
 | SWR-REL-GAP-TOKEN-PRIVILEGE | `release.reusable.yml` top-level `contents: write` inherited by build/matrix jobs | `release.reusable.yml` — see [SWR-SEC-TOKEN-PRIVILEGE] |
+| SWR-REL-GAP-CODE-SCANNING | No `codeql.yml` code scanning workflow (matrix: actions, rust, javascript-typescript), and no CodeQL **release gate** — when added it MUST expose `workflow_call` (gate input) and the `release`/publish jobs MUST `needs:` it so a High/Critical finding blocks publishing | `.github/workflows/` + `release.yml`/`release.reusable.yml` — see [SWR-SEC-CODE-SCANNING] |
+| SWR-REL-GAP-SECRET-SCANNING | Secret scanning + push protection not enabled in repo settings | GitHub repo settings — see [SWR-SEC-SECRET-SCANNING] |
+| SWR-REL-GAP-SECURITY-POLICY | No `SECURITY.md` / private vulnerability reporting not enabled | repo root or `.github/` — see [SWR-SEC-POLICY] |
 
 ---
 

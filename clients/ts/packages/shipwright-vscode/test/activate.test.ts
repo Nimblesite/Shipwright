@@ -22,15 +22,15 @@ describe("activateShipwright", () => {
           platforms: ["darwin-arm64"],
           bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
           sources: ["bundled"],
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["deslop-lsp"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
     const vscode = fakeVscode();
     const execFile: ExecFile = (_file, _args, _options, callback) => {
@@ -46,7 +46,7 @@ describe("activateShipwright", () => {
     expect(result.diagnostics[0]?.resolution).toMatchObject({
       source: "bundled",
       status: "ok",
-      version: "0.1.0"
+      version: "0.1.0",
     });
     expect(vscode.errors).toEqual([]);
     expect(vscode.warnings).toEqual([]);
@@ -64,15 +64,15 @@ describe("activateShipwright", () => {
           sources: ["user-setting", "bundled"],
           userSetting: "deslop.lspPath",
           bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["deslop-lsp"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
     const vscode = fakeVscode({ "deslop.lspPath": "/custom/deslop-lsp" });
     const execFile: ExecFile = (_file, _args, _options, callback) => {
@@ -87,7 +87,7 @@ describe("activateShipwright", () => {
     expect(result.ok).toBe(false);
     expect(result.diagnostics[0]?.resolution).toMatchObject({
       errorCode: "user-setting-version-mismatch",
-      status: "error"
+      status: "error",
     });
     expect(vscode.errors).toHaveLength(1);
     expect(vscode.errors[0]?.message).toContain("Expected 0.1.0; found 0.0.9 at /custom/deslop-lsp");
@@ -106,15 +106,15 @@ describe("activateShipwright", () => {
           bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
           sources: ["bundled", "pkgmgr"],
           pkgmgr: { scoop: "basilisk" },
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["basilisk"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
 
     const probedFiles: string[] = [];
@@ -168,15 +168,15 @@ describe("activateShipwright", () => {
           platforms: ["win32-arm64"],
           bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
           sources: ["bundled"],
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["basilisk"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
     const execFile: ExecFile = (_file, _args, _options, callback) => {
       callback(null, "basilisk 0.1.0\n", "");
@@ -208,15 +208,15 @@ describe("activateShipwright", () => {
           expectedVersion: "2.0.0",
           platforms: ["win32-x64"],
           sources: ["path"],
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["tool"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
 
     const probedFiles: string[] = [];
@@ -233,7 +233,7 @@ describe("activateShipwright", () => {
         pathEntries: ["C:\\Users\\dev\\scoop\\shims"],
         execFile,
         platform: "win32-x64",
-        vscode: vscode.api
+        vscode: vscode.api,
       }
     );
 
@@ -259,17 +259,17 @@ describe("activateShipwright", () => {
           platforms: ["darwin-arm64"],
           sources: ["pkgmgr"],
           pkgmgr: {
-            brew: "Nimblesite/tap/dart-mutant"
+            brew: "Nimblesite/tap/dart-mutant",
           },
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["dart-mutant-cli"],
-          onMismatch: "prompt-pkgmgr"
-        }
-      }
+          onMismatch: "prompt-pkgmgr",
+        },
+      },
     });
     const vscode = fakeVscode();
 
@@ -280,7 +280,7 @@ describe("activateShipwright", () => {
 
     expect(result.ok).toBe(false);
     expect(result.diagnostics[0]?.resolution).toMatchObject({
-      status: "prompt"
+      status: "prompt",
     });
     expect(vscode.warnings).toHaveLength(1);
     expect(vscode.warnings[0]?.items).toEqual(["brew install Nimblesite/tap/dart-mutant"]);
@@ -298,15 +298,15 @@ describe("activateShipwright", () => {
           platforms: ["win32-x64"],
           bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
           sources: ["bundled"],
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["napper"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
     const execFile: ExecFile = (_file, _args, _options, callback) => {
       callback(Object.assign(new Error("timed out"), { killed: true, signal: "SIGTERM" }), "", "");
@@ -343,15 +343,15 @@ describe("activateShipwright", () => {
           platforms: ["win32-x64"],
           bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}" },
           sources: ["bundled"],
-          required: true
-        }
+          required: true,
+        },
       ],
       hosts: {
         vscode: {
           activationVerifies: ["napper"],
-          onMismatch: "error"
-        }
-      }
+          onMismatch: "error",
+        },
+      },
     });
     const execFile: ExecFile = (_file, _args, _options, callback) => {
       callback(Object.assign(new Error("not found"), { code: "ENOENT" }), "", "");
@@ -382,9 +382,9 @@ async function extensionRootWithManifest(partial: Record<string, unknown>): Prom
       product: {
         id: "deslop",
         displayName: "Deslop",
-        version: "0.1.0"
+        version: "0.1.0",
       },
-      ...partial
+      ...partial,
     })
   );
   return root;
@@ -401,8 +401,8 @@ function fakeVscode(settings: Record<string, string> = {}): {
     api: {
       workspace: {
         getConfiguration: () => ({
-          get: <T>(key: string) => settings[key] as T | undefined
-        })
+          get: <T>(key: string) => settings[key] as T | undefined,
+        }),
       },
       window: {
         showErrorMessage: (message, options, ...items) => {
@@ -412,10 +412,10 @@ function fakeVscode(settings: Record<string, string> = {}): {
         showWarningMessage: (message, options, ...items) => {
           warnings.push({ items, message, options });
           return undefined;
-        }
-      }
+        },
+      },
     },
     errors,
-    warnings
+    warnings,
   };
 }

@@ -16,7 +16,7 @@ import {
   type ProbedVersion,
   type Resolution,
   type ResolveInput,
-  type Source
+  type Source,
 } from "@nimblesite/shipwright-core";
 import { probeBinaryVersionResult, type ExecFile, type ProbeFailure } from "./probe.js";
 
@@ -79,8 +79,16 @@ export interface VscodeApiLike {
     };
   };
   window: {
-    showErrorMessage(message: string, options: { modal: boolean }, ...items: string[]): Promise<string | undefined> | string | undefined;
-    showWarningMessage(message: string, options: { modal: boolean }, ...items: string[]): Promise<string | undefined> | string | undefined;
+    showErrorMessage(
+      message: string,
+      options: { modal: boolean },
+      ...items: string[]
+    ): Promise<string | undefined> | string | undefined;
+    showWarningMessage(
+      message: string,
+      options: { modal: boolean },
+      ...items: string[]
+    ): Promise<string | undefined> | string | undefined;
   };
 }
 
@@ -145,7 +153,7 @@ export async function activateShipwright(
       env,
       extensionRoot,
       pathEntries,
-      platform
+      platform,
     };
     if (options.vscode) resolveContext.vscode = options.vscode;
 
@@ -165,7 +173,7 @@ export async function activateShipwright(
   return {
     diagnostics,
     manifest,
-    ok: diagnostics.every((diagnostic) => !diagnostic.blocking)
+    ok: diagnostics.every((diagnostic) => !diagnostic.blocking),
   };
 }
 
@@ -202,10 +210,11 @@ function toResolveInput(
   resolveContext: ResolveContext
 ): ResolveInput {
   const configuredPath = configuredBinaryPath(component, manifest, resolveContext.platform, resolveContext.vscode);
-  const sources = configuredPath && !component.sources.includes("user-setting")
-    // Safety: "user-setting" is a valid Source literal; spread preserves Source[]
-    ? (["user-setting", ...component.sources] as Source[])
-    : component.sources;
+  const sources =
+    configuredPath && !component.sources.includes("user-setting")
+      ? // Safety: "user-setting" is a valid Source literal; spread preserves Source[]
+        (["user-setting", ...component.sources] as Source[])
+      : component.sources;
 
   const input: ResolveInput = {
     binaryName: component.binaryName,
@@ -214,7 +223,7 @@ function toResolveInput(
     sources,
     platform: resolveContext.platform,
     path: resolveContext.pathEntries,
-    env: resolveContext.env
+    env: resolveContext.env,
   };
 
   if (configuredPath) input.userSettingPath = configuredPath;
@@ -251,7 +260,7 @@ async function probeCandidates(
   await Promise.all(
     candidates.map(async (candidate) => {
       const probeOptions = {
-        env: normalizeEnv(options.env ?? process.env)
+        env: normalizeEnv(options.env ?? process.env),
       };
       if (options.execFile) Object.assign(probeOptions, { execFile: options.execFile });
       if (options.timeoutMs !== undefined) Object.assign(probeOptions, { timeoutMs: options.timeoutMs });
@@ -312,10 +321,12 @@ function configuredBinaryPath(
   return undefined;
 }
 
-function contextConfiguration(vscode: VscodeApiLike | undefined): ReturnType<VscodeApiLike["workspace"]["getConfiguration"]> {
+function contextConfiguration(
+  vscode: VscodeApiLike | undefined
+): ReturnType<VscodeApiLike["workspace"]["getConfiguration"]> {
   if (vscode) return vscode.workspace.getConfiguration();
   return {
-    get: () => undefined
+    get: () => undefined,
   };
 }
 
@@ -332,16 +343,23 @@ function diagnosticForResolution(
   failures: Map<string, ProbeFailure>
 ): ActivationDiagnostic {
   const onMismatch = hostPolicy?.onMismatch ?? "error";
-  const blocking = component.required !== false && resolution.status !== "ok" && resolution.status !== "deferred" && onMismatch !== "warn";
+  const blocking =
+    component.required !== false &&
+    resolution.status !== "ok" &&
+    resolution.status !== "deferred" &&
+    onMismatch !== "warn";
   return {
     blocking,
     componentId: component.id,
     message: formatDiagnosticMessage(component, manifest, resolution, failures),
-    resolution
+    resolution,
   };
 }
 
-async function showDiagnostic(vscode: VscodeApiLike | undefined, diagnostic: ActivationDiagnostic): Promise<string | undefined> {
+async function showDiagnostic(
+  vscode: VscodeApiLike | undefined,
+  diagnostic: ActivationDiagnostic
+): Promise<string | undefined> {
   if (!vscode) return undefined;
 
   const actionLabels = actionCommands(diagnostic.resolution);
@@ -367,7 +385,10 @@ function formatDiagnosticMessage(
   failures: Map<string, ProbeFailure>
 ): string {
   const productName = manifest.product.displayName ?? manifest.product.id;
-  const expected = resolveExpectedVersion(component.expectedVersion ?? manifest.product.version, manifest.product.version);
+  const expected = resolveExpectedVersion(
+    component.expectedVersion ?? manifest.product.version,
+    manifest.product.version
+  );
   const found = resolution.errorDetails?.found || resolution.version || "not found";
   const at = resolution.errorDetails?.at || resolution.path || resolution.source || "no resolved source";
 
@@ -434,12 +455,16 @@ function missingComponentDiagnostic(componentId: string, manifest: DeploymentMan
       path: null,
       version: null,
       status: "error",
-      errorCode: "no-source-resolved"
-    }
+      errorCode: "no-source-resolved",
+    },
   };
 }
 
-function unsupportedPlatformDiagnostic(component: ManifestComponent, manifest: DeploymentManifest, platform: Platform): ActivationDiagnostic {
+function unsupportedPlatformDiagnostic(
+  component: ManifestComponent,
+  manifest: DeploymentManifest,
+  platform: Platform
+): ActivationDiagnostic {
   return {
     blocking: component.required !== false,
     componentId: component.id,
@@ -449,8 +474,8 @@ function unsupportedPlatformDiagnostic(component: ManifestComponent, manifest: D
       path: null,
       version: null,
       status: "error",
-      errorCode: "no-source-resolved"
-    }
+      errorCode: "no-source-resolved",
+    },
   };
 }
 
@@ -464,8 +489,8 @@ function nonExecutableDiagnostic(component: ManifestComponent, manifest: Deploym
       path: null,
       version: null,
       status: "error",
-      errorCode: "no-source-resolved"
-    }
+      errorCode: "no-source-resolved",
+    },
   };
 }
 
@@ -485,7 +510,11 @@ function isExecutableComponent(component: ManifestComponent): component is Execu
 
 function bundledBinaryDir(component: ManifestComponent, extensionRoot: string, platform: Platform): string | undefined {
   if (!component.bundled || !component.binaryName) return undefined;
-  const manifestPlatform = component.platforms?.includes(platform) ? platform : component.platforms?.includes("all") ? "all" : platform;
+  const manifestPlatform = component.platforms?.includes(platform)
+    ? platform
+    : component.platforms?.includes("all")
+      ? "all"
+      : platform;
   const relative = component.bundled.bundlePath
     .replaceAll("${platform}", manifestPlatform)
     .replaceAll("${binaryName}", component.binaryName)
@@ -505,7 +534,9 @@ function splitPath(value: string | undefined): string[] {
 }
 
 function normalizeEnv(env: NodeJS.ProcessEnv | Record<string, string | undefined>): Record<string, string> {
-  return Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  return Object.fromEntries(
+    Object.entries(env).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  );
 }
 
 function extensionRootPath(context: ExtensionContextLike): string {

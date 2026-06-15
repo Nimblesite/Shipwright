@@ -3,113 +3,163 @@ name: upgrade-packages
 description: Upgrade all dependencies/packages to their latest versions for the detected language(s). Use when the user says "upgrade packages", "update dependencies", "bump versions", "update packages", or "upgrade deps".
 argument-hint: "[--check-only] [--major] [package-name]"
 ---
-<!-- agent-pmo:f481f8d -->
+<!-- agent-pmo:b636503 -->
 
 # Upgrade Packages
 
-Upgrade all project dependencies to their latest compatible (or latest major, if `--major`) versions.
+Upgrade Shipwright dependencies to the latest compatible versions, or latest major versions when `--major` is passed.
 
 ## Arguments
 
-- `--check-only` — List outdated packages without upgrading. Stop after Step 2.
-- `--major` — Include major version bumps (breaking changes). Without this flag, stay within semver-compatible ranges.
-- Any other argument is treated as a specific package name to upgrade (instead of all packages).
+- `--check-only` — List outdated packages without upgrading.
+- `--major` — Include breaking major version bumps.
+- Any other argument is a specific package name to upgrade.
 
-## Step 1 — Detect language and package manager
+## Step 1 — Detect manifests
 
-This repo has TWO package ecosystems. Process both.
+Process every ecosystem that applies:
 
-| Manifest file | Language | Package manager |
+| Manifest | Ecosystem | Manager |
 |---|---|---|
-| `Cargo.toml` (workspace root) + `crates/*/Cargo.toml` | Rust | cargo |
-| `tools/validate-manifest/package.json` | Node.js | npm (no lockfile committed yet — verify before running) |
+| `Cargo.toml`, `crates/*/Cargo.toml`, `tools/shipwright-version-stamp/Cargo.toml` | Rust | cargo |
+| root `package.json`, `pnpm-workspace.yaml`, `clients/ts/packages/*/package.json` | TypeScript workspace | pnpm |
+| `tools/validate-manifest/package.json` | Node package | npm package lock exists |
+| `extensions/shipwright-tools/package.json` | VS Code extension | npm package lock exists |
+| `website/package.json` | Eleventy site | standalone pnpm lock; always use `--ignore-workspace` |
+| `clients/dart/shipwright/pubspec.yaml` | Dart | dart pub |
+| `clients/dotnet/**/*.csproj` | .NET | NuGet / dotnet |
+| `clients/kotlin/shipwright-intellij/build.gradle.kts` | Kotlin/Gradle | checked-in Gradle wrapper |
 
-If a future client SDK adds `clients/dart/pubspec.yaml`, `clients/dotnet/*.csproj`, `clients/kotlin/build.gradle*`, or `clients/ts/packages/*/package.json`, include those in the run.
+## Step 2 — List outdated packages first
 
-**If you cannot detect any manifest file, stop and tell the user.**
+Run the relevant checks before upgrading:
 
-## Step 2 — List outdated packages
-
-Run the appropriate command to list what's outdated BEFORE upgrading anything. Show the user what will change.
-
-### Rust
 ```bash
-cargo outdated        # install: cargo install cargo-outdated
 cargo update --dry-run
-```
-**Read the docs:** https://doc.rust-lang.org/cargo/commands/cargo-update.html
-
-### Node.js (npm)
-```bash
+pnpm outdated
 cd tools/validate-manifest && npm outdated
+cd extensions/shipwright-tools && npm outdated
+cd website && pnpm outdated --ignore-workspace
+cd clients/dart/shipwright && dart pub outdated
+dotnet list clients/dotnet/Shipwright/Shipwright.csproj package --outdated
+dotnet list clients/dotnet/Shipwright.Tests/Shipwright.Tests.csproj package --outdated
+cd clients/kotlin/shipwright-intellij && ./gradlew dependencyUpdates
 ```
 
-**Read the docs:** https://docs.npmjs.com/cli/v10/commands/npm-update
+If `--check-only` was passed, stop here and report the outdated list.
 
-If `--check-only` was passed, **stop here** and report the outdated list.
+## Step 3 — Read official docs
 
-## Step 3 — Read the official upgrade docs
+Before running upgrade commands, fetch and read the relevant official docs:
 
-**Before running any upgrade command, you MUST fetch and read the official documentation URL listed above for the detected package manager.** Use WebFetch to retrieve the page. This ensures you use the correct flags and understand the behavior. Do not guess at flags or options from memory.
+- Cargo update: https://doc.rust-lang.org/cargo/commands/cargo-update.html
+- pnpm update: https://pnpm.io/cli/update
+- npm update: https://docs.npmjs.com/cli/v10/commands/npm-update
+- Dart pub upgrade: https://dart.dev/tools/pub/cmd/pub-upgrade
+- dotnet package commands: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-add-package
+- Gradle dependency management: https://docs.gradle.org/current/userguide/dependency_management.html
 
-## Step 4 — Upgrade packages
+## Step 4 — Upgrade
 
-Run the upgrade. If a specific package name was given as an argument, upgrade only that package.
+Use the package manager, never edit lockfiles manually.
 
 ### Rust
-```bash
-cargo update                          # semver-compatible updates
-# --major flag:
-cargo update --breaking               # major version bumps (cargo 1.84+)
-```
-Workspace versions live in `[workspace.dependencies]` in the root `Cargo.toml`. For major bumps you may need to edit those entries by hand and then `cargo update`.
 
-### Node.js (npm)
 ```bash
-cd tools/validate-manifest
-npm update                            # semver-compatible (within package.json ranges)
-# --major flag:
-npx npm-check-updates -u && npm install   # bump package.json to latest majors
+cargo update
 ```
 
-## Step 5 — Verify the upgrade
+For `--major`, edit `[workspace.dependencies]` version requirements when necessary, then run `cargo update`.
 
-After upgrading, run the project's build and test suite to confirm nothing broke:
+### pnpm workspace
+
+```bash
+pnpm update
+```
+
+For `--major`:
+
+```bash
+pnpm update --latest
+```
+
+### npm packages
+
+```bash
+cd tools/validate-manifest && npm update
+cd extensions/shipwright-tools && npm update
+```
+
+### Website
+
+```bash
+cd website
+pnpm update --ignore-workspace
+```
+
+The website must keep `@11ty/eleventy` and `eleventy-plugin-techdoc` current.
+
+### Dart
+
+```bash
+cd clients/dart/shipwright
+dart pub upgrade
+```
+
+For `--major`:
+
+```bash
+dart pub upgrade --major-versions
+```
+
+### .NET
+
+There is no single upgrade-all command. For each outdated package:
+
+```bash
+dotnet add <project.csproj> package <PackageName>
+```
+
+### Kotlin / Gradle
+
+Edit versions in `build.gradle.kts` or version catalogs, then verify:
+
+```bash
+cd clients/kotlin/shipwright-intellij
+./gradlew dependencies
+```
+
+## Step 5 — Verify
+
+Run:
 
 ```bash
 make ci
 ```
 
-If tests fail:
-1. Read the failure output carefully
-2. Check the changelog / migration guide for the upgraded packages (fetch the release notes URL if available)
-3. Fix breaking changes in the code
-4. Re-run tests
-5. If stuck after 3 attempts on the same failure, report it to the user with the error details and the package that caused it
+If it fails, read the failure, check release notes for the upgraded package, fix the breaking change, and rerun. If stuck after three attempts on the same failure, report the package and exact error.
 
 ## Step 6 — Report
 
-Provide a summary:
+Include:
 
-- Packages upgraded (old version -> new version)
-- Packages skipped (and why, e.g., major version bump without `--major` flag)
-- Build/test result after upgrade
-- Any breaking changes that were fixed
-- Any packages that could not be upgraded (with error details)
+- Packages upgraded, old -> new.
+- Packages skipped and why.
+- Build/test result.
+- Breaking changes fixed.
+- Packages that could not be upgraded.
 
 ## Rules
 
-- **Always list outdated packages first** before upgrading anything
-- **Always read the official docs** for the package manager before running upgrade commands
-- **Always run tests after upgrading** to catch breakage immediately
-- **Never remove packages** unless they were explicitly deprecated and replaced
-- **Never downgrade packages** unless rolling back a broken upgrade
-- **Never modify lockfiles manually** (`Cargo.lock`, `package-lock.json`) — let the package manager regenerate them
-- **Commit nothing** — leave changes in the working tree for the user to review
+- Always list outdated packages first.
+- Always read the official docs for the package manager.
+- Never remove packages unless explicitly deprecated and replaced.
+- Never downgrade unless rolling back a broken upgrade.
+- Never edit lockfiles manually.
+- Commit nothing.
 
 ## Success criteria
 
-- All outdated packages upgraded to latest compatible (or latest major if `--major`)
-- Build passes
-- Tests pass
-- User has a clear summary of what changed
+- Dependencies are upgraded as requested.
+- Build and tests pass.
+- The user has a clear summary of changes.

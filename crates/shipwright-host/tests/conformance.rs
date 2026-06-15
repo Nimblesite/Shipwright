@@ -164,6 +164,24 @@ fn resolver_passes_every_vector() {
     );
 }
 
+/// Compare an optional serializable enum field (serialized to its string form)
+/// against the expected JSON string under `key`. No-op when `key` is absent.
+fn check_enum_field<T: serde::Serialize>(
+    expected: &Value,
+    key: &str,
+    actual: Option<&T>,
+) -> Result<(), String> {
+    if let Some(want) = expected.get(key).and_then(Value::as_str) {
+        let got = actual
+            .and_then(|e| serde_json::to_value(e).ok())
+            .and_then(|v| v.as_str().map(str::to_string));
+        if got.as_deref() != Some(want) {
+            return Err(format!("{key} want={want} got={got:?}"));
+        }
+    }
+    Ok(())
+}
+
 fn compare(result: &Resolution, expected: &Value) -> Result<(), String> {
     let want_status = expected["status"].as_str().unwrap_or("");
     let got_status = serde_json::to_value(result.status)
@@ -199,38 +217,9 @@ fn compare(result: &Resolution, expected: &Value) -> Result<(), String> {
         }
     }
 
-    if let Some(want_err) = expected.get("errorCode").and_then(Value::as_str) {
-        let got = result
-            .error_code
-            .clone()
-            .and_then(|e| serde_json::to_value(e).ok())
-            .and_then(|v| v.as_str().map(str::to_string));
-        if got.as_deref() != Some(want_err) {
-            return Err(format!("errorCode want={want_err} got={got:?}"));
-        }
-    }
-
-    if let Some(want_warn) = expected.get("warningCode").and_then(Value::as_str) {
-        let got = result
-            .warning_code
-            .clone()
-            .and_then(|w| serde_json::to_value(w).ok())
-            .and_then(|v| v.as_str().map(str::to_string));
-        if got.as_deref() != Some(want_warn) {
-            return Err(format!("warningCode want={want_warn} got={got:?}"));
-        }
-    }
-
-    if let Some(want_deferred) = expected.get("deferredCheck").and_then(Value::as_str) {
-        let got = result
-            .deferred_check
-            .clone()
-            .and_then(|d| serde_json::to_value(d).ok())
-            .and_then(|v| v.as_str().map(str::to_string));
-        if got.as_deref() != Some(want_deferred) {
-            return Err(format!("deferredCheck want={want_deferred} got={got:?}"));
-        }
-    }
+    check_enum_field(expected, "errorCode", result.error_code.as_ref())?;
+    check_enum_field(expected, "warningCode", result.warning_code.as_ref())?;
+    check_enum_field(expected, "deferredCheck", result.deferred_check.as_ref())?;
 
     if let Some(want_action) = expected.get("action") {
         let got = result

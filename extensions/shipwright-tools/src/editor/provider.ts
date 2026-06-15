@@ -8,27 +8,22 @@ export class ManifestEditorProvider implements vscode.CustomTextEditorProvider {
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new ManifestEditorProvider(context);
-    const registration = vscode.window.registerCustomEditorProvider(
-      ManifestEditorProvider.viewType,
-      provider,
-      { webviewOptions: { retainContextWhenHidden: true } },
-    );
+    const registration = vscode.window.registerCustomEditorProvider(ManifestEditorProvider.viewType, provider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    });
     const openCmd = vscode.commands.registerCommand("shipwright.openVisualEditor", async () => {
       const editor = vscode.window.activeTextEditor;
-      if (!editor) { return; }
-      await vscode.commands.executeCommand(
-        "vscode.openWith", editor.document.uri, ManifestEditorProvider.viewType,
-      );
+      if (!editor) {
+        return;
+      }
+      await vscode.commands.executeCommand("vscode.openWith", editor.document.uri, ManifestEditorProvider.viewType);
     });
     return vscode.Disposable.from(registration, openCmd);
   }
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
-  resolveCustomTextEditor(
-    document: vscode.TextDocument,
-    webviewPanel: vscode.WebviewPanel,
-  ): void {
+  resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel): void {
     const webview = webviewPanel.webview;
     webview.options = { enableScripts: true, localResourceRoots: [this.mediaRoot()] };
     webview.html = buildEditorHtml(webview, this.context.extensionUri);
@@ -73,27 +68,29 @@ export class ManifestEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
-  private applyEdit(
-    document: vscode.TextDocument,
-    path: string,
-    value: unknown,
-  ): void {
+  private applyEdit(document: vscode.TextDocument, path: string, value: unknown): void {
     const manifest = tryParseManifest(document.getText());
-    if (!manifest) { return; }
+    if (!manifest) {
+      return;
+    }
     setNestedValue(manifest as unknown as Record<string, unknown>, path, value);
     this.writeManifest(document, manifest);
   }
 
   private addComponent(document: vscode.TextDocument, component: unknown): void {
     const manifest = tryParseManifest(document.getText());
-    if (!manifest) { return; }
+    if (!manifest) {
+      return;
+    }
     manifest.components.push(component as never);
     this.writeManifest(document, manifest);
   }
 
   private removeComponent(document: vscode.TextDocument, componentId: string): void {
     const manifest = tryParseManifest(document.getText());
-    if (!manifest) { return; }
+    if (!manifest) {
+      return;
+    }
     manifest.components = manifest.components.filter((c) => c.id !== componentId);
     this.writeManifest(document, manifest);
   }
@@ -102,16 +99,13 @@ export class ManifestEditorProvider implements vscode.CustomTextEditorProvider {
     const edit = new vscode.WorkspaceEdit();
     const fullRange = new vscode.Range(
       document.lineAt(0).range.start,
-      document.lineAt(document.lineCount - 1).range.end,
+      document.lineAt(document.lineCount - 1).range.end
     );
     edit.replace(document.uri, fullRange, json);
     vscode.workspace.applyEdit(edit);
   }
 
-  private writeManifest(
-    document: vscode.TextDocument,
-    manifest: ShipwrightManifest,
-  ): void {
+  private writeManifest(document: vscode.TextDocument, manifest: ShipwrightManifest): void {
     this.replaceAll(document, JSON.stringify(manifest, null, 2) + "\n");
   }
 }
@@ -129,13 +123,22 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
   current[keys[keys.length - 1]] = value;
 }
 
-interface EditMessage { type: "edit"; path: string; value: unknown }
-interface AddComponentMessage { type: "addComponent"; component: unknown }
-interface RemoveComponentMessage { type: "removeComponent"; componentId: string }
-interface ReplaceAllMessage { type: "replaceAll"; json: string }
+interface EditMessage {
+  type: "edit";
+  path: string;
+  value: unknown;
+}
+interface AddComponentMessage {
+  type: "addComponent";
+  component: unknown;
+}
+interface RemoveComponentMessage {
+  type: "removeComponent";
+  componentId: string;
+}
+interface ReplaceAllMessage {
+  type: "replaceAll";
+  json: string;
+}
 
-type WebviewMessage =
-  | EditMessage
-  | AddComponentMessage
-  | RemoveComponentMessage
-  | ReplaceAllMessage;
+type WebviewMessage = EditMessage | AddComponentMessage | RemoveComponentMessage | ReplaceAllMessage;

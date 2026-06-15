@@ -2,9 +2,7 @@ import * as vscode from "vscode";
 import type { ShipwrightManifest, PlatformId } from "../types";
 import { tryParseManifest, ALL_PLATFORMS } from "../types";
 
-export function registerPlatformMatrixCommand(
-  context: vscode.ExtensionContext,
-): vscode.Disposable[] {
+export function registerPlatformMatrixCommand(context: vscode.ExtensionContext): vscode.Disposable[] {
   const cmd = vscode.commands.registerCommand("shipwright.platformMatrix", async () => {
     const files = await vscode.workspace.findFiles("**/shipwright.json", "**/node_modules/**", 1);
     if (files.length === 0) {
@@ -22,15 +20,12 @@ export function registerPlatformMatrixCommand(
   return [cmd];
 }
 
-function showMatrixPanel(
-  context: vscode.ExtensionContext,
-  manifest: ShipwrightManifest,
-): void {
+function showMatrixPanel(context: vscode.ExtensionContext, manifest: ShipwrightManifest): void {
   const panel = vscode.window.createWebviewPanel(
     "shipwright.platformMatrix",
     `Platform Matrix — ${manifest.product.displayName ?? manifest.product.id}`,
     vscode.ViewColumn.One,
-    { enableScripts: false },
+    { enableScripts: false }
   );
   panel.webview.html = buildMatrixHtml(manifest);
   context.subscriptions.push(panel);
@@ -38,20 +33,22 @@ function showMatrixPanel(
 
 function buildMatrixHtml(manifest: ShipwrightManifest): string {
   const platforms = ALL_PLATFORMS.filter((p) => p !== "all");
-  const hasAll = manifest.components.some(
-    (c) => c.platforms?.includes("all"),
-  );
+  const hasAll = manifest.components.some((c) => c.platforms?.includes("all"));
   const cols: PlatformId[] = hasAll ? [...platforms, "all"] : platforms;
 
   const headerCells = cols.map((p) => `<th class="plat">${shortPlatform(p)}</th>`).join("");
-  const rows = manifest.components.map((comp) => {
-    const cells = cols.map((p) => {
-      const has = comp.platforms?.includes(p) ?? false;
-      return `<td class="${has ? "yes" : "no"}">${has ? "&#10003;" : ""}</td>`;
-    }).join("");
-    const badge = `<span class="badge badge-${comp.kind}">${comp.kind}</span>`;
-    return `<tr><td class="comp-id">${comp.id} ${badge}</td>${cells}</tr>`;
-  }).join("\n");
+  const rows = manifest.components
+    .map((comp) => {
+      const cells = cols
+        .map((p) => {
+          const has = comp.platforms?.includes(p) ?? false;
+          return `<td class="${has ? "yes" : "no"}">${has ? "&#10003;" : ""}</td>`;
+        })
+        .join("");
+      const badge = `<span class="badge badge-${comp.kind}">${comp.kind}</span>`;
+      return `<tr><td class="comp-id">${comp.id} ${badge}</td>${cells}</tr>`;
+    })
+    .join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -90,7 +87,7 @@ function shortPlatform(p: string): string {
     "linux-arm64": "Linux ARM",
     "win32-x64": "Win x64",
     "win32-arm64": "Win ARM",
-    "all": "All",
+    all: "All",
   };
   return map[p] ?? p;
 }

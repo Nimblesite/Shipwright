@@ -259,8 +259,8 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
         status: "prompt",
         action: {
           kind: "dotnet-tool-update",
-          command: `dotnet tool update -g ${input.dotnetTool.package} --version ${input.expectedVersion}`
-        }
+          command: `dotnet tool update -g ${input.dotnetTool.package} --version ${input.expectedVersion}`,
+        },
       };
     }
 
@@ -270,7 +270,7 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
         path: null,
         version: null,
         status: "prompt",
-        action: { kind: "pkgmgr-install", commands: pkgmgrCommands(input.pkgmgr) }
+        action: { kind: "pkgmgr-install", commands: pkgmgrCommands(input.pkgmgr) },
       };
     }
 
@@ -280,7 +280,7 @@ export function resolve(input: ResolveInput, probe: Probe): Resolution {
         path: deferredPath.path,
         version: null,
         status: "deferred",
-        deferredCheck: "lsp-initialize"
+        deferredCheck: "lsp-initialize",
       };
     }
   }
@@ -304,7 +304,7 @@ function noSourceResolved(input: ResolveInput, attempted: AttemptedCandidate[]):
     version: null,
     status: "error",
     errorCode: "no-source-resolved",
-    errorDetails: { expected: input.expectedVersion, found: "not found", at: last.path, attempted }
+    errorDetails: { expected: input.expectedVersion, found: "not found", at: last.path, attempted },
   };
 }
 
@@ -327,14 +327,13 @@ function userSettingMismatch(input: ResolveInput, found: string, at: string): Re
     version: null,
     status: "error",
     errorCode: "user-setting-version-mismatch",
-    errorDetails: { expected: input.expectedVersion, found, at }
+    errorDetails: { expected: input.expectedVersion, found, at },
   };
 }
 
 function nameMatches(input: ResolveInput, got: ProbedVersion): boolean {
   return got.name === (input.expectedName ?? input.binaryName);
 }
-
 
 function pkgmgrCommands(pkgmgr: PkgmgrConfig): Record<string, string> {
   const commands: Record<string, string> = {};

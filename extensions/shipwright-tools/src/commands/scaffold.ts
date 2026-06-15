@@ -12,7 +12,9 @@ interface ScaffoldInput {
 export function registerScaffoldCommand(): vscode.Disposable[] {
   const cmd = vscode.commands.registerCommand("shipwright.scaffold", async () => {
     const input = await gatherInput();
-    if (!input) { return; }
+    if (!input) {
+      return;
+    }
     const manifest = buildManifest(input);
     const json = JSON.stringify(manifest, null, 2) + "\n";
     const folder = vscode.workspace.workspaceFolders?.[0];
@@ -30,7 +32,7 @@ export function registerScaffoldCommand(): vscode.Disposable[] {
   const addComp = vscode.commands.registerCommand("shipwright.addComponent", async () => {
     const files = await vscode.workspace.findFiles("**/shipwright.json", "**/node_modules/**", 1);
     if (files.length === 0) {
-      vscode.window.showWarningMessage("No shipwright.json found. Run \"Shipwright: Create New Manifest\" first.");
+      vscode.window.showWarningMessage('No shipwright.json found. Run "Shipwright: Create New Manifest" first.');
       return;
     }
     const doc = await vscode.workspace.openTextDocument(files[0]);
@@ -42,25 +44,37 @@ export function registerScaffoldCommand(): vscode.Disposable[] {
 
 async function gatherInput(): Promise<ScaffoldInput | undefined> {
   const productId = await vscode.window.showInputBox({ prompt: "Product ID (kebab-case)", placeHolder: "my-product" });
-  if (!productId) { return undefined; }
+  if (!productId) {
+    return undefined;
+  }
 
-  const displayName = await vscode.window.showInputBox({ prompt: "Display name", placeHolder: "My Product", value: titleCase(productId) });
-  if (displayName === undefined) { return undefined; }
+  const displayName = await vscode.window.showInputBox({
+    prompt: "Display name",
+    placeHolder: "My Product",
+    value: titleCase(productId),
+  });
+  if (displayName === undefined) {
+    return undefined;
+  }
 
   const version = await vscode.window.showInputBox({ prompt: "Version", placeHolder: "0.1.0", value: "0.1.0" });
-  if (!version) { return undefined; }
+  if (!version) {
+    return undefined;
+  }
 
-  const kindPick = await vscode.window.showQuickPick(
-    ["lsp", "cli", "mcp", "sidecar", "dap", "tool"],
-    { placeHolder: "Primary component kind" },
-  );
-  if (!kindPick) { return undefined; }
+  const kindPick = await vscode.window.showQuickPick(["lsp", "cli", "mcp", "sidecar", "dap", "tool"], {
+    placeHolder: "Primary component kind",
+  });
+  if (!kindPick) {
+    return undefined;
+  }
 
-  const langPick = await vscode.window.showQuickPick(
-    ["rust", "dotnet", "typescript", "dart", "kotlin", "javascript"],
-    { placeHolder: "Implementation language" },
-  );
-  if (!langPick) { return undefined; }
+  const langPick = await vscode.window.showQuickPick(["rust", "dotnet", "typescript", "dart", "kotlin", "javascript"], {
+    placeHolder: "Implementation language",
+  });
+  if (!langPick) {
+    return undefined;
+  }
 
   return {
     productId,
@@ -72,9 +86,7 @@ async function gatherInput(): Promise<ScaffoldInput | undefined> {
 }
 
 function buildManifest(input: ScaffoldInput): Record<string, unknown> {
-  const compId = input.componentKind === "cli"
-    ? input.productId
-    : `${input.productId}-${input.componentKind}`;
+  const compId = input.componentKind === "cli" ? input.productId : `${input.productId}-${input.componentKind}`;
 
   return {
     manifestVersion: 1,
@@ -115,5 +127,8 @@ function defaultSources(kind: ComponentKind): string[] {
 }
 
 function titleCase(kebab: string): string {
-  return kebab.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return kebab
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }

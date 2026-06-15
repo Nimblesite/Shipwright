@@ -1,3 +1,4 @@
+# agent-pmo:b636503
 # Reusable smoke test.
 #
 # Downloads the release archive for every matrix target that a runner can
@@ -131,6 +132,8 @@ jobs:
     name: VSIX activation
     if: inputs.publish_vsix
     runs-on: ubuntu-latest
+    # TIMEOUT EXCEPTION: Headless VS Code setup downloads and launches Electron
+    # before installing and activating the packaged VSIX.
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3

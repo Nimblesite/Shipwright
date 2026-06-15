@@ -60,6 +60,8 @@ Each threat is grounded in a named, recent incident and closed by a control in t
 - **Dependency confusion** — *Birsan*, 2021 → `SWR-SEC-FROZEN-INSTALL`.
 - **Deep transitive vulnerability, slow to locate** — *Log4Shell*, CVE-2021-44228 → `SWR-SEC-SBOM` + `SWR-SEC-VULN-GATE`.
 - **A VSIX (or any channel) ships a backing binary never verified against the signed release** — *GlassWorm*, 2025 → `SWR-SEC-CHECKSUM`.
+- **Exploitable flaw in *first-party* source reaches a release** — command injection, path traversal, unsafe deserialization, etc. The gates above cover dependencies (`SWR-SEC-VULN-GATE`) and CI, **not the code we write**. This is the uncovered inbound surface → `SWR-SEC-CODE-SCANNING`.
+- **A publish token or signing key committed to git and harvested** — *tj-actions* secret leakage (2025); *GlassWorm* rode leaked Open VSX tokens (2025). Shipwright's residual PATs/keys (Open VSX, JetBrains, Sonatype, GPG, Apple) only ever live in protected environments; the threat is one pasted into a file/commit → `SWR-SEC-SECRET-SCANNING`.
 
 Two older threats are owned elsewhere: hidden binary substitution at runtime by a stale PATH binary
 ([ide-extension-deployment.md](ide-extension-deployment.md), `SWR-IDE-RESOLUTION`) and version drift
@@ -81,11 +83,14 @@ between package and binary ([binary-version-contract.md](binary-version-contract
 | Dependency confusion | Birsan (2021) | Frozen lockfile + scoped packages pinned to the private registry | SWR-SEC-FROZEN-INSTALL | GitHub avoiding-npm-substitution-attacks |
 | Channel ships unverified backing binary | GlassWorm (2025) | Verify staged/downloaded binary SHA-256 vs signed release before use; host re-verifies at activation | SWR-SEC-CHECKSUM | Eclipse Foundation; Sigstore |
 | Unsigned native binary blocked/tampered | (class) Gatekeeper/SmartScreen | Apple Developer ID + notarization AND cosign provenance — two complementary signatures | SWR-SIGN-* | Apple; Microsoft; Sigstore |
+| Vulnerable first-party code ships | (class) CWE Top 25 — injection, path traversal, unsafe deserialization | CodeQL `security-extended` on every PR + weekly, **and a gated `workflow_call` the release `needs:` — High/Critical findings FAIL the release and block publishing**; separate from dep gating | SWR-SEC-CODE-SCANNING | GitHub code scanning / CodeQL docs |
+| Publish token/key committed and harvested | tj-actions secret leakage (2025); GlassWorm leaked Open VSX tokens (2025) | Secret scanning + **push protection** — blocks a secret before it ever reaches the remote | SWR-SEC-SECRET-SCANNING | GitHub secret-scanning / push-protection docs |
 
 ## The shared controls
 
-These eight controls apply across every channel. The per-channel plan that follows says which ones
-each door needs and what it adds.
+The first eight controls apply across every channel (the per-channel plan that follows says which ones
+each door needs and what it adds). The last two — `SWR-SEC-CODE-SCANNING` and
+`SWR-SEC-SECRET-SCANNING` — are **inbound, source-side** controls: repo-wide, not per-channel.
 
 **[SWR-SEC-PROVENANCE] Build provenance (SLSA L2).** Every released artifact and published package
 carries a signed provenance attestation from `actions/attest-build-provenance` on a hosted runner,
@@ -128,7 +133,10 @@ cosign verify-blob --bundle SHA256SUMS.sigstore.json \
 **[SWR-SEC-ACTION-PINNING] Action pinning.** Every `uses:` and every reusable-workflow ref — third-
 party and first-party — is a full 40-character commit SHA with a `# vX.Y.Z` comment. Mutable tags and
 branch refs are forbidden: a repointed tag is exactly how tj-actions and reviewdog were weaponized. A
-committed `.github/dependabot.yml` (github-actions ecosystem, weekly) keeps pins fresh.
+committed `.github/dependabot.yml` (github-actions plus every language ecosystem — cargo, npm — weekly)
+keeps pins fresh. Each ecosystem is grouped (`patterns: ["*"]`) so it opens one combined PR per run
+instead of one PR per package; grouping is per-ecosystem, so a polyglot repo gets at most one PR each
+for github-actions, cargo, and npm, never a single cross-ecosystem PR.
 
 **[SWR-SEC-TOKEN-PRIVILEGE] Least-privilege `GITHUB_TOKEN`.** Every workflow declares top-level
 `permissions: contents: read`. Write, `id-token`, and `attestations` are granted per job only.
@@ -141,14 +149,74 @@ every ecosystem; `dtolnay/rust-toolchain@stable` (a moving branch) is forbidden 
 Where scripts are not needed, prefer `npm ci --ignore-scripts`.
 
 **[SWR-SEC-OIDC-PUBLISH] OIDC trusted publishing.** Registry publishing uses short-lived OIDC tokens
-with no stored secret wherever the registry supports it; the per-channel plan lists each. Channels
-that still require a Personal Access Token (the IDE marketplaces) run that PAT inside a protected
-GitHub Environment with required reviewers and a `v*.*.*` tag restriction.
+with no stored secret wherever the registry supports it — crates.io, npm (also `--provenance`), NuGet
+(`NuGet/login@v1` exchanges the OIDC token for a ~1h, single-use API key), pub.dev. Each such job
+declares `permissions: id-token: write` + `contents: read`. The per-channel plan lists each. This now
+includes the **VS Code Marketplace**, which publishes via GitHub→Microsoft Entra workload identity
+federation (`azure/login` → `az account get-access-token` → `vsce`) with **no stored PAT** — this is
+the preferred, default model ([SWR-VSIX-PUBLISH-OIDC]). The Entra app is authorized once as a
+publisher member; a single flexible federated credential (`claims['sub'] matches
+'repo:OWNER/*:environment:release'`) trusts every repo. The remaining channels with **no** OIDC path
+— **Open VSX** and **JetBrains** — run their Personal Access Token inside a protected GitHub
+Environment with required reviewers and a `v*.*.*` tag restriction.
+
+**Environment-claim binding (load-bearing).** When a registry's trusted-publishing policy is scoped to
+a named GitHub Environment, the publish job MUST declare that exact `environment:` — GitHub only injects
+the `environment` claim into the OIDC token for a job bound to an environment, so a policy that names an
+environment will reject a token from a job that declares none. Either bind the job to the environment
+the policy names, or leave the policy's environment field empty; a mismatch is a silent publish failure.
 
 **[SWR-SEC-VULN-GATE] Vulnerability gates.** Product CI runs `osv-scanner` (Rust + Node, PR-diff plus
 a release full scan), `cargo-deny` (advisories/bans/licenses/sources from a committed `deny.toml`),
 `cargo audit`, `npm audit --audit-level=high`, and `grype` against the SBOM, failing at the
 `supplyChain.vulnGate` severity. Suppressions need a committed reason **and** expiry date.
+
+**[SWR-SEC-CODE-SCANNING] Static code analysis (CodeQL).** `SWR-SEC-VULN-GATE` covers *dependencies*;
+CodeQL covers the *code we write*. A separate `.github/workflows/codeql.yml` runs CodeQL with the
+`security-extended` query suite on every PR to `main` and a weekly schedule (so newly-published
+queries re-scan unchanged code), and exposes a `workflow_call` with a `gate` input. **It is a HARD
+release gate, not advisory: `release.yml` MUST call it with `gate: true` and the publish jobs MUST
+`needs:` that job, so a release can never ship code CodeQL flagged.** With `gate: true` the analyze
+job parses its SARIF and FAILS on any finding whose `security-severity` is High or Critical (>= 7.0);
+the gated call also scans the exact released SHA with the current query set, since the release commit
+may have last been scanned weeks ago. A standalone `push: [tags]` CodeQL trigger is **forbidden** — it
+runs concurrently with the release and can only file alerts *after* the artifact has shipped, which
+gates nothing. It is its own workflow — not folded into `ci.yml` — because it needs
+job-scoped `security-events: write` and feeds GitHub code-scanning alerts, while top-level permission
+stays `contents: read` (`SWR-SEC-TOKEN-PRIVILEGE`). The language matrix is the **intersection of this
+repo's languages with the set CodeQL supports at the time it is set up** — checked live, never copied
+from a frozen list (the set grows; Rust is in, Dart/F# are not). For Shipwright that is `actions`,
+`rust`, and `javascript-typescript` (Dart is excluded until CodeQL supports it). `actions` is always
+included — it scans the workflow files themselves for the injection/pinning issues this spec guards
+against. Every `uses:` is SHA-pinned (`SWR-SEC-ACTION-PINNING`) and refreshed by Dependabot. No
+overlap: clippy/eslint = style, `SWR-SEC-VULN-GATE` = vulnerable deps, CodeQL = vulnerable code; never
+add security-rule linter plugins that re-cover CodeQL.
+
+**[SWR-SEC-SECRET-SCANNING] Secret scanning + push protection.** GitHub secret scanning is enabled
+repo-wide, and **push protection** is on so a detected credential is blocked *before* the push reaches
+the remote — the cheapest possible defense for a project whose release path touches many publish
+tokens and signing keys. This is defense-in-depth behind `SWR-SEC-OIDC-PUBLISH`: the preferred model
+stores no long-lived secret at all, but every residual PAT/key (Open VSX, JetBrains, Sonatype, GPG,
+Apple) is one accidental paste away from a commit, and push protection catches exactly that. Free for
+public repos; needs GitHub Secret Protection on private repos. Enable via repo settings:
+
+```bash
+gh api -X PATCH "repos/Nimblesite/Shipwright" --input - <<'JSON'
+{"security_and_analysis":{"secret_scanning":{"status":"enabled"},"secret_scanning_push_protection":{"status":"enabled"}}}
+JSON
+```
+
+**[SWR-SEC-POLICY] Security policy + private vulnerability reporting.** A committed
+`SECURITY.md` (root) states how to report a vulnerability and supported versions, and
+**private vulnerability reporting** is enabled so researchers get a "Report a vulnerability"
+button instead of a public issue. Free for public repos. Enable:
+
+```bash
+gh api -X PUT "repos/Nimblesite/Shipwright/private-vulnerability-reporting"
+```
+
+Docs: [add a security policy](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/add-security-policy) ·
+[configure PVR](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository).
 
 ## [SWR-SEC-CHANNELS] Per-channel security plan
 
@@ -160,7 +228,7 @@ what every downstream verification ultimately checks.
 | Channel | What we publish | Channel-specific control beyond the shared eight |
 |---|---|---|
 | **GitHub Releases** | Per-platform archives + `SHA256SUMS` (+ SBOMs) | macOS archives notarized (`SWR-SIGN`); cosign-signed checksums are the root every other channel verifies against |
-| **VS Code Marketplace** | One VSIX per `vsceTarget` | Marketplace auto-signs on upload; per-VSIX provenance; bundle-verify; PAT in a protected env, `Marketplace → Manage` scope |
+| **VS Code Marketplace** | One VSIX per `vsceTarget` | Marketplace auto-signs on upload; per-VSIX provenance; bundle-verify; **OIDC via Entra (no stored PAT)** — publisher-member service principal, `id-token: write`, in a protected env |
 | **Open VSX** | Same VSIXs | `node-ovsx-sign` signature; a *separate* short-expiry PAT in a protected env (GlassWorm rode leaked Open VSX tokens) |
 | **JetBrains / Android Studio** | Signed plugin `.zip` to JetBrains Marketplace | `signPlugin` certificate-chain signature; Marketplace verifies; publish token in a protected env |
 | **Zed** | WASM extension (reviewed PR) + GitHub-release LSP download | No committed-WASM drift; the `github-release` download verifies checksum + signature; version via LSP `initialize` |
@@ -187,9 +255,17 @@ The VS Code Marketplace signs every extension on upload and VS Code verifies tha
 (`@vscode/vsce-sign`, a PKCS#7 `.signature.p7s` plus a `.signature.manifest` of every file's size and
 SHA-256). That protects only the marketplace→client hop, so we add per-VSIX provenance and
 `SWR-VSIX-BUNDLE-VERIFY` (the bundled backing binary's digest is verified against the signed release
-before packaging, and re-verified by the host at activation). The publish PAT runs in a protected
-environment, scoped to `Marketplace → Manage`; the Marketplace also secret-scans on publish and `vsce`
-scans `.env` at package time, but those are backstops, not the primary control.
+before packaging, and re-verified by the host at activation). **Publishing uses OIDC, not a stored
+PAT**: the job exchanges its GitHub OIDC token (`id-token: write`) for a Microsoft Entra session via
+workload identity federation, then mints a short-lived Marketplace token with `az account
+get-access-token` and hands it to `vsce` — no harvestable standing credential exists
+([SWR-VSIX-PUBLISH-OIDC]). Authorization is publisher-level: an Entra service principal is added once
+as a Contributor member of the publisher. The job still runs in a protected environment — there the
+environment is *load-bearing*, since Entra rejects wildcards in tag subjects and matches the federated
+trust against `repo:OWNER/REPO:environment:<env>`. The Marketplace also secret-scans on publish and
+`vsce` scans `.env` at package time, but those are backstops, not the primary control. A long-lived
+`VSCE_PAT` in a protected env remains the legacy fallback only where federation cannot be set up
+([SWR-VSIX-PUBLISH-PAT]).
 
 **Open VSX** uses a different signing scheme (`node-ovsx-sign`, PKCS#8) and a separate token. The
 GlassWorm campaign (Oct 2025, with a Jan 2026 escalation) rode Open VSX publisher tokens leaked into

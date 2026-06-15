@@ -13,7 +13,7 @@ export type {
   Resolution,
   Source,
   Status,
-  WarningCode
+  WarningCode,
 } from "./resolve.js";
 export {
   envPath,
@@ -22,5 +22,5 @@ export {
   joinBinary,
   pathCandidate,
   platformSeparator,
-  resolve
+  resolve,
 } from "./resolve.js";

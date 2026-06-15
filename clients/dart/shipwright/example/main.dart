@@ -1,14 +1,16 @@
 // Minimal usage example for the shipwright package.
+import 'dart:io';
+
 import 'package:shipwright/shipwright.dart';
 
 void main() {
-  final input = ResolveInput(
+  const input = ResolveInput(
     binaryName: 'my-lsp',
     expectedVersion: '0.1.0',
-    sources: const [Source.bundled, Source.path],
+    sources: [Source.bundled, Source.path],
     bundledDir: 'bin/darwin-arm64',
   );
 
   final result = resolve(input, (_) => null);
-  print('Resolved: ${result.status.wire}');
+  stdout.writeln('Resolved: ${result.status.wire}');
 }

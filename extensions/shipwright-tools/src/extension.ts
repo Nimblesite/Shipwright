@@ -14,10 +14,12 @@ export function activate(context: vscode.ExtensionContext): void {
     ...registerValidation(context, output),
     ...registerScaffoldCommand(),
     ...registerPlatformMatrixCommand(context),
-    output,
+    output
   );
 
   output.info("Shipwright Tools activated");
 }
 
-export function deactivate(): void { /* nothing to clean up */ }
+export function deactivate(): void {
+  /* nothing to clean up */
+}

@@ -22,9 +22,7 @@ async function main(): Promise<void> {
     throw new Error("Could not find VS Code cli.js in hash directory");
   }
 
-  const cliJs = path.join(
-    vscodeDir, hashDirs[0], "resources", "app", "out", "cli.js",
-  );
+  const cliJs = path.join(vscodeDir, hashDirs[0], "resources", "app", "out", "cli.js");
 
   const args = [
     cliJs,
@@ -50,7 +48,9 @@ async function main(): Promise<void> {
       env,
     });
     child.on("error", reject);
-    child.on("close", (c) => { resolve(c ?? 1); });
+    child.on("close", (c) => {
+      resolve(c ?? 1);
+    });
   });
 
   console.log(`Exit code: ${code}`);

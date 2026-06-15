@@ -6,9 +6,7 @@ import { fileURLToPath } from "node:url";
 const siteRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(siteRoot, "..");
 
-const publishedDocSets = [
-  { label: "Specs", dir: "docs/specs", parent: "Specs", order: 30, tag: "specDocs" },
-];
+const publishedDocSets = [{ label: "Specs", dir: "docs/specs", parent: "Specs", order: 30, tag: "specDocs" }];
 
 function markdownFiles(root) {
   if (!existsSync(root)) {
@@ -35,6 +33,38 @@ function titleFromMarkdown(markdown, fallback) {
   return match ? match[1].trim() : fallback;
 }
 
+function descriptionFromMarkdown(markdown, fallback) {
+  const codeBlockPattern = /```[\s\S]*?```/g;
+  const candidate = markdown
+    .replace(codeBlockPattern, "")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .find((block) => {
+      return (
+        block &&
+        !block.startsWith("#") &&
+        !block.startsWith("|") &&
+        !block.startsWith("- ") &&
+        !block.startsWith("* ") &&
+        !block.startsWith(">") &&
+        !block.startsWith("```")
+      );
+    });
+
+  const cleaned = (candidate ?? fallback)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[`*_>#]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length <= 155) {
+    return cleaned;
+  }
+
+  const truncated = cleaned.slice(0, 152).replace(/\s+\S*$/, "");
+  return `${truncated}...`;
+}
+
 function publishedUrlForRepoPath(repoPath) {
   const normalized = unixPath(repoPath);
   for (const set of publishedDocSets) {
@@ -47,12 +77,15 @@ function publishedUrlForRepoPath(repoPath) {
 }
 
 function rewriteDocLinks(markdown, sourceRepoPath) {
-  return markdown.replace(/(\[[^\]]+\]\()((?!https?:|mailto:|#)[^)#]+\.md)(#[^)]+)?(\))/g, (match, open, target, hash = "", close) => {
-    const resolvedTarget = unixPath(resolve(repoRoot, dirname(sourceRepoPath), target));
-    const repoTarget = unixPath(relative(repoRoot, resolvedTarget));
-    const publishedUrl = publishedUrlForRepoPath(repoTarget);
-    return publishedUrl ? `${open}${publishedUrl}${hash}${close}` : match;
-  });
+  return markdown.replace(
+    /(\[[^\]]+\]\()((?!https?:|mailto:|#)[^)#]+\.md)(#[^)]+)?(\))/g,
+    (match, open, target, hash = "", close) => {
+      const resolvedTarget = unixPath(resolve(repoRoot, dirname(sourceRepoPath), target));
+      const repoTarget = unixPath(relative(repoRoot, resolvedTarget));
+      const publishedUrl = publishedUrlForRepoPath(repoTarget);
+      return publishedUrl ? `${open}${publishedUrl}${hash}${close}` : match;
+    }
+  );
 }
 
 function registerPublishedDocs(eleventyConfig) {
@@ -63,13 +96,14 @@ function registerPublishedDocs(eleventyConfig) {
       const relativeDocPath = unixPath(relative(absoluteDir, file));
       const rawMarkdown = readFileSync(file, "utf8");
       const title = titleFromMarkdown(rawMarkdown, relativeDocPath.replace(/\.md$/, ""));
+      const description = descriptionFromMarkdown(rawMarkdown, `Published Shipwright spec from ${sourceRepoPath}`);
       const permalink = `/docs/${set.dir.slice("docs/".length)}/${relativeDocPath.replace(/\.md$/, "/")}`;
       const frontMatter = [
         "---",
         "layout: layouts/docs.njk",
         "templateEngineOverride: md",
         `title: ${JSON.stringify(title)}`,
-        `description: ${JSON.stringify(`Source doc: ${sourceRepoPath}`)}`,
+        `description: ${JSON.stringify(description)}`,
         `permalink: ${JSON.stringify(permalink)}`,
         `sourcePath: ${JSON.stringify(sourceRepoPath)}`,
         `docSection: ${JSON.stringify(set.label)}`,
@@ -110,6 +144,17 @@ export default function (eleventyConfig) {
   });
 
   registerPublishedDocs(eleventyConfig);
+
+  eleventyConfig.addTransform("nimblesite-copyright-link", function (content) {
+    if (!this.page.outputPath?.endsWith(".html")) {
+      return content;
+    }
+
+    return content.replace(
+      /<p>&copy; ([^<]+) Shipwright<\/p>/,
+      '<p>&copy; $1 <a href="https://nimblesite.co">Nimblesite</a>. Shipwright.</p>'
+    );
+  });
 
   eleventyConfig.addCollection("posts", () => [
     {

@@ -6,7 +6,7 @@ export type {
   ExtensionContextLike,
   HostPolicy,
   ManifestComponent,
-  VscodeApiLike
+  VscodeApiLike,
 } from "./activate.js";
 export { activateShipwright, detectPlatform, loadShipwrightManifest } from "./activate.js";
 export type {
@@ -17,6 +17,6 @@ export type {
   ProbeBinaryVersionOptions,
   ProbeFailure,
   ProbeFailureReason,
-  ProbeResult
+  ProbeResult,
 } from "./probe.js";
 export { parseVersionOutput, probeBinaryVersion, probeBinaryVersionResult } from "./probe.js";

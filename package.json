@@ -15,5 +15,11 @@
     "validate:manifest": "node tools/validate-manifest/index.mjs"
   },
   "type": "module",
-  "version": "0.0.0-dev"
+  "version": "0.0.0-dev",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.60.1"
+  }
 }

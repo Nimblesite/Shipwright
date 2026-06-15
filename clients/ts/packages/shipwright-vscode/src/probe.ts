@@ -13,11 +13,7 @@ export interface ExecFileOptions {
   windowsHide?: boolean;
 }
 
-export type ExecFileCallback = (
-  error: ExecFileError | null,
-  stdout: string | Buffer,
-  stderr: string | Buffer
-) => void;
+export type ExecFileCallback = (error: ExecFileError | null, stdout: string | Buffer, stderr: string | Buffer) => void;
 
 export type ExecFile = (
   file: string,
@@ -90,7 +86,7 @@ async function runProbeOnce(
 ): Promise<ProbeResult> {
   const execOptions: ExecFileOptions = {
     timeout,
-    windowsHide: true
+    windowsHide: true,
   };
   if (env) execOptions.env = env;
 

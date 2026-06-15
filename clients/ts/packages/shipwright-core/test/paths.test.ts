@@ -6,7 +6,7 @@ import {
   joinBinary,
   pathCandidate,
   platformSeparator,
-  type ResolveInput
+  type ResolveInput,
 } from "../src/index.js";
 
 // ── platformSeparator ────────────────────────────────────────────────
@@ -162,11 +162,7 @@ describe("joinBinary", () => {
   });
 
   it("NEVER produces backslash join for Unix platforms", () => {
-    const dirs = [
-      "/ext/bin/darwin-arm64",
-      "/home/user/.vscode/extensions/test-0.1.0/bin/linux-x64",
-      "/usr/local/bin",
-    ];
+    const dirs = ["/ext/bin/darwin-arm64", "/home/user/.vscode/extensions/test-0.1.0/bin/linux-x64", "/usr/local/bin"];
     for (const dir of dirs) {
       const resultDarwin = joinBinary(dir, "tool", "darwin-arm64");
       expect(resultDarwin).not.toContain("\\");
@@ -216,7 +212,7 @@ describe("envPath", () => {
       expectedVersion: "1.0.0",
       sources: ["env"],
       env: { TOOL_PATH: "C:\\custom\\tool.exe" },
-      envConfig: { pathVar: "TOOL_PATH" }
+      envConfig: { pathVar: "TOOL_PATH" },
     };
     expect(envPath(input, "win32-x64")).toBe("C:\\custom\\tool.exe");
   });
@@ -227,7 +223,7 @@ describe("envPath", () => {
       expectedVersion: "1.0.0",
       sources: ["env"],
       env: { TOOL_DIR: "C:\\tools\\bin" },
-      envConfig: { dirVar: "TOOL_DIR" }
+      envConfig: { dirVar: "TOOL_DIR" },
     };
     const result = envPath(input, "win32-x64");
     expect(result).toBe("C:\\tools\\bin\\tool.exe");
@@ -240,7 +236,7 @@ describe("envPath", () => {
       expectedVersion: "1.0.0",
       sources: ["env"],
       env: { TOOL_DIR: "/opt/tools/bin" },
-      envConfig: { dirVar: "TOOL_DIR" }
+      envConfig: { dirVar: "TOOL_DIR" },
     };
     const result = envPath(input, "darwin-arm64");
     expect(result).toBe("/opt/tools/bin/tool");
@@ -252,7 +248,7 @@ describe("envPath", () => {
       binaryName: "tool",
       expectedVersion: "1.0.0",
       sources: ["env"],
-      env: {}
+      env: {},
     };
     expect(envPath(input, "win32-x64")).toBeUndefined();
   });
@@ -263,7 +259,7 @@ describe("envPath", () => {
       expectedVersion: "1.0.0",
       sources: ["env"],
       env: {},
-      envConfig: { dirVar: "TOOL_DIR" }
+      envConfig: { dirVar: "TOOL_DIR" },
     };
     expect(envPath(input, "win32-x64")).toBeUndefined();
   });

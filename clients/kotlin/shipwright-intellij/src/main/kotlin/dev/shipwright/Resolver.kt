@@ -25,14 +25,14 @@ enum class Source(val wire: String) {
     }
 }
 
-enum class Platform(val wire: String, val exeSuffix: String) {
-    DarwinArm64("darwin-arm64", ""),
-    DarwinX64("darwin-x64", ""),
-    LinuxX64("linux-x64", ""),
-    LinuxArm64("linux-arm64", ""),
-    Win32X64("win32-x64", ".exe"),
-    Win32Arm64("win32-arm64", ".exe"),
-    All("all", "");
+enum class Platform(val wire: String, val exeSuffix: String, val separator: String) {
+    DarwinArm64("darwin-arm64", "", "/"),
+    DarwinX64("darwin-x64", "", "/"),
+    LinuxX64("linux-x64", "", "/"),
+    LinuxArm64("linux-arm64", "", "/"),
+    Win32X64("win32-x64", ".exe", "\\"),
+    Win32Arm64("win32-arm64", ".exe", "\\"),
+    All("all", "", "/");
 
     companion object {
         fun fromWire(s: String?): Platform =
@@ -247,7 +247,7 @@ private fun joinBinary(dir: String, name: String, platform: Platform): String {
     while (trimmed.endsWith('/') || trimmed.endsWith('\\')) {
         trimmed = trimmed.dropLast(1)
     }
-    return "$trimmed/$name${platform.exeSuffix}"
+    return "$trimmed${platform.separator}$name${platform.exeSuffix}"
 }
 
 private fun pkgmgrCommands(pkg: PkgmgrConfig): Map<String, String> {
