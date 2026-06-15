@@ -82,6 +82,10 @@ lint:
 	cargo clippy --release --all-targets --workspace -- -D warnings
 	@echo "==> Type-checking TypeScript workspace packages..."
 	pnpm install --frozen-lockfile
+	# shipwright-vscode typechecks against @nimblesite/shipwright-core's emitted
+	# declarations (its exports.types -> dist/index.d.ts), so a clean checkout must
+	# build core before any dependent is type-checked (matches the ts-tests job order).
+	pnpm --filter @nimblesite/shipwright-core build
 	pnpm --filter @nimblesite/shipwright-core typecheck
 	pnpm --filter @nimblesite/shipwright-mcp typecheck
 	pnpm --filter @nimblesite/shipwright-vscode typecheck
