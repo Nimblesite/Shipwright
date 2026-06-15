@@ -9,6 +9,11 @@
 # documented counter to the "pinning is too much maintenance" objection that
 # pushes teams back onto mutable `@v4` tags.
 #
+# Every ecosystem is GROUPED (`patterns: ["*"]`) so each opens ONE combined PR
+# per run instead of one PR per package. Grouping is per-ecosystem — Dependabot
+# cannot merge across ecosystems, so a polyglot repo gets at most one PR each
+# for github-actions, cargo, and npm, never a single cross-ecosystem PR.
+#
 # See docs/specs/supply-chain-security.md [SWR-SEC-ACTION-PINNING].
 version: 2
 updates:
@@ -28,6 +33,9 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
     open-pull-requests-limit: 5
 
   # Node/npm dependency graph (package-lock.json / pnpm-lock.yaml).
@@ -35,4 +43,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
     open-pull-requests-limit: 5

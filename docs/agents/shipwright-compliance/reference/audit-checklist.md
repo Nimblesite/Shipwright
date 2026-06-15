@@ -146,7 +146,8 @@ pipeline can still have required controls outstanding. Cite the `SWR-SEC-*` / `S
 ### 12a. Shared controls (apply to every workflow / channel)
 
 1. **Pinned actions** — every `uses:` and reusable-workflow ref is a full 40-char commit SHA (not
-   `@v4`/`@stable`/`@master`). A committed `.github/dependabot.yml` (github-actions) keeps pins fresh. `[SWR-SEC-ACTION-PINNING]`.
+   `@v4`/`@stable`/`@master`). A committed `.github/dependabot.yml` covering github-actions and every
+   language ecosystem, each grouped (`patterns: ["*"]`) into one combined PR per run, keeps pins fresh. `[SWR-SEC-ACTION-PINNING]`.
 2. **Least-privilege token** — every workflow has a top-level `permissions:` block defaulting to
    `contents: read`; write/`id-token`/`attestations` are job-scoped, never top-level; `persist-credentials: false` off the push path. `[SWR-SEC-TOKEN-PRIVILEGE]`.
 3. **Frozen install** — `npm ci` / `pnpm install --frozen-lockfile` / `cargo --locked` everywhere (workflows AND scripts); no bare `npm install`; lockfiles committed. `[SWR-SEC-FROZEN-INSTALL]`.
