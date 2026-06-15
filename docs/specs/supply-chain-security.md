@@ -146,7 +146,9 @@ every ecosystem; `dtolnay/rust-toolchain@stable` (a moving branch) is forbidden 
 Where scripts are not needed, prefer `npm ci --ignore-scripts`.
 
 **[SWR-SEC-OIDC-PUBLISH] OIDC trusted publishing.** Registry publishing uses short-lived OIDC tokens
-with no stored secret wherever the registry supports it; the per-channel plan lists each. This now
+with no stored secret wherever the registry supports it — crates.io, npm (also `--provenance`), NuGet
+(`NuGet/login@v1` exchanges the OIDC token for a ~1h, single-use API key), pub.dev. Each such job
+declares `permissions: id-token: write` + `contents: read`. The per-channel plan lists each. This now
 includes the **VS Code Marketplace**, which publishes via GitHub→Microsoft Entra workload identity
 federation (`azure/login` → `az account get-access-token` → `vsce`) with **no stored PAT** — this is
 the preferred, default model ([SWR-VSIX-PUBLISH-OIDC]). The Entra app is authorized once as a
@@ -154,6 +156,12 @@ publisher member; a single flexible federated credential (`claims['sub'] matches
 'repo:OWNER/*:environment:release'`) trusts every repo. The remaining channels with **no** OIDC path
 — **Open VSX** and **JetBrains** — run their Personal Access Token inside a protected GitHub
 Environment with required reviewers and a `v*.*.*` tag restriction.
+
+**Environment-claim binding (load-bearing).** When a registry's trusted-publishing policy is scoped to
+a named GitHub Environment, the publish job MUST declare that exact `environment:` — GitHub only injects
+the `environment` claim into the OIDC token for a job bound to an environment, so a policy that names an
+environment will reject a token from a job that declares none. Either bind the job to the environment
+the policy names, or leave the policy's environment field empty; a mismatch is a silent publish failure.
 
 **[SWR-SEC-VULN-GATE] Vulnerability gates.** Product CI runs `osv-scanner` (Rust + Node, PR-diff plus
 a release full scan), `cargo-deny` (advisories/bans/licenses/sources from a committed `deny.toml`),
