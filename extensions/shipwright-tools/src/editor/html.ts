@@ -1,15 +1,8 @@
 import * as vscode from "vscode";
 
-export function buildEditorHtml(
-  webview: vscode.Webview,
-  extensionUri: vscode.Uri,
-): string {
-  const cssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "media", "editor.css"),
-  );
-  const scriptUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "media", "editor.js"),
-  );
+export function buildEditorHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+  const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, "media", "editor.css"));
+  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, "media", "editor.js"));
   const nonce = generateNonce();
   const csp = webview.cspSource;
 

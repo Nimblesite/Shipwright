@@ -83,8 +83,9 @@ audit report once (format in the checklist file). Do not fix mid-audit.
 
 **§12 (Supply-chain security) is run for EVERY channel the repo ships to**, not just the VSIX. For each
 shared control (pinned actions, least-priv token, frozen install, provenance, SBOM, signed checksums,
-OIDC publishing, vuln gate) and each channel's specific control (macOS notarization, marketplace PAT in
-a protected env, GPG for Maven, download-time verify for brew/scoop/Neovim/Zed), record PASS/FAIL with
+OIDC publishing, vuln gate) and each channel's specific control (macOS notarization, VS Code Marketplace
+OIDC via Entra — no PAT, Open VSX/JetBrains PAT in a protected env, GPG for Maven, download-time verify
+for brew/scoop/Neovim/Zed), record PASS/FAIL with
 the `SWR-SEC-*` / `SWR-SIGN-*` id. A repo can be release-pipeline-complete and still be full of
 supply-chain holes — surface them.
 

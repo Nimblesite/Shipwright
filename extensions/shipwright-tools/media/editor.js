@@ -5,18 +5,31 @@
 const vscode = acquireVsCodeApi();
 const root = /** @type {HTMLElement} */ (document.getElementById("root"));
 
-const ALL_PLATFORMS = [
-  "darwin-arm64","darwin-x64","linux-x64","linux-arm64",
-  "win32-x64","win32-arm64","all",
-];
+const ALL_PLATFORMS = ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64", "all"];
 const ALL_KINDS = [
-  "cli","lsp","mcp","sidecar","dap","tool",
-  "extension-vscode","extension-jetbrains","extension-zed","asset",
+  "cli",
+  "lsp",
+  "mcp",
+  "sidecar",
+  "dap",
+  "tool",
+  "extension-vscode",
+  "extension-jetbrains",
+  "extension-zed",
+  "asset",
 ];
-const ALL_LANGUAGES = ["rust","dotnet","dart","typescript","kotlin","javascript"];
+const ALL_LANGUAGES = ["rust", "dotnet", "dart", "typescript", "kotlin", "javascript"];
 const ALL_SOURCES = [
-  "user-setting","env","path","bundled","pkgmgr",
-  "dotnet-tool","npm-global","cargo-bin","github-release","lsp-initialize",
+  "user-setting",
+  "env",
+  "path",
+  "bundled",
+  "pkgmgr",
+  "dotnet-tool",
+  "npm-global",
+  "cargo-bin",
+  "github-release",
+  "lsp-initialize",
 ];
 
 /** @type {Manifest|null} */
@@ -36,19 +49,12 @@ function render() {
     return;
   }
   const m = currentManifest;
-  root.innerHTML = [
-    renderHeader(m),
-    renderComponents(m),
-    renderPlatformMatrix(m),
-    renderHosts(m),
-  ].join("");
+  root.innerHTML = [renderHeader(m), renderComponents(m), renderPlatformMatrix(m), renderHosts(m)].join("");
   bindEvents();
 }
 
 function renderHeader(m) {
-  const repo = m.product.repository
-    ? `<a href="${esc(m.product.repository)}">${esc(m.product.repository)}</a>`
-    : "";
+  const repo = m.product.repository ? `<a href="${esc(m.product.repository)}">${esc(m.product.repository)}</a>` : "";
   return `
     <div class="manifest-header">
       <h1>${esc(m.product.displayName || m.product.id)}</h1>
@@ -97,17 +103,39 @@ function renderComponentFields(c, idx) {
   const rows = [];
   rows.push(editableRow("ID", c.id, `components.${idx}.id`));
   rows.push(selectRow("Kind", c.kind, ALL_KINDS, `components.${idx}.kind`));
-  if (c.language) { rows.push(selectRow("Language", c.language, ALL_LANGUAGES, `components.${idx}.language`)); }
-  if (c.binaryName) { rows.push(editableRow("Binary Name", c.binaryName, `components.${idx}.binaryName`)); }
-  if (c.expectedVersion) { rows.push(editableRow("Expected Version", c.expectedVersion, `components.${idx}.expectedVersion`)); }
-  if (c.userSetting) { rows.push(editableRow("User Setting", c.userSetting, `components.${idx}.userSetting`)); }
-  if (c.platforms) { rows.push(platformRow(c.platforms)); }
-  if (c.sources) { rows.push(sourceChainRow(c.sources)); }
-  if (c.bundled) { rows.push(bundledRow(c.bundled)); }
-  if (c.env) { rows.push(envRow(c.env)); }
-  if (c.pkgmgr) { rows.push(pkgmgrRow(c.pkgmgr)); }
-  if (c.githubRelease) { rows.push(githubRow(c.githubRelease)); }
-  if (c.npm) { rows.push(npmRow(c.npm)); }
+  if (c.language) {
+    rows.push(selectRow("Language", c.language, ALL_LANGUAGES, `components.${idx}.language`));
+  }
+  if (c.binaryName) {
+    rows.push(editableRow("Binary Name", c.binaryName, `components.${idx}.binaryName`));
+  }
+  if (c.expectedVersion) {
+    rows.push(editableRow("Expected Version", c.expectedVersion, `components.${idx}.expectedVersion`));
+  }
+  if (c.userSetting) {
+    rows.push(editableRow("User Setting", c.userSetting, `components.${idx}.userSetting`));
+  }
+  if (c.platforms) {
+    rows.push(platformRow(c.platforms));
+  }
+  if (c.sources) {
+    rows.push(sourceChainRow(c.sources));
+  }
+  if (c.bundled) {
+    rows.push(bundledRow(c.bundled));
+  }
+  if (c.env) {
+    rows.push(envRow(c.env));
+  }
+  if (c.pkgmgr) {
+    rows.push(pkgmgrRow(c.pkgmgr));
+  }
+  if (c.githubRelease) {
+    rows.push(githubRow(c.githubRelease));
+  }
+  if (c.npm) {
+    rows.push(npmRow(c.npm));
+  }
   if (c.versionCheckStrategy) {
     rows.push(fieldRow("Version Check", c.versionCheckStrategy));
   }
@@ -165,17 +193,29 @@ function bundledRow(b) {
 
 function envRow(env) {
   const parts = [];
-  if (env.pathVar) { parts.push(`pathVar: ${esc(env.pathVar)}`); }
-  if (env.dirVar) { parts.push(`dirVar: ${esc(env.dirVar)}`); }
+  if (env.pathVar) {
+    parts.push(`pathVar: ${esc(env.pathVar)}`);
+  }
+  if (env.dirVar) {
+    parts.push(`dirVar: ${esc(env.dirVar)}`);
+  }
   return fieldRow("Environment", parts.join(", "));
 }
 
 function pkgmgrRow(p) {
   const parts = [];
-  if (p.brew) { parts.push(`brew: ${p.brew}`); }
-  if (p.scoop) { parts.push(`scoop: ${p.scoop}`); }
-  if (p.apt) { parts.push(`apt: ${p.apt}`); }
-  if (p.winget) { parts.push(`winget: ${p.winget}`); }
+  if (p.brew) {
+    parts.push(`brew: ${p.brew}`);
+  }
+  if (p.scoop) {
+    parts.push(`scoop: ${p.scoop}`);
+  }
+  if (p.apt) {
+    parts.push(`apt: ${p.apt}`);
+  }
+  if (p.winget) {
+    parts.push(`winget: ${p.winget}`);
+  }
   return fieldRow("Pkg Managers", parts.join(", "));
 }
 
@@ -192,18 +232,26 @@ function renderPlatformMatrix(m) {
   const showAll = m.components.some((c) => c.platforms?.includes("all"));
   const cols = showAll ? [...platforms, "all"] : platforms;
   const shortNames = {
-    "darwin-arm64": "mac ARM", "darwin-x64": "mac x64",
-    "linux-x64": "lin x64", "linux-arm64": "lin ARM",
-    "win32-x64": "win x64", "win32-arm64": "win ARM", "all": "all",
+    "darwin-arm64": "mac ARM",
+    "darwin-x64": "mac x64",
+    "linux-x64": "lin x64",
+    "linux-arm64": "lin ARM",
+    "win32-x64": "win x64",
+    "win32-arm64": "win ARM",
+    all: "all",
   };
   const headers = cols.map((p) => `<th>${shortNames[p] || p}</th>`).join("");
-  const rows = m.components.map((c) => {
-    const cells = cols.map((p) => {
-      const has = c.platforms?.includes(p);
-      return `<td class="${has ? "matrix-yes" : "matrix-no"}">${has ? "&#10003;" : "&mdash;"}</td>`;
-    }).join("");
-    return `<tr><td class="comp-name">${esc(c.id)}</td>${cells}</tr>`;
-  }).join("");
+  const rows = m.components
+    .map((c) => {
+      const cells = cols
+        .map((p) => {
+          const has = c.platforms?.includes(p);
+          return `<td class="${has ? "matrix-yes" : "matrix-no"}">${has ? "&#10003;" : "&mdash;"}</td>`;
+        })
+        .join("");
+      return `<tr><td class="comp-name">${esc(c.id)}</td>${cells}</tr>`;
+    })
+    .join("");
 
   return `
     <div class="section">
@@ -218,12 +266,15 @@ function renderPlatformMatrix(m) {
 }
 
 function renderHosts(m) {
-  if (!m.hosts || Object.keys(m.hosts).length === 0) { return ""; }
-  const cards = Object.entries(m.hosts).map(([name, policy]) => {
-    const verifies = policy.activationVerifies
-      ? policy.activationVerifies.map((v) => `<span class="source-chip">${esc(v)}</span>`).join(" ")
-      : "<em>none</em>";
-    return `
+  if (!m.hosts || Object.keys(m.hosts).length === 0) {
+    return "";
+  }
+  const cards = Object.entries(m.hosts)
+    .map(([name, policy]) => {
+      const verifies = policy.activationVerifies
+        ? policy.activationVerifies.map((v) => `<span class="source-chip">${esc(v)}</span>`).join(" ")
+        : "<em>none</em>";
+      return `
       <div class="card host-card">
         <div class="card-head" data-toggle="host-${name}">
           <span class="card-chevron">&#9654;</span>
@@ -239,7 +290,8 @@ function renderHosts(m) {
           ${fieldRow("On Mismatch", policy.onMismatch || "error")}
         </div>
       </div>`;
-  }).join("");
+    })
+    .join("");
   return `
     <div class="section">
       <div class="section-header">
@@ -272,7 +324,9 @@ function bindEvents() {
   root.querySelectorAll("[data-toggle]").forEach((el) => {
     el.addEventListener("click", () => {
       const card = el.closest(".card");
-      if (card) { card.classList.toggle("expanded"); }
+      if (card) {
+        card.classList.toggle("expanded");
+      }
     });
   });
 
@@ -283,7 +337,9 @@ function bindEvents() {
   root.querySelectorAll("[data-remove]").forEach((el) => {
     el.addEventListener("click", () => {
       const id = el.getAttribute("data-remove");
-      if (id) { vscode.postMessage({ type: "removeComponent", componentId: id }); }
+      if (id) {
+        vscode.postMessage({ type: "removeComponent", componentId: id });
+      }
     });
   });
 
@@ -297,11 +353,15 @@ function bindEvents() {
 
   const cancelBtn = document.getElementById("btn-cancel-add");
   if (cancelBtn && addForm) {
-    cancelBtn.addEventListener("click", () => { addForm.style.display = "none"; });
+    cancelBtn.addEventListener("click", () => {
+      addForm.style.display = "none";
+    });
   }
 
   const confirmBtn = document.getElementById("btn-confirm-add");
-  if (confirmBtn) { confirmBtn.addEventListener("click", submitAddComponent); }
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", submitAddComponent);
+  }
 }
 
 function startInlineEdit(el) {
@@ -315,7 +375,9 @@ function startInlineEdit(el) {
       const o = document.createElement("option");
       o.value = opt;
       o.textContent = opt;
-      if (opt === current) { o.selected = true; }
+      if (opt === current) {
+        o.selected = true;
+      }
       select.appendChild(o);
     }
     const wrapper = document.createElement("span");
@@ -348,8 +410,12 @@ function startInlineEdit(el) {
     }
   };
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { commit(); }
-    if (e.key === "Escape") { render(); }
+    if (e.key === "Enter") {
+      commit();
+    }
+    if (e.key === "Escape") {
+      render();
+    }
   });
   input.addEventListener("blur", commit);
 }
@@ -360,16 +426,18 @@ function submitAddComponent() {
   const language = /** @type {HTMLSelectElement} */ (document.getElementById("new-lang"))?.value;
   const binaryName = /** @type {HTMLInputElement} */ (document.getElementById("new-binary"))?.value?.trim();
   const version = /** @type {HTMLInputElement} */ (document.getElementById("new-version"))?.value?.trim();
-  if (!id || !kind) { return; }
+  if (!id || !kind) {
+    return;
+  }
 
-  const isExec = ["cli","lsp","mcp","sidecar","dap","tool"].includes(kind);
+  const isExec = ["cli", "lsp", "mcp", "sidecar", "dap", "tool"].includes(kind);
   const component = { id, kind, language: language || undefined };
   if (isExec) {
     Object.assign(component, {
       binaryName: binaryName || id,
       expectedVersion: version || "0.1.0",
-      platforms: ["darwin-arm64","darwin-x64","linux-x64","linux-arm64","win32-x64","win32-arm64"],
-      sources: ["user-setting","env","bundled","path"],
+      platforms: ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
+      sources: ["user-setting", "env", "bundled", "path"],
       verifyStartup: true,
       versionCheckStrategy: kind === "lsp" ? "lsp-initialize" : "version-flag",
       required: true,
@@ -377,11 +445,15 @@ function submitAddComponent() {
   }
   vscode.postMessage({ type: "addComponent", component });
   const form = document.getElementById("add-component-form");
-  if (form) { form.style.display = "none"; }
+  if (form) {
+    form.style.display = "none";
+  }
 }
 
 function esc(str) {
-  if (!str) { return ""; }
+  if (!str) {
+    return "";
+  }
   const d = document.createElement("div");
   d.textContent = str;
   return d.innerHTML;

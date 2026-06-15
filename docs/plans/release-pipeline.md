@@ -372,6 +372,9 @@ These join the existing secrets table in [SWR-REL-WORKFLOW].
 | SWR-REL-GAP-COSIGN | `SHA256SUMS` not cosign-signed; per-asset `.sha256` still used | `release.reusable.yml` release-assets job — see [SWR-SEC-CHECKSUM] |
 | SWR-REL-GAP-ACTION-PINNING | `uses:` refs on mutable tags in `release.reusable.yml`/`release.yml`/`ci.yml` | All `.github/workflows/*.yml` — see [SWR-SEC-ACTION-PINNING] |
 | SWR-REL-GAP-TOKEN-PRIVILEGE | `release.reusable.yml` top-level `contents: write` inherited by build/matrix jobs | `release.reusable.yml` — see [SWR-SEC-TOKEN-PRIVILEGE] |
+| SWR-REL-GAP-CODE-SCANNING | No `codeql.yml` code scanning workflow (matrix: actions, rust, javascript-typescript) | `.github/workflows/` — see [SWR-SEC-CODE-SCANNING] |
+| SWR-REL-GAP-SECRET-SCANNING | Secret scanning + push protection not enabled in repo settings | GitHub repo settings — see [SWR-SEC-SECRET-SCANNING] |
+| SWR-REL-GAP-SECURITY-POLICY | No `SECURITY.md` / private vulnerability reporting not enabled | repo root or `.github/` — see [SWR-SEC-POLICY] |
 
 ---
 

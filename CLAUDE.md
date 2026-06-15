@@ -1,4 +1,4 @@
-<!-- agent-pmo:f481f8d -->
+<!-- agent-pmo:b636503 -->
 # Shipwright — Agent Instructions
 
 > ⚠️ **TOKEN DISCIPLINE.** Check file size first. `Grep` over `Read`. Use `offset`/`limit`.
@@ -11,7 +11,7 @@
 
 `Shipwright` is a portfolio-shared library that scaffolds binary and IDE-extension deployment in a consistent way across multiple downstream products (Too Many Cooks, Deslop, Basilisk, SharpLsp, dart_mutant — see [docs/specs/source-projects.md](docs/specs/source-projects.md)). It defines the binary version contract, manifest schema, compatibility matrix, and the host-side resolution algorithm that IDE extensions use to locate and verify their backing binaries before launching them. See [docs/specs/](docs/specs/) for the authoritative behavior specs and [docs/plans/](docs/plans/) for the implementation plan.
 
-**Primary language(s):** Rust (workspace, libraries) + Node/TypeScript (manifest validator + fixture tests)
+**Primary language(s):** Rust (workspace, libraries), TypeScript/Node (SDKs, MCP, VS Code helpers, fixture tests), Dart, C#/.NET, Kotlin/Gradle, and Eleventy for the docs website.
 **Build command:** `make ci`
 **Test command:** `make test`
 **Lint command:** `make lint`
@@ -22,7 +22,11 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 
 ## Hard Rules — Universal (no exceptions)
 
-- **NO git commands.** No `add`, `commit`, `push`, `checkout`, `merge`, `rebase`, etc. CI handles git.
+- **NO git write commands.** No `add`, `commit`, `push`, `checkout`, `merge`, `rebase`, branch creation, tag movement, or worktrees. Read-only status/diff/log commands are allowed for orientation. CI handles source-control writes unless a dedicated PR-submission skill explicitly says otherwise.
+- **NEVER push to `main` directly.** Every change goes through PR -> CI green -> merge.
+- **NEVER list an agent as a commit co-author.** No AI/agent `Co-Authored-By` trailers.
+- **Work on exactly one branch at a time.** Reuse the existing feature branch; if multiple feature branches exist, stop and converge them before doing feature work.
+- **Auto-memory is off.** Persistent rules must be changed in this file through review, not silently captured by an agent memory feature.
 - **ZERO DUPLICATION.** Search before writing. Move code, don't copy it.
 - **NO EXCEPTIONS for control flow.** Return `Result<T,E>`. Exceptions are panic-level only.
 - **NO REGEX on structured data.** Use real parsers for JSON/YAML/TOML/code.
@@ -39,7 +43,7 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 
 ## Logging Standards
 
-- **Structured logging library only.** Never `println!` (Rust) or `console.log` (TS). Library per language: Rust `tracing`, TS `pino`.
+- **Structured logging library only.** Never `println!` (Rust), `console.log` (TS), `print` (Dart), or `Debug.WriteLine` (C#) for diagnostics. Libraries: Rust `tracing`, TS `pino`, Dart `dart_logging`, C# `Microsoft.Extensions.Logging` + `Serilog`.
 - **Log at entry/exit of significant operations.** Levels: `error|warn|info|debug|trace`. Silent failures are forbidden.
 - **Structured fields, not string interpolation.** `{ binary: "deslop-lsp", expected: "0.3.1", found: "0.2.0" }` — never `"deslop-lsp version mismatch"`.
 - **NEVER log PII.** **NEVER log secrets.** Log `"key: present"` or a truncated hash, never the value.
@@ -61,6 +65,20 @@ If the TMC server is available: register on start (name, intent, files), lock fi
 - No `as Type` casts without a comment explaining safety.
 - No throwing — return `Result<T,E>` (discriminated union).
 - Tests use the Node built-in `node --test` runner (see `tests/fixtures.test.mjs` and `tools/validate-manifest/`). New TS code is allowed but must run on Node ≥ 20 with `"type": "module"`.
+
+### Dart
+- Public library APIs live under `clients/dart/shipwright/lib/` and must stay null-safe.
+- Run `dart analyze` and `dart test --fail-fast` from `clients/dart/shipwright` before touching Dart resolver behavior.
+- Source-controlled package versions stay at `0.0.0-dev`; release tags stamp real versions.
+
+### C# / .NET
+- Keep nullable reference types enabled and warnings treated as errors.
+- Tests use xUnit and must run fail-fast through `dotnet test -- xunit.stopOnFail=true`.
+- Source-controlled `<Version>` values stay at `0.0.0-dev`; release tags stamp real versions.
+
+### Kotlin / Gradle
+- Kotlin client code lives in `clients/kotlin/shipwright-intellij/`.
+- Use the checked-in Gradle wrapper; do not assume a system Gradle installation.
 
 ## Testing Rules
 
@@ -90,6 +108,14 @@ make setup   # post-create dev environment setup
 
 **`make fmt`** formats code in-place. **`make lint`** runs linters/analyzers (read-only, no formatting). **`make test`** runs tests with coverage. Three separate targets — no overlap.
 
+## Deslop Duplication Gate
+
+Shipwright contains Deslop-supported languages (Rust, C#, Dart), so agents MUST use the Deslop loop when changing code:
+
+- Before authoring any function, method, class, helper, fixture, or test setup, call `find-similar`. Reuse existing code for identical/nearly-identical matches or `signals.fused >= 0.85`.
+- After changing code, run `rescan` and check `top-offenders`; inspect any cluster you plan to touch with `cluster-by-id`.
+- Never silence duplication by raising `.deslop.toml`, hiding code, or making trivial shape changes.
+
 ## Placeholder Versions — NON-NEGOTIABLE
 
 All version fields in source (`Cargo.toml`, `package.json`, `*.csproj`, `pubspec.yaml`, `shipwright.json`) MUST be `0.0.0-dev`. Real versions are stamped at release time by `shipwright-version-stamp` from the git tag — **never hard-coded in source**. Hard-coded release versions in source are a release-engineering defect. See `[SWR-VERSION-BUILD-STAMPING]` in `docs/specs/binary-version-contract.md`.
@@ -99,16 +125,21 @@ All version fields in source (`Cargo.toml`, `package.json`, `*.csproj`, `pubspec
 ```
 crates/                            # Rust workspace members
   shipwright-host/                 # pure binary-resolution algorithm (no I/O)
-  shipwright-manifest/             # workspace member declared in Cargo.toml — NOT YET CREATED
+  shipwright-manifest/             # manifest schema and version-format helpers
+  shipwright-zed/                  # Zed extension helpers
 clients/                           # per-language client SDKs (placeholders)
   dart/  dotnet/  kotlin/  ts/
+extensions/
+  shipwright-tools/                # VS Code extension and visual manifest editor
 docs/
   specs/                           # behaviour specs (binary-version-contract, compatibility-matrix, etc.)
   plans/                           # implementation plans with TODO checklists
+website/                           # Eleventy + eleventy-plugin-techdoc documentation site
 schemas/                           # JSON schemas (shipwright, version-manifest, platforms, test-vectors)
 fixtures/                          # manifests, golden manifests, version outputs, platform definitions
 tools/
   validate-manifest/               # Node-based AJV validator (shipwright-validate-manifest)
+  shipwright-version-stamp/         # release-time version stamper
 templates/
   gh-actions/                      # downstream-project release/publish workflow templates
 examples/ci/                       # example consumer CI configurations

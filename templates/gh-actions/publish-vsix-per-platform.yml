@@ -9,7 +9,8 @@
 #   - SWR-SEC-FROZEN-INSTALL  npm ci (the sample uses npm install).
 #   - SWR-VSIX-BUNDLE-VERIFY  record the staged binary digest for host re-verify.
 #   - SWR-VSIX-PROVENANCE     attest the packaged .vsix (SLSA L2).
-#   - SWR-SEC-OIDC-PUBLISH    Marketplace PAT runs in a protected environment.
+#   - SWR-SEC-OIDC-PUBLISH    Marketplace publishes via Microsoft Entra OIDC — no
+#                             stored PAT (SWR-VSIX-PUBLISH-OIDC). PAT is legacy-only.
 
 name: publish-vsix-per-platform
 
@@ -37,12 +38,17 @@ on:
         type: boolean
         default: false
       marketplace_environment:
-        description: "Protected GitHub Environment that gates the Marketplace publish (SWR-SEC-OIDC-PUBLISH)."
+        description: "Protected GitHub Environment that gates the Marketplace publish AND pins the OIDC subject (SWR-SEC-OIDC-PUBLISH). Entra rejects wildcards in tag subjects, so the federated trust matches repo:OWNER/REPO:environment:<this>."
         required: false
         type: string
         default: release
     secrets:
-      vsce_pat:
+      # Entra OIDC publishing (SWR-VSIX-PUBLISH-OIDC) — the default, preferred model.
+      # These are directory identifiers, NOT credentials; passed as secrets only to
+      # keep them environment-scoped. No long-lived publish token is ever stored.
+      azure_client_id:
+        required: true
+      azure_tenant_id:
         required: true
 
 # SWR-SEC-TOKEN-PRIVILEGE: default read-only; jobs opt up.
@@ -164,23 +170,54 @@ jobs:
           name: ${{ env.target }}
           path: "*.vsix"
 
-  # Publish job follows the official MS sample. SWR-SEC-OIDC-PUBLISH: the long-lived
-  # VSCE_PAT is gated behind a protected environment (required reviewers + tag rule).
+  # SWR-VSIX-PUBLISH-OIDC: publish via Microsoft Entra workload identity federation —
+  # no stored PAT. The `environment:` is load-bearing, not just a gate: Entra rejects
+  # wildcards in tag subjects, so the federated trust matches against
+  # repo:OWNER/REPO:environment:<name>. id-token: write is required to mint the OIDC token.
   publish:
     runs-on: ubuntu-latest
     needs: build
     environment: ${{ inputs.marketplace_environment }}
     permissions:
       contents: read
+      id-token: write
     if: success() && startsWith( github.ref, 'refs/tags/')
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
 
-      # find . -iname *.vsix — exact form from official MS sample (no quotes around glob)
-      - name: Publish to VS Code Marketplace
+      # Exchange the GitHub OIDC token for an Entra session — no client secret. The
+      # publisher app has no Azure subscription role (its only authz is Marketplace
+      # publisher membership) → allow-no-subscriptions.
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
+        with:
+          client-id: ${{ secrets.azure_client_id }}
+          tenant-id: ${{ secrets.azure_tenant_id }}
+          allow-no-subscriptions: true
+
+      # One `vsce publish` per platform VSIX (a glob into one call silently publishes
+      # only the first). vsce is version-pinned: a floating `npx vsce` would run latest
+      # inside the token-holding job. 499b84ac-... is Azure DevOps' fixed first-party
+      # app id vsce authenticates against; the explicit-token path sidesteps the
+      # `--azure-credential` bug (microsoft/vscode-vsce#1023).
+      - name: Publish each platform VSIX to VS Code Marketplace (Entra OIDC, no PAT)
+        shell: bash
         run: |
-          args="--packagePath $(find . -iname *.vsix)"
-          if [ "${{ inputs.pre_release }}" = "true" ]; then args="$args --pre-release"; fi
-          npx vsce publish $args
-        env:
-          VSCE_PAT: ${{ secrets.vsce_pat }}
+          set -euo pipefail
+          shopt -s globstar nullglob
+          flag=""
+          if [ "${{ inputs.pre_release }}" = "true" ]; then flag="--pre-release"; fi
+          VSCE_PAT="$(az account get-access-token \
+            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+            --query accessToken -o tsv)"
+          echo "::add-mask::${VSCE_PAT}"
+          export VSCE_PAT
+          published=0
+          for vsix in **/*.vsix; do
+            echo "Publishing ${vsix}"
+            npx --yes @vscode/vsce@3.9.2 publish ${flag} --packagePath "${vsix}"
+            published=$((published + 1))
+          done
+          if [ "${published}" -eq 0 ]; then
+            echo "::error::no VSIX artifacts found to publish"
+            exit 1
+          fi

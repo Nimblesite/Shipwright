@@ -90,7 +90,7 @@
         "oidcPublish": {
           "type": "boolean",
           "default": true,
-          "description": "[SWR-SEC-OIDC-PUBLISH] Registry publishing uses OIDC trusted publishing with no long-lived token; the VSIX Marketplace PAT runs inside a protected environment."
+          "description": "[SWR-SEC-OIDC-PUBLISH] Registry publishing uses OIDC trusted publishing with no long-lived token. This includes the VS Code Marketplace, which publishes via Microsoft Entra workload identity federation (no stored PAT); only Open VSX and JetBrains still use a PAT inside a protected environment."
         },
         "vulnGate": {
           "type": "string",

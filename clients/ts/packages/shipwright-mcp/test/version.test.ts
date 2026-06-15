@@ -6,7 +6,7 @@ import {
   formatJsonVersion,
   formatPlainVersion,
   handleVersionArgs,
-  type VersionSpec
+  type VersionSpec,
 } from "../src/index.js";
 
 const spec: VersionSpec = {
@@ -20,14 +20,14 @@ const spec: VersionSpec = {
   gitSha: "abc1234",
   product: "too-many-cooks",
   target: "all",
-  toolchain: "node 24"
+  toolchain: "node 24",
 };
 
 describe("@nimblesite/shipwright-mcp", () => {
   it("creates MCP serverInfo from package metadata", () => {
     expect(createMcpServerInfo({ name: "@scope/pkg", version: "0.5.0" }, "tmc-server")).toEqual({
       ok: true,
-      value: { name: "tmc-server", version: "0.5.0" }
+      value: { name: "tmc-server", version: "0.5.0" },
     });
   });
 
@@ -50,14 +50,14 @@ describe("@nimblesite/shipwright-mcp", () => {
       gitSha: "abc1234",
       product: "too-many-cooks",
       target: "all",
-      toolchain: "node 24"
+      toolchain: "node 24",
     });
   });
 
   it("dispatches --version and --version --json without starting the server", () => {
     expect(handleVersionArgs(["--version"], spec)).toEqual({
       ok: true,
-      value: { handled: true, stdout: "tmc-server 0.5.0\n" }
+      value: { handled: true, stdout: "tmc-server 0.5.0\n" },
     });
     expect(handleVersionArgs(["--version", "--json"], spec).value?.handled).toBe(true);
   });

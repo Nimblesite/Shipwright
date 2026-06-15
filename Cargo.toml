@@ -1,3 +1,4 @@
+# agent-pmo:b636503
 [workspace]
 resolver = "2"
 members = [
@@ -25,7 +26,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 
-# agent-pmo:f481f8d
 # Workspace lints — deny-by-default. See REPO-STANDARDS-SPEC [LINT-RUST].
 # Inherit in every member crate with `[lints] workspace = true`.
 [workspace.lints.rust]

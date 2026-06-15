@@ -1,6 +1,7 @@
 /// Runs every vector from `schemas/test-vectors.json` through `resolve`.
 ///
 /// Keeps parity with the Rust + TS reference implementations.
+library;
 
 import 'dart:convert';
 import 'dart:io';
@@ -13,10 +14,14 @@ void main() {
     final vectorsFile = File(
       '${Directory.current.path}/../../../schemas/test-vectors.json',
     );
-    expect(vectorsFile.existsSync(), isTrue,
-        reason: 'test-vectors.json must exist at ${vectorsFile.path}');
+    expect(
+      vectorsFile.existsSync(),
+      isTrue,
+      reason: 'test-vectors.json must exist at ${vectorsFile.path}',
+    );
 
-    final doc = jsonDecode(vectorsFile.readAsStringSync()) as Map<String, dynamic>;
+    final doc =
+        jsonDecode(vectorsFile.readAsStringSync()) as Map<String, dynamic>;
     final vectors = doc['vectors'] as List<dynamic>;
 
     final failures = <String>[];
@@ -52,9 +57,8 @@ void _runVector(Map<String, dynamic> v) {
       .whereType<Source>()
       .toList();
 
-  final binaryName = expectedName ?? (probeMap.values.isNotEmpty
-      ? probeMap.values.first.name
-      : 'deslop-lsp');
+  final binaryName = expectedName ??
+      (probeMap.values.isNotEmpty ? probeMap.values.first.name : 'deslop-lsp');
 
   final platform = _platform(input['platform'] as String?);
 
@@ -73,7 +77,8 @@ void _runVector(Map<String, dynamic> v) {
         pathVar: envConfigRaw?['pathVar'] as String?,
         dirVar: envConfigRaw?['dirVar'] as String?,
       ),
-      pathEntries: (input['path'] as List<dynamic>?)?.cast<String>() ?? const [],
+      pathEntries:
+          (input['path'] as List<dynamic>?)?.cast<String>() ?? const [],
       bundledDir: input['bundledDir'] as String?,
       cargoBin: input['cargoBin'] as String?,
       pkgmgr: _pkgmgr(input['pkgmgr']),
@@ -95,14 +100,14 @@ Platform _platform(String? s) => switch (s ?? 'darwin-arm64') {
       _ => Platform.all,
     };
 
-Map<String, String> _stringMap(dynamic v) {
+Map<String, String> _stringMap(Object? v) {
   if (v is! Map) return const {};
   return {
     for (final e in v.entries) e.key as String: e.value as String,
   };
 }
 
-PkgmgrConfig? _pkgmgr(dynamic v) {
+PkgmgrConfig? _pkgmgr(Object? v) {
   if (v is! Map<String, dynamic>) return null;
   return PkgmgrConfig(
     brew: v['brew'] as String?,
@@ -112,7 +117,7 @@ PkgmgrConfig? _pkgmgr(dynamic v) {
   );
 }
 
-DotnetToolConfig? _dotnetTool(dynamic v) {
+DotnetToolConfig? _dotnetTool(Object? v) {
   if (v is! Map<String, dynamic>) return null;
   return DotnetToolConfig(
     package: v['package'] as String,
@@ -122,7 +127,7 @@ DotnetToolConfig? _dotnetTool(dynamic v) {
 
 void _expect(Resolution r, Map<String, dynamic> want) {
   final wantStatus = want['status'] as String;
-  final gotStatus = _statusWire(r.status);
+  final gotStatus = r.status.wire;
   if (gotStatus != wantStatus) {
     throw _MismatchError('status want=$wantStatus got=$gotStatus');
   }
@@ -153,39 +158,26 @@ void _expect(Resolution r, Map<String, dynamic> want) {
   if (want['deferredCheck'] is String) {
     final got = r.deferredCheck == null ? null : 'lsp-initialize';
     if (got != want['deferredCheck']) {
-      throw _MismatchError('deferredCheck want=${want['deferredCheck']} got=$got');
+      throw _MismatchError(
+        'deferredCheck want=${want['deferredCheck']} got=$got',
+      );
     }
   }
   if (want['action'] is Map) {
     final gotJson = r.action?.toJson();
     if (!_jsonEquals(gotJson, want['action'] as Map<String, dynamic>)) {
-      throw _MismatchError('action mismatch. want=${want['action']} got=$gotJson');
+      throw _MismatchError(
+        'action mismatch. want=${want['action']} got=$gotJson',
+      );
     }
   }
 }
 
-String _statusWire(Status s) => switch (s) {
-      Status.ok => 'ok',
-      Status.okWithWarning => 'ok-with-warning',
-      Status.deferred => 'deferred',
-      Status.prompt => 'prompt',
-      Status.error => 'error',
-    };
+String? _errorWire(ErrorCode? e) => e?.wire;
 
-String? _errorWire(ErrorCode? e) => switch (e) {
-      ErrorCode.userSettingVersionMismatch => 'user-setting-version-mismatch',
-      ErrorCode.noSourceResolved => 'no-source-resolved',
-      ErrorCode.binaryNameMismatch => 'binary-name-mismatch',
-      null => null,
-    };
+String? _warningWire(WarningCode? w) => w?.wire;
 
-String? _warningWire(WarningCode? w) => switch (w) {
-      WarningCode.envVersionMismatch => 'env-version-mismatch',
-      WarningCode.bundledVersionDrift => 'bundled-version-drift',
-      null => null,
-    };
-
-bool _jsonEquals(dynamic a, dynamic b) {
+bool _jsonEquals(Object? a, Object? b) {
   if (a is Map && b is Map) {
     if (a.length != b.length) return false;
     for (final k in a.keys) {

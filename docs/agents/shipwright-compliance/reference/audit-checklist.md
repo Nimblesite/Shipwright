@@ -134,7 +134,9 @@ Prefer OIDC trusted publishing (no stored long-lived token) on every registry th
 5. CI matrix: Node `22.x`, `fail-fast: false`, `npm_config_arch` per leg, all 6 targets. `[SWR-VSIX-CI-MATRIX]`.
 6. Package contents verified after `vsce package` — correct binary present, no foreign bins, no
    placeholders, no `out/`/`src/`/unbundled `node_modules/`, no caches. `[SWR-VSIX-VERIFY]`.
-7. Publish job runs on tag only, after all builds, single atomic `vsce publish`, `VSCE_PAT` secret. `[SWR-VSIX-PUBLISH]`.
+7. Publish job runs on tag only, after all builds, in a protected `environment:` with `id-token: write`,
+   publishing each VSIX via Entra OIDC (`azure/login` → `az account get-access-token` → `vsce`) — **no
+   stored `VSCE_PAT`**. A long-lived PAT is a FAIL unless OIDC federation is genuinely unavailable. `[SWR-VSIX-PUBLISH-OIDC]`.
 
 ## 12. Supply-chain security, all channels — `[SWR-SEC-*]`, `[SWR-SIGN-*]`
 
@@ -167,7 +169,7 @@ pipeline can still have required controls outstanding. Cite the `SWR-SEC-*` / `S
 | Channel | What to verify (FAIL if missing) | Spec ID |
 |---|---|---|
 | GitHub Releases | cosign-signed `SHA256SUMS` + provenance + SBOM; macOS notarized | SWR-SEC-CHECKSUM/PROVENANCE/SBOM, SWR-SIGN |
-| VS Code Marketplace | per-VSIX provenance; bundled binary verified vs signed release (`SWR-VSIX-BUNDLE-VERIFY`); PAT in a protected env, `Marketplace → Manage` scope | SWR-SEC-OIDC-PUBLISH |
+| VS Code Marketplace | per-VSIX provenance; bundled binary verified vs signed release (`SWR-VSIX-BUNDLE-VERIFY`); **Entra OIDC publish, no stored PAT** — `id-token: write`, publisher-member SP, in a protected env | SWR-VSIX-PUBLISH-OIDC / SWR-SEC-OIDC-PUBLISH |
 | Open VSX | `node-ovsx-sign`; a **separate** short-expiry PAT in a protected env | SWR-SEC-OIDC-PUBLISH |
 | JetBrains / Android Studio | `signPlugin` certificate signature; publish token in a protected env | SWR-SEC-OIDC-PUBLISH |
 | Zed | no committed `.wasm` drift; runtime `github-release` download verifies checksum + signature; version via LSP `initialize` | SWR-SEC-CHECKSUM |

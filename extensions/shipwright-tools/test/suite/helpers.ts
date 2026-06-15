@@ -4,54 +4,56 @@ export const EXTENSION_ID = "nimblesite.shipwright-tools";
 
 export async function activateExtension(): Promise<vscode.Extension<unknown>> {
   const ext = vscode.extensions.getExtension(EXTENSION_ID);
-  if (!ext) { throw new Error(`Extension ${EXTENSION_ID} not found`); }
-  if (!ext.isActive) { await ext.activate(); }
+  if (!ext) {
+    throw new Error(`Extension ${EXTENSION_ID} not found`);
+  }
+  if (!ext.isActive) {
+    await ext.activate();
+  }
   return ext;
 }
 
 export async function openDocument(relativePath: string): Promise<vscode.TextDocument> {
   const folder = vscode.workspace.workspaceFolders?.[0];
-  if (!folder) { throw new Error("No workspace folder open"); }
+  if (!folder) {
+    throw new Error("No workspace folder open");
+  }
   const uri = vscode.Uri.joinPath(folder.uri, relativePath);
   const doc = await vscode.workspace.openTextDocument(uri);
   await vscode.window.showTextDocument(doc);
   return doc;
 }
 
-export async function createTempFile(
-  relativePath: string,
-  content: string,
-): Promise<vscode.Uri> {
+export async function createTempFile(relativePath: string, content: string): Promise<vscode.Uri> {
   const folder = vscode.workspace.workspaceFolders?.[0];
-  if (!folder) { throw new Error("No workspace folder open"); }
+  if (!folder) {
+    throw new Error("No workspace folder open");
+  }
   const uri = vscode.Uri.joinPath(folder.uri, relativePath);
   await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
   return uri;
 }
 
 export async function deleteTempFile(uri: vscode.Uri): Promise<void> {
-  try { await vscode.workspace.fs.delete(uri); } catch { /* already gone */ }
+  try {
+    await vscode.workspace.fs.delete(uri);
+  } catch {
+    /* already gone */
+  }
 }
 
-export async function setContent(
-  doc: vscode.TextDocument,
-  content: string,
-): Promise<void> {
+export async function setContent(doc: vscode.TextDocument, content: string): Promise<void> {
   const editor = await vscode.window.showTextDocument(doc);
   const ok = await editor.edit((eb) => {
-    const full = new vscode.Range(
-      doc.lineAt(0).range.start,
-      doc.lineAt(doc.lineCount - 1).range.end,
-    );
+    const full = new vscode.Range(doc.lineAt(0).range.start, doc.lineAt(doc.lineCount - 1).range.end);
     eb.replace(full, content);
   });
-  if (!ok) { throw new Error("editor.edit failed"); }
+  if (!ok) {
+    throw new Error("editor.edit failed");
+  }
 }
 
-export function waitForDiagnostics(
-  uri: vscode.Uri,
-  timeout = 5000,
-): Promise<vscode.Diagnostic[]> {
+export function waitForDiagnostics(uri: vscode.Uri, timeout = 5000): Promise<vscode.Diagnostic[]> {
   return new Promise((resolve) => {
     const deadline = setTimeout(() => {
       sub.dispose();
@@ -69,10 +71,12 @@ export function waitForDiagnostics(
 }
 
 export async function openAndWaitForDiagnostics(
-  relativePath: string,
+  relativePath: string
 ): Promise<{ doc: vscode.TextDocument; diags: vscode.Diagnostic[] }> {
   const folder = vscode.workspace.workspaceFolders?.[0];
-  if (!folder) { throw new Error("No workspace folder open"); }
+  if (!folder) {
+    throw new Error("No workspace folder open");
+  }
   const uri = vscode.Uri.joinPath(folder.uri, relativePath);
 
   const diagPromise = waitForDiagnostics(uri);
@@ -87,12 +91,16 @@ export async function closeAllEditors(): Promise<void> {
 }
 
 export function manifest(overrides: Record<string, unknown> = {}): string {
-  return JSON.stringify({
-    manifestVersion: 1,
-    product: { id: "test-product", version: "1.0.0" },
-    components: [],
-    ...overrides,
-  }, null, 2);
+  return JSON.stringify(
+    {
+      manifestVersion: 1,
+      product: { id: "test-product", version: "1.0.0" },
+      components: [],
+      ...overrides,
+    },
+    null,
+    2
+  );
 }
 
 export function diagMessages(diags: vscode.Diagnostic[]): string[] {

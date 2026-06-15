@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- agent-pmo:b636503 -->
+<RunSettings>
+  <RunConfiguration>
+    <StopOnFail>true</StopOnFail>
+  </RunConfiguration>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>json,cobertura</Format>
+          <Exclude>[*]*.Generated*,[*]*.g.*</Exclude>
+          <ExcludeByFile>**/obj/**/*,**/bin/**/*,**/Migrations/**/*</ExcludeByFile>
+          <ExcludeByAttribute>
+            DebuggerNonUserCode,DebuggerHidden,EditorBrowsable,
+            ExcludeFromCodeCoverage,GeneratorAttribute,CompilerGenerated
+          </ExcludeByAttribute>
+          <SkipAutoProps>true</SkipAutoProps>
+          <DeterministicReport>true</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

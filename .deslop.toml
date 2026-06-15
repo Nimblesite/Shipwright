@@ -1,0 +1,7 @@
+# agent-pmo:b636503
+# Deslop duplication gate — REPO-STANDARDS-SPEC [CI-DESLOP]
+# Single source of truth for this repo's duplication budget. Committed, PR-reviewed,
+# ratcheted DOWN only (never up without written justification).
+# CI runs `deslop .`, which reads this file and exits 3 when duplication exceeds it.
+[threshold]
+max_duplication_percent = 5.0

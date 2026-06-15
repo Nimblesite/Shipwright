@@ -74,7 +74,7 @@ export function createVersionManifest(spec: VersionSpec): Result<VersionManifest
     name: spec.name,
     version: spec.version,
     kind: spec.kind,
-    language: spec.language
+    language: spec.language,
   };
 
   if (spec.buildTime) manifest.buildTime = spec.buildTime;

@@ -319,8 +319,11 @@ public static class BinaryResolver
     private static string JoinBinary(string dir, string name, Platform platform)
     {
         var trimmed = dir.TrimEnd('/', '\\');
-        return $"{trimmed}/{name}{WireFormats.ExeSuffix(platform)}";
+        return $"{trimmed}{Separator(platform)}{name}{WireFormats.ExeSuffix(platform)}";
     }
+
+    private static string Separator(Platform platform) =>
+        platform is Platform.Win32X64 or Platform.Win32Arm64 ? "\\" : "/";
 
     private static Dictionary<string, string> PkgmgrCommands(PkgmgrConfig pkg)
     {

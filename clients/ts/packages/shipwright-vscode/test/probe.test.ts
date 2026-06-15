@@ -13,7 +13,7 @@ describe("probeBinaryVersion", () => {
 
     await expect(probeBinaryVersion("/extension/bin/deslop-lsp", { execFile })).resolves.toEqual({
       name: "deslop-lsp",
-      version: "0.1.0"
+      version: "0.1.0",
     });
     expect(calls).toEqual([{ args: ["--version"], timeout: 10000 }]);
   });
@@ -41,7 +41,7 @@ describe("probeBinaryVersion", () => {
 
     await expect(probeBinaryVersion("/ext/bin/win32-x64/napper.exe", { execFile })).resolves.toEqual({
       name: "napper",
-      version: "0.12.2"
+      version: "0.12.2",
     });
     expect(attempt).toBe(2);
     expect(timeouts[0]).toBe(10000);
@@ -71,15 +71,15 @@ describe("probeBinaryVersion", () => {
 
     await expect(probeBinaryVersionResult("/ext/napper.exe", { execFile: timeoutExec })).resolves.toMatchObject({
       ok: false,
-      failure: { reason: "timeout", timedOut: true }
+      failure: { reason: "timeout", timedOut: true },
     });
     await expect(probeBinaryVersionResult("/missing/napper.exe", { execFile: missingExec })).resolves.toMatchObject({
       ok: false,
-      failure: { reason: "not-found" }
+      failure: { reason: "not-found" },
     });
     await expect(probeBinaryVersionResult("/ext/napper.exe", { execFile: okExec })).resolves.toEqual({
       ok: true,
-      version: { name: "napper", version: "0.12.2" }
+      version: { name: "napper", version: "0.12.2" },
     });
   });
 });
@@ -88,14 +88,14 @@ describe("parseVersionOutput", () => {
   it("parses the first stdout line", () => {
     expect(parseVersionOutput("forge-sidecar-csharp 1.2.3\nignored text\n")).toEqual({
       name: "forge-sidecar-csharp",
-      version: "1.2.3"
+      version: "1.2.3",
     });
   });
 
   it("parses JSON version output when a binary uses JSON by default", () => {
     expect(parseVersionOutput('{"schemaVersion":1,"componentId":"tmc-server","version":"0.5.0"}')).toEqual({
       name: "tmc-server",
-      version: "0.5.0"
+      version: "0.5.0",
     });
   });
 

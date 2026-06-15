@@ -1,13 +1,21 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 import {
-  activateExtension, closeAllEditors, createTempFile,
-  deleteTempFile, setContent, openDocument,
+  activateExtension,
+  closeAllEditors,
+  createTempFile,
+  deleteTempFile,
+  setContent,
+  openDocument,
 } from "./helpers";
 
 suite("Manifest Tree View", () => {
-  suiteSetup(async () => { await activateExtension(); });
-  teardown(async () => { await closeAllEditors(); });
+  suiteSetup(async () => {
+    await activateExtension();
+  });
+  teardown(async () => {
+    await closeAllEditors();
+  });
 
   test("tree view is registered and visible after activation", async () => {
     const treeView = await vscode.commands.executeCommand<void>("shipwright.refreshTree");
@@ -61,11 +69,18 @@ suite("Manifest Tree View", () => {
   });
 
   test("refreshTree picks up manifest changes on disk", async () => {
-    const uri = await createTempFile("refresh-test.shipwright.json", JSON.stringify({
-      manifestVersion: 1,
-      product: { id: "before-refresh", version: "0.1.0" },
-      components: [],
-    }, null, 2));
+    const uri = await createTempFile(
+      "refresh-test.shipwright.json",
+      JSON.stringify(
+        {
+          manifestVersion: 1,
+          product: { id: "before-refresh", version: "0.1.0" },
+          components: [],
+        },
+        null,
+        2
+      )
+    );
 
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
@@ -76,14 +91,28 @@ suite("Manifest Tree View", () => {
       const beforeText = doc.getText();
       assert.ok(beforeText.includes("before-refresh"), "initial content loaded");
 
-      await setContent(doc, JSON.stringify({
-        manifestVersion: 1,
-        product: { id: "after-refresh", version: "0.2.0" },
-        components: [
-          { id: "new-comp", kind: "cli", language: "rust", binaryName: "new",
-            expectedVersion: "0.2.0", platforms: ["linux-x64"], sources: ["path"] },
-        ],
-      }, null, 2));
+      await setContent(
+        doc,
+        JSON.stringify(
+          {
+            manifestVersion: 1,
+            product: { id: "after-refresh", version: "0.2.0" },
+            components: [
+              {
+                id: "new-comp",
+                kind: "cli",
+                language: "rust",
+                binaryName: "new",
+                expectedVersion: "0.2.0",
+                platforms: ["linux-x64"],
+                sources: ["path"],
+              },
+            ],
+          },
+          null,
+          2
+        )
+      );
 
       await vscode.commands.executeCommand("shipwright.refreshTree");
 
@@ -103,47 +132,55 @@ suite("Manifest Tree View", () => {
   });
 
   test("tree handles manifest with all optional fields populated", async () => {
-    const rich = JSON.stringify({
-      manifestVersion: 1,
-      product: {
-        id: "rich-prod",
-        displayName: "Rich Product",
-        version: "3.0.0",
-        repository: "https://github.com/example/rich",
-        homepage: "https://rich.example.com",
+    const rich = JSON.stringify(
+      {
+        manifestVersion: 1,
+        product: {
+          id: "rich-prod",
+          displayName: "Rich Product",
+          version: "3.0.0",
+          repository: "https://github.com/example/rich",
+          homepage: "https://rich.example.com",
+        },
+        components: [
+          {
+            id: "rich-lsp",
+            kind: "lsp",
+            language: "dotnet",
+            binaryName: "rich-lsp",
+            expectedVersion: "3.0.0",
+            platforms: ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
+            bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}", perPlatformArtifact: true },
+            sources: ["user-setting", "env", "bundled", "path", "dotnet-tool"],
+            userSetting: "rich.lspPath",
+            env: { pathVar: "RICH_LSP", dirVar: "RICH_DIR" },
+            dotnetTool: { package: "Rich.Lsp", command: "rich-lsp" },
+            verifyStartup: true,
+            versionCheckStrategy: "version-flag",
+            required: true,
+          },
+          {
+            id: "rich-asset",
+            kind: "asset",
+            asset: { path: "data/model.onnx", checksum: "sha256:abc123" },
+          },
+        ],
+        hosts: {
+          vscode: {
+            artifact: "vsix-per-platform",
+            activationVerifies: ["rich-lsp"],
+            onMismatch: "prompt-reinstall",
+          },
+          jetbrains: {
+            artifact: "intellij-jar",
+            activationVerifies: ["rich-lsp"],
+            onMismatch: "warn",
+          },
+        },
       },
-      components: [
-        {
-          id: "rich-lsp", kind: "lsp", language: "dotnet",
-          binaryName: "rich-lsp", expectedVersion: "3.0.0",
-          platforms: ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64", "win32-x64", "win32-arm64"],
-          bundled: { bundlePath: "bin/${platform}/${binaryName}${exe}", perPlatformArtifact: true },
-          sources: ["user-setting", "env", "bundled", "path", "dotnet-tool"],
-          userSetting: "rich.lspPath",
-          env: { pathVar: "RICH_LSP", dirVar: "RICH_DIR" },
-          dotnetTool: { package: "Rich.Lsp", command: "rich-lsp" },
-          verifyStartup: true,
-          versionCheckStrategy: "version-flag",
-          required: true,
-        },
-        {
-          id: "rich-asset", kind: "asset",
-          asset: { path: "data/model.onnx", checksum: "sha256:abc123" },
-        },
-      ],
-      hosts: {
-        vscode: {
-          artifact: "vsix-per-platform",
-          activationVerifies: ["rich-lsp"],
-          onMismatch: "prompt-reinstall",
-        },
-        jetbrains: {
-          artifact: "intellij-jar",
-          activationVerifies: ["rich-lsp"],
-          onMismatch: "warn",
-        },
-      },
-    }, null, 2);
+      null,
+      2
+    );
 
     const uri = await createTempFile("rich.shipwright.json", rich);
 

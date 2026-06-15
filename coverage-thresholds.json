@@ -1,31 +1,22 @@
 {
-  "_agent_pmo": "f481f8d",
-  "_doc": "Single source of truth for code coverage thresholds. See REPO-STANDARDS-SPEC.md [COVERAGE-THRESHOLDS-JSON]. NO GitHub repo variables. NO env vars. NO public `make coverage-check` target. Read by the internal `_coverage_check` recipe inside `make test`. `make test` exits non-zero if any measured metric < its threshold. Thresholds are monotonically increasing — only ratchet UP, never down. Per-package entries override default_threshold. Each entry supports: lines, functions, branches (all as percentages with one decimal place).",
-  "default_threshold": 100.0,
-  "packages": {
-    "shipwright-manifest": {
-      "lines": 100.0,
-      "functions": 100.0
+  "_agent_pmo": "b636503",
+  "_doc": "Single source of truth for code coverage thresholds. See REPO-STANDARDS-SPEC.md [COVERAGE-THRESHOLDS-JSON]. NO GitHub repo variables. NO env vars. NO public coverage target. This file is read by the internal `_coverage_check` recipe inside `make test`; thresholds ratchet upward only.",
+  "default_threshold": 100,
+  "projects": {
+    "crates/shipwright": {
+      "threshold": 100
     },
-    "shipwright-host": {
-      "lines": 100.0,
-      "functions": 100.0
+    "crates/shipwright-host": {
+      "threshold": 100
     },
-    "shipwright": {
-      "lines": 100.0,
-      "functions": 100.0
+    "crates/shipwright-manifest": {
+      "threshold": 100
     },
-    "shipwright-zed": {
-      "lines": 100.0,
-      "functions": 100.0
+    "crates/shipwright-zed": {
+      "threshold": 100
     },
-    "shipwright-version-stamp": {
-      "lines": 100.0,
-      "functions": 100.0
-    },
-    "shipwright-tools": {
-      "lines": 90.0,
-      "functions": 90.0
+    "tools/shipwright-version-stamp": {
+      "threshold": 100
     }
   }
 }

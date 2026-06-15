@@ -15,9 +15,7 @@
     },
     {
       "title": "Source",
-      "items": [
-        { "text": "README", "url": "/docs/" }
-      ]
+      "items": [{ "text": "README", "url": "/docs/" }]
     }
   ]
 }

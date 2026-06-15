@@ -188,7 +188,7 @@ platform-specific sample exactly. Confirm/produce:
 - Binary staged to `bin/<target>/<binary><exe>`; `.vscodeignore` excludes other platform dirs. `[SWR-VSIX-LAYOUT]`.
 - **Verify contents**: `unzip -l *.vsix | grep -F "bin/<target>/<binary><exe>"` and fail on foreign
   platform bins, placeholders, `out/`, `src/`, unbundled `node_modules/`, or caches. `[SWR-VSIX-VERIFY]`.
-- `publish` job: `if: success() && startsWith(github.ref, 'refs/tags/')`, single `vsce publish`, `VSCE_PAT`. `[SWR-VSIX-PUBLISH]`.
+- `publish` job: `if: success() && startsWith(github.ref, 'refs/tags/')`, `environment:` + `id-token: write`, `azure/login` → `az account get-access-token` → one `vsce publish` per VSIX (Entra OIDC, **no PAT**). `[SWR-VSIX-PUBLISH-OIDC]`.
 - darwin legs sign the embedded binary before staging (Gatekeeper). `[SWR-SIGN-APPLE-INTEGRATION]`.
 - per-VSIX `actions/attest-build-provenance`; the staged binary is verified vs the signed release before packaging. `[SWR-VSIX-PROVENANCE]`, `[SWR-VSIX-BUNDLE-VERIFY]`.
 - `engines.vscode` `^1.99.0`+. .NET sidecars wire `ms-dotnettools.vscode-dotnet-runtime`. `[SWR-IDE-DOTNET-RUNTIME]`.
@@ -207,8 +207,10 @@ own workflows, apply the same:
    `cargo cyclonedx`) attested per artifact; `cargo-auditable` for Rust. `[SWR-SEC-PROVENANCE]`, `[SWR-SEC-SBOM]`.
 5. **Signed checksums** — one `SHA256SUMS`, cosign keyless-signed; replace per-asset `.sha256`. The
    host / brew / scoop / Neovim / Zed download path verifies digest **and** signature before exec. `[SWR-SEC-CHECKSUM]`.
-6. **OIDC publishing** — move crates.io / NuGet / pub.dev off long-lived tokens; npm keeps
-   `--provenance`; marketplace/Open VSX/JetBrains PATs run in a protected `environment:`. `[SWR-SEC-OIDC-PUBLISH]`.
+6. **OIDC publishing** — move crates.io / NuGet / pub.dev **and the VS Code Marketplace** off
+   long-lived tokens; npm keeps `--provenance`; the Marketplace uses Entra workload-identity
+   federation (`azure/login` → `az account get-access-token` → `vsce`, no PAT — `[SWR-VSIX-PUBLISH-OIDC]`);
+   only Open VSX / JetBrains PATs remain, run in a protected `environment:`. `[SWR-SEC-OIDC-PUBLISH]`.
 7. **Vuln gate + supply-chain lint** — add `osv-scanner` + `cargo-deny`/`grype`, and call the shipped
    `lint-supply-chain.yml` (zizmor). `[SWR-SEC-VULN-GATE]`.
 8. **Manifest** — set `supplyChain` and per-component `githubRelease` `signature`/`provenance`/`sbom`/
@@ -244,8 +246,8 @@ Prefer OIDC trusted publishing (no stored token) wherever the registry supports 
 | GitHub Release | none (built-in `GITHUB_TOKEN`, `contents: write` on the release job only) |
 | Homebrew | `HOMEBREW_TAP_TOKEN`; create `homebrew-<tap>` repo |
 | Scoop | `SCOOP_BUCKET_TOKEN`; create `scoop-<bucket>` repo |
-| VS Code Marketplace | `VSCE_PAT` (`Marketplace → Manage`), in a protected `release` env |
-| Open VSX | a **separate** Open VSX PAT, short-expiry, in a protected env |
+| VS Code Marketplace | **OIDC, no PAT** — Entra app + SP, federated credential trusting `repo:OWNER/REPO:environment:release` (or wildcard `claimsMatchingExpression`), app added as a **Contributor** publisher member (User Id = the SP's Azure DevOps profile Identity GUID), `AZURE_CLIENT_ID`/`AZURE_TENANT_ID` on the `release` env. `[SWR-VSIX-PUBLISH-OIDC]` |
+| Open VSX | a **separate** Open VSX PAT (no OIDC path exists), short-expiry, in a protected env |
 | JetBrains / Android Studio | `signPlugin` cert chain + key + publish token, in a protected env |
 | crates.io | none — register a Trusted Publisher (OIDC); retire `CARGO_REGISTRY_TOKEN` |
 | npm | none — register each pkg as a Trusted Publisher (OIDC) |
