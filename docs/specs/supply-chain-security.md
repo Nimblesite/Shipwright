@@ -83,7 +83,7 @@ between package and binary ([binary-version-contract.md](binary-version-contract
 | Dependency confusion | Birsan (2021) | Frozen lockfile + scoped packages pinned to the private registry | SWR-SEC-FROZEN-INSTALL | GitHub avoiding-npm-substitution-attacks |
 | Channel ships unverified backing binary | GlassWorm (2025) | Verify staged/downloaded binary SHA-256 vs signed release before use; host re-verifies at activation | SWR-SEC-CHECKSUM | Eclipse Foundation; Sigstore |
 | Unsigned native binary blocked/tampered | (class) Gatekeeper/SmartScreen | Apple Developer ID + notarization AND cosign provenance — two complementary signatures | SWR-SIGN-* | Apple; Microsoft; Sigstore |
-| Vulnerable first-party code ships | (class) CWE Top 25 — injection, path traversal, unsafe deserialization | CodeQL `security-extended` code scanning on every PR + weekly + every `v*` release tag; separate from dep gating | SWR-SEC-CODE-SCANNING | GitHub code scanning / CodeQL docs |
+| Vulnerable first-party code ships | (class) CWE Top 25 — injection, path traversal, unsafe deserialization | CodeQL `security-extended` on every PR + weekly, **and a gated `workflow_call` the release `needs:` — High/Critical findings FAIL the release and block publishing**; separate from dep gating | SWR-SEC-CODE-SCANNING | GitHub code scanning / CodeQL docs |
 | Publish token/key committed and harvested | tj-actions secret leakage (2025); GlassWorm leaked Open VSX tokens (2025) | Secret scanning + **push protection** — blocks a secret before it ever reaches the remote | SWR-SEC-SECRET-SCANNING | GitHub secret-scanning / push-protection docs |
 
 ## The shared controls
@@ -162,10 +162,15 @@ a release full scan), `cargo-deny` (advisories/bans/licenses/sources from a comm
 
 **[SWR-SEC-CODE-SCANNING] Static code analysis (CodeQL).** `SWR-SEC-VULN-GATE` covers *dependencies*;
 CodeQL covers the *code we write*. A separate `.github/workflows/codeql.yml` runs CodeQL with the
-`security-extended` query suite on three triggers: every PR to `main`, a weekly schedule (so newly-
-published queries re-scan unchanged code), **and every `v*` release tag — scanning the exact released
-SHA before publishing**, since the release commit may have last been scanned weeks ago. It is its own
-workflow — not folded into `ci.yml` — because it needs
+`security-extended` query suite on every PR to `main` and a weekly schedule (so newly-published
+queries re-scan unchanged code), and exposes a `workflow_call` with a `gate` input. **It is a HARD
+release gate, not advisory: `release.yml` MUST call it with `gate: true` and the publish jobs MUST
+`needs:` that job, so a release can never ship code CodeQL flagged.** With `gate: true` the analyze
+job parses its SARIF and FAILS on any finding whose `security-severity` is High or Critical (>= 7.0);
+the gated call also scans the exact released SHA with the current query set, since the release commit
+may have last been scanned weeks ago. A standalone `push: [tags]` CodeQL trigger is **forbidden** — it
+runs concurrently with the release and can only file alerts *after* the artifact has shipped, which
+gates nothing. It is its own workflow — not folded into `ci.yml` — because it needs
 job-scoped `security-events: write` and feeds GitHub code-scanning alerts, while top-level permission
 stays `contents: read` (`SWR-SEC-TOKEN-PRIVILEGE`). The language matrix is the **intersection of this
 repo's languages with the set CodeQL supports at the time it is set up** — checked live, never copied

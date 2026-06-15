@@ -9,7 +9,23 @@ on:
     tags: ["v*.*.*"]
 
 jobs:
+  # SWR-SEC-CODE-SCANNING: HARD CodeQL release gate. A High/Critical finding
+  # FAILS this job; `release` below `needs:` it, so nothing publishes when CodeQL
+  # flags the released code. Requires the consuming repo's own
+  # `.github/workflows/codeql.yml` to expose a `workflow_call` with a `gate`
+  # input (the agent-pmo CodeQL template does). If the repo has no
+  # CodeQL-supported language, delete this job AND the `needs: codeql` below.
+  codeql:
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    uses: ./.github/workflows/codeql.yml
+    with:
+      gate: true
+
   release:
+    needs: codeql
     # SWR-SEC-ACTION-PINNING: pin the reusable-workflow ref to a full 40-char
     # commit SHA of the Shipwright release you adopt, with the version in a
     # comment, e.g.  ...release.reusable.yml@<40-char-sha> # v1.2.3
