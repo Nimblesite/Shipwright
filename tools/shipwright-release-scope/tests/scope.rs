@@ -41,16 +41,31 @@ fn write(dir: &Path, name: &str, body: &str) -> String {
     path.to_string_lossy().into_owned()
 }
 
-/// Run with a written ruleset + changed-list, returning the process output.
-fn run_case(rules: &str, changed_lines: &[&str]) -> (TempDir, Output) {
+/// Fresh temp dir holding a `rules.json`; returns the dir guard and its path.
+fn rules_dir(rules: &str) -> (TempDir, String) {
     let dir = TempDir::new().unwrap();
     let cfg = write(dir.path(), "rules.json", rules);
+    (dir, cfg)
+}
+
+/// Run with a written ruleset + changed-list file, returning the process output.
+fn run_case(rules: &str, changed_lines: &[&str]) -> (TempDir, Output) {
+    let (dir, cfg) = rules_dir(rules);
     let changed = write(dir.path(), "changed.txt", &changed_lines.join("\n"));
     let out = bin()
         .args(["--config", &cfg, "--changed", &changed])
         .output()
         .unwrap();
     (dir, out)
+}
+
+/// Spawn the CLI with explicit `--config`/`--changed` values and a null stdin.
+fn run_args(cfg: &str, changed: &str) -> Output {
+    bin()
+        .args(["--config", cfg, "--changed", changed])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap()
 }
 
 fn stdout(out: &Output) -> String {
@@ -63,6 +78,12 @@ fn stderr(out: &Output) -> String {
 
 fn assert_ok(out: &Output) {
     assert!(out.status.success(), "stderr: {}", stderr(out));
+}
+
+/// Assert the process failed and its stderr contains `needle`.
+fn assert_fails_with(out: &Output, needle: &str) {
+    assert!(!out.status.success());
+    assert!(stderr(out).contains(needle), "{}", stderr(out));
 }
 
 fn assert_field(s: &str, field: &str, value: bool) {
@@ -193,8 +214,7 @@ fn priority_website_beats_ignore_for_spec_markdown() {
 
 #[test]
 fn reads_changed_list_from_stdin() {
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", RULES);
+    let (_dir, cfg) = rules_dir(RULES);
     let mut child = bin()
         .args(["--config", &cfg, "--changed", "-"])
         .stdin(Stdio::piped())
@@ -214,8 +234,7 @@ fn reads_changed_list_from_stdin() {
 
 #[test]
 fn invalid_utf8_stdin_is_an_io_error() {
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", RULES);
+    let (_dir, cfg) = rules_dir(RULES);
     let mut child = bin()
         .args(["--config", &cfg, "--changed", "-"])
         .stdin(Stdio::piped())
@@ -229,16 +248,14 @@ fn invalid_utf8_stdin_is_an_io_error() {
         .write_all(&[0xff, 0xfe])
         .unwrap();
     let out = child.wait_with_output().unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("io at <stdin>"), "{}", stderr(&out));
+    assert_fails_with(&out, "io at <stdin>");
 }
 
 // ── GitHub Actions integration ──────────────────────────────────────────────
 
 #[test]
 fn writes_github_output_and_step_summary() {
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", RULES);
+    let (dir, cfg) = rules_dir(RULES);
     let changed = write(dir.path(), "changed.txt", "vscode-extension/a.ts");
     let gh_out = dir.path().join("gh_output");
     let gh_sum = dir.path().join("gh_summary.md");
@@ -263,16 +280,14 @@ fn writes_github_output_and_step_summary() {
 #[test]
 fn unwritable_github_output_is_an_io_error() {
     // Point GITHUB_OUTPUT at a directory so the append open() fails.
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", RULES);
+    let (dir, cfg) = rules_dir(RULES);
     let changed = write(dir.path(), "changed.txt", "website/x.css");
     let out = bin()
         .args(["--config", &cfg, "--changed", &changed])
         .env("GITHUB_OUTPUT", dir.path()) // a directory, not a file
         .output()
         .unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("io at"), "{}", stderr(&out));
+    assert_fails_with(&out, "io at");
 }
 
 // ── argument & config errors ─────────────────────────────────────────────────
@@ -288,83 +303,62 @@ fn help_flag_prints_usage() {
 
 #[test]
 fn unknown_argument_is_rejected() {
-    let out = bin().args(["--nope"]).output().unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("unknown argument `--nope`"));
+    assert_fails_with(
+        &bin().args(["--nope"]).output().unwrap(),
+        "unknown argument `--nope`",
+    );
 }
 
 #[test]
 fn flag_without_value_is_rejected() {
-    let out = bin().args(["--config"]).output().unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("--config requires a value"));
+    assert_fails_with(
+        &bin().args(["--config"]).output().unwrap(),
+        "--config requires a value",
+    );
 }
 
 #[test]
 fn missing_config_is_rejected() {
-    let out = bin().args(["--changed", "-"]).output().unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("--config is required"));
+    assert_fails_with(
+        &bin().args(["--changed", "-"]).output().unwrap(),
+        "--config is required",
+    );
 }
 
 #[test]
 fn missing_changed_is_rejected() {
-    let out = bin().args(["--config", "rules.json"]).output().unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("--changed is required"));
+    assert_fails_with(
+        &bin().args(["--config", "rules.json"]).output().unwrap(),
+        "--changed is required",
+    );
 }
 
 #[test]
 fn missing_config_file_is_an_io_error() {
     let dir = TempDir::new().unwrap();
     let cfg = dir.path().join("does-not-exist.json");
-    let out = bin()
-        .args(["--config", &cfg.to_string_lossy(), "--changed", "-"])
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("io at"), "{}", stderr(&out));
+    assert_fails_with(&run_args(&cfg.to_string_lossy(), "-"), "io at");
 }
 
 #[test]
 fn missing_changed_file_is_an_io_error() {
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", RULES);
-    let out = bin()
-        .args(["--config", &cfg, "--changed", "/no/such/changed.txt"])
-        .output()
-        .unwrap();
-    assert!(!out.status.success());
-    assert!(
-        stderr(&out).contains("io at /no/such/changed.txt"),
-        "{}",
-        stderr(&out)
+    let (_d, cfg) = rules_dir(RULES);
+    assert_fails_with(
+        &run_args(&cfg, "/no/such/changed.txt"),
+        "io at /no/such/changed.txt",
     );
 }
 
 #[test]
 fn invalid_json_config_is_rejected() {
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", "{ not valid json ");
-    let out = bin()
-        .args(["--config", &cfg, "--changed", "-"])
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
-    assert!(!out.status.success());
-    assert!(stderr(&out).contains("config json"), "{}", stderr(&out));
+    let (_d, cfg) = rules_dir("{ not valid json ");
+    assert_fails_with(&run_args(&cfg, "-"), "config json");
 }
 
 #[test]
 fn invalid_glob_in_config_is_rejected() {
-    let dir = TempDir::new().unwrap();
-    let cfg = write(dir.path(), "rules.json", r#"{ "binary": ["a[b"] }"#);
-    let out = bin()
-        .args(["--config", &cfg, "--changed", "-"])
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
+    let (_d, cfg) = rules_dir(r#"{ "binary": ["a[b"] }"#);
+    let out = run_args(&cfg, "-");
     assert!(!out.status.success());
     let e = stderr(&out);
     assert!(e.contains("invalid glob"), "{e}");
