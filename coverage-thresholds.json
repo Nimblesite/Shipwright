@@ -17,6 +17,9 @@
     },
     "tools/shipwright-version-stamp": {
       "threshold": 100
+    },
+    "tools/shipwright-release-scope": {
+      "threshold": 100
     }
   }
 }

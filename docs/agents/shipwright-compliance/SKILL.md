@@ -27,11 +27,13 @@ Spec source (cite these URLs, never local paths — this skill runs on repos tha
 | Library architecture | `.../docs/specs/library-architecture.md` (`SWR-ARCH-*`) |
 | Source projects & survey | `.../docs/specs/source-projects.md` (`SWR-SRC-*`) |
 | Release pipeline plan | `.../docs/plans/release-pipeline.md` (`SWR-REL-*`) |
+| **Release change detection** (CI cost gate) | `.../docs/specs/release-change-detection.md` (`SWR-REL-CHANGES-*`) |
 
 Reusable workflow templates (fetch the raw file and adapt — do not hand-roll from memory):
 `https://raw.githubusercontent.com/Nimblesite/Shipwright/main/templates/gh-actions/<file>`
 where `<file>` ∈ `release-binary-multiplatform.yml`, `publish-brew-tap.yml`,
-`publish-scoop-bucket.yml`, `publish-vsix-per-platform.yml`.
+`publish-scoop-bucket.yml`, `publish-vsix-per-platform.yml`,
+`release-change-detection.yml`.
 
 ## Workflow
 
@@ -45,6 +47,7 @@ Shipwright Compliance Progress:
 - [ ] Phase A: Emit the audit report (conformity + security holes)
 - [ ] Phase B: Implement — manifest, version stamping, libraries, release.yml (see reference/implement-release.md)
 - [ ] Phase B: Wire GitHub Release + Homebrew + Scoop + per-platform VSIX + registries as applicable
+- [ ] Phase B: Add the release change-detection cost gate (release-scope.json + scope job + per-surface `if:`)
 - [ ] Phase B: Close the supply-chain holes — pinned actions, least-priv tokens, frozen installs, provenance, SBOM, signed checksums, OIDC publishing, per-channel verification
 - [ ] Phase C: Verify locally (manifest validates, `--version` matches, CI gate green)
 - [ ] Emit the change summary
@@ -110,6 +113,17 @@ order. The implementation playbook is the authoritative step list; the high-leve
    staged under `bin/<vsceTarget>/`, verified package contents, Marketplace publish on tag. `[SWR-VSIX-*]`.
 8. **Acceptance gates in CI** — validate the manifest, run `--version` / `--version --json`, and verify
    the produced package against the manifest. `[SWR-GATE-*]`.
+9. **Release change-detection cost gate** — add `.github/release-scope.json` (a per-repo ruleset mapping
+   path globs to `binary`/`vsix`/`jetbrains`/`website`/`ignore`, validated by `release-scope.schema.json`),
+   copy in `release-change-detection.yml`, and add a `scope:` job as the FIRST job of `release.yml`. Then
+   gate every other job on its outputs: the native binary matrix `if: needs.scope.outputs.build_matrix == 'true'`,
+   the standalone binary release + Homebrew + Scoop on `full`, VSIX jobs on `vsix`, JetBrains on `jetbrains`,
+   website on `website`. CONTRACT (`[SWR-REL-CHANGES-CONTRACT]`): a tag stamps ONE version and host
+   activation-verify is `onMismatch:error`, so a published VSIX/JetBrains plugin MUST bundle binaries built
+   at the new version — therefore a vsix/jetbrains-only change STILL runs the binary matrix (do NOT reuse a
+   prior release's binary). Only a website-only change skips the matrix. Pin `shipwright_rev` to a full
+   Shipwright commit SHA. `[SWR-REL-CHANGES-*]`. Tailor the ruleset to the repo's actual layout — `binary`
+   MUST cover every compiled source + lockfile (fail-safe favours over-releasing, never under-releasing).
 
 Reuse the canonical templates (fetch the raw URLs above and adapt to this repo's binary/extension
 names) instead of writing workflows from scratch. Make the **smallest diff that achieves conformity**.
@@ -130,7 +144,10 @@ Prove the changes locally before declaring done:
 
 - **No PATH / package-manager runtime fallback.** A normal startup that reads or mutates PATH, shells
   out to `which`/`where`, or launches a Homebrew/Scoop/npm-global/cargo/dotnet-tool binary is FAIL.
-  Bundled or explicit-override sources only. `[SWR-IDE-RESOLUTION]`, `[SWR-SEC-CONTROLS]`.
+  Bundled or explicit-override sources only. On Zed this also bars `worktree.which` and a `~/.cargo/bin`
+  default: a silent PATH/preinstalled fallback is FAIL; the Zed default is the verified `github-release`
+  download, and a download branch left unreachable behind a never-true guard (dead-download) is also
+  FAIL. `[SWR-IDE-RESOLUTION]`, `[SWR-IDE-ZED]`, `[SWR-SEC-CONTROLS]`.
 - **One VSIX per target.** Native-binary extensions MUST package `npx vsce package --target <vsceTarget>`.
   A single all-platform native VSIX is FAIL. `[SWR-VSIX-PACKAGE]`.
 - **Verify package contents.** The release MUST inspect each produced artifact: exact `bin/<target>/`
@@ -144,9 +161,17 @@ Prove the changes locally before declaring done:
   install`, never crash on missing .NET, never hand-roll a download. `[SWR-IDE-DOTNET-RUNTIME]`.
 - **Supply-chain integrity is non-negotiable.** Mutable action tags (`@v4`/`@stable`), a missing or
   over-broad top-level `permissions:`, `npm install` (vs `npm ci`) in a release/VSIX job, a release
-  with no provenance/SBOM/cosign-signed `SHA256SUMS`, a downloader (Neovim/Zed/host) that executes a
-  fetched binary without verifying its checksum AND signature, or a long-lived registry/marketplace
+  with no provenance/SBOM/cosign-signed `SHA256SUMS`, a host/Neovim/brew/scoop downloader that execs a
+  fetched binary without verifying its digest AND cosign signature, a Zed extension that execs a
+  downloaded binary with no in-extension SHA-256 digest check (its cosign signature is a release-boundary
+  check — the WASM sandbox cannot run cosign; `[SWR-IDE-ZED]`), or a long-lived registry/marketplace
   token outside a protected environment are all FAIL. `[SWR-SEC-*]`, `[SWR-SIGN-*]`.
+- **No blind full-matrix releases.** A tag-triggered `release.yml` that rebuilds the macOS/Windows binary
+  matrix on every tag — even a website-only change — is a cost FAIL. Gate the costly jobs on
+  `release-change-detection.yml` outputs. The cascade is mandatory: a binary change releases EVERYTHING; an
+  unclassified change releases EVERYTHING (fail-safe); a vsix/jetbrains change still builds the binary matrix
+  (single-version contract). Only a website-only change may skip the matrix. Never gate so aggressively that a
+  real binary change ships without a rebuild. `[SWR-REL-CHANGES-CASCADE]`, `[SWR-REL-CHANGES-FAILSAFE]`, `[SWR-REL-CHANGES-CONTRACT]`.
 - **License must be honest.** A package's declared SPDX license (default single `MIT`) MUST match a
   LICENSE file that actually ships; declaring `MIT OR Apache-2.0` (or any expression) without the
   second license's text present is FAIL. `[SWR-REL-LICENSE]`.

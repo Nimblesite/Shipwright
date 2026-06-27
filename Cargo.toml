@@ -7,6 +7,7 @@ members = [
     "crates/shipwright-manifest",
     "crates/shipwright-zed",
     "tools/shipwright-version-stamp",
+    "tools/shipwright-release-scope",
 ]
 
 [workspace.package]
@@ -25,6 +26,7 @@ readme = "README.md"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+glob = "0.3"
 
 # Workspace lints — deny-by-default. See REPO-STANDARDS-SPEC [LINT-RUST].
 # Inherit in every member crate with `[lints] workspace = true`.

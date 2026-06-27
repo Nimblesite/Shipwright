@@ -4,6 +4,9 @@
 //! language server starts. This crate re-exports the pure host resolver and
 //! adds small helpers for representing deferred LSP checks and validating the
 //! `serverInfo` payload returned from LSP `initialize`.
+//!
+//! Implements the Zed deployment contract SWR-IDE-ZED: digest-verified
+//! `github-release` resolution and LSP-`initialize` version checks.
 
 #![forbid(unsafe_code)]
 

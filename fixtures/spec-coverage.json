@@ -1,5 +1,13 @@
 {
   "manifestVersion": 1,
+  "docs/specs/release-change-detection.md": {
+    "defaultTicket": "SWR-SPEC-RELEASE-CHANGE-DETECTION",
+    "fixtures": [
+      "fixtures/release-scope/basilisk.json",
+      "schemas/release-scope.schema.json",
+      "templates/gh-actions/release-change-detection.yml"
+    ]
+  },
   "docs/specs/binary-version-contract.md": {
     "defaultTicket": "SWR-SPEC-BINARY-VERSION",
     "fixtures": [

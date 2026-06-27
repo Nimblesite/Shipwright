@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nimblesite.dev/schemas/release-scope/v1.json",
+  "title": "Shipwright release-scope ruleset",
+  "description": "Maps changed file paths (gitignore-style globs) to release surfaces so the expensive multi-platform build matrix only runs for the surfaces that actually changed since the previous tag. Consumed by shipwright-release-scope. See docs/specs/release-change-detection.md [SWR-REL-CHANGES-RULES].",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "binary": {
+      "$ref": "#/$defs/globList",
+      "description": "Native/compiled sources. Changing any of these forces a FULL release [SWR-REL-CHANGES-CASCADE]. Use for the compiled sources, build manifests, and lockfiles."
+    },
+    "vsix": {
+      "$ref": "#/$defs/globList",
+      "description": "VS Code extension sources. Bundles a binary, so a change forces the binary build matrix to run (at the new tag version) AND publishes the VSIX, but skips unrelated channels [SWR-REL-CHANGES-MATRIX]."
+    },
+    "jetbrains": {
+      "$ref": "#/$defs/globList",
+      "description": "JetBrains plugin sources. Bundles a binary; behaves like 'vsix' — forces the binary matrix and publishes the plugin, skips unrelated channels."
+    },
+    "website": {
+      "$ref": "#/$defs/globList",
+      "description": "Documentation-website sources. The only fully decoupled surface: a website-only change deploys the site and skips the entire binary matrix."
+    },
+    "ignore": {
+      "$ref": "#/$defs/globList",
+      "description": "Paths that never trigger a release (e.g. READMEs, CI config). A changed path matching NO surface forces a full release fail-safe [SWR-REL-CHANGES-FAILSAFE]; list deliberately-irrelevant paths here to keep them cheap."
+    }
+  },
+  "$defs": {
+    "globList": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A gitignore-style glob. `*`/`?` stay within one path segment; `**` spans directories."
+      },
+      "uniqueItems": true
+    }
+  }
+}
