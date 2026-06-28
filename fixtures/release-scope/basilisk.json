@@ -1,0 +1,31 @@
+{
+  "binary": [
+    "src/**",
+    "crates/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "build.rs",
+    "rust-toolchain.toml"
+  ],
+  "vsix": [
+    "vscode-extension/**",
+    "extensions/**"
+  ],
+  "jetbrains": [
+    "clients/jetbrains/**",
+    "clients/kotlin/**"
+  ],
+  "website": [
+    "website/**",
+    "docs/specs/**"
+  ],
+  "ignore": [
+    "**/*.md",
+    "README*",
+    "LICENSE*",
+    ".github/**",
+    ".gitignore",
+    "tests/**",
+    "fixtures/**"
+  ]
+}

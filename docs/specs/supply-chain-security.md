@@ -119,10 +119,18 @@ keyless-signed with cosign (Fulcio cert from a GitHub OIDC identity, Rekor log, 
 cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
 ```
 
-Any consumer that downloads a binary — the host resolver, Homebrew, Scoop, the Neovim downloader, the
-Zed `github-release` source — MUST, before executing it, recompute the SHA-256 against `SHA256SUMS`
-**and** verify the signature with an identity pinned to the release workflow, never
-`--insecure-ignore-tlog`. Both checks fail closed.
+Any consumer that downloads a binary into a real process — the host resolver, Homebrew, Scoop, the
+Neovim downloader — MUST, before executing it, recompute the SHA-256 against `SHA256SUMS` **and** verify
+the cosign signature with an identity pinned to the release workflow, never `--insecure-ignore-tlog`.
+Both checks fail closed.
+
+The one carve-out is the **Zed** `github-release` source. A Zed extension is WebAssembly with no cosign
+primitive and no shell, so it cannot verify a Sigstore signature at runtime. It MUST instead recompute
+the SHA-256 of each downloaded asset against `SHA256SUMS` **in-extension** before exec; the cosign
+signature over `SHA256SUMS` is verified at the release/CI boundary, and the runtime trust roots are the
+human-reviewed registry PR plus the digest match against the signed `SHA256SUMS` fetched over TLS from
+the pinned release. See [SWR-IDE-ZED]. A Zed extension that execs a downloaded binary with no digest
+check at all is the same failure as skipping verification anywhere else.
 
 ```bash
 cosign verify-blob --bundle SHA256SUMS.sigstore.json \
@@ -231,7 +239,7 @@ what every downstream verification ultimately checks.
 | **VS Code Marketplace** | One VSIX per `vsceTarget` | Marketplace auto-signs on upload; per-VSIX provenance; bundle-verify; **OIDC via Entra (no stored PAT)** — publisher-member service principal, `id-token: write`, in a protected env |
 | **Open VSX** | Same VSIXs | `node-ovsx-sign` signature; a *separate* short-expiry PAT in a protected env (GlassWorm rode leaked Open VSX tokens) |
 | **JetBrains / Android Studio** | Signed plugin `.zip` to JetBrains Marketplace | `signPlugin` certificate-chain signature; Marketplace verifies; publish token in a protected env |
-| **Zed** | WASM extension (reviewed PR) + GitHub-release LSP download | No committed-WASM drift; the `github-release` download verifies checksum + signature; version via LSP `initialize` |
+| **Zed** | WASM extension (reviewed PR) + GitHub-release LSP download | No committed-WASM drift; the `github-release` download verifies the SHA-256 digest in-extension (cosign signature checked at the release boundary, not the WASM sandbox); version via LSP `initialize` ([SWR-IDE-ZED]) |
 | **Homebrew tap** | Formula (`url`, `sha256`) | The `sha256` is taken from the cosign-verified `SHA256SUMS`; tap push uses a scoped `tap_token` in a protected env |
 | **Scoop bucket** | Manifest (`url`, `hash`) | Hash from the verified release; manifest written via a real serializer with env-injected values (no `${{ }}` in shell) |
 | **Neovim** | Nothing new — downloads the release binary | The downloader verifies `SHA256SUMS` + cosign before exec and pins the resolved tag (never `/latest`) |
@@ -277,11 +285,14 @@ plugin `.zip` to be signed with the `signPlugin` task — a certificate chain + 
 secrets — and the Marketplace verifies it; verify locally with `marketplace-zip-signer verify`. The
 publish token runs in a protected environment.
 
-**Zed** distributes a WASM extension through a human-reviewed PR to the Zed extensions registry and
-then downloads the actual LSP from our GitHub Release at runtime. The WASM must be built reproducibly
-in CI (never a committed, drift-prone `.wasm`), and the runtime download goes through the same
-verify-checksum-and-signature-before-exec path as every other binary consumer, with the version
-confirmed via LSP `initialize` since Zed cannot preflight `--version`.
+**Zed** distributes a WASM extension through a human-reviewed PR to the Zed extensions registry
+(published as a git submodule under `extensions/<id>` with an `extensions.toml` entry) and then
+downloads the actual LSP from our GitHub Release at runtime. The WASM must be built reproducibly in CI
+(never a committed, drift-prone `.wasm`). Because the sandbox has no cosign primitive, the runtime
+download verifies the SHA-256 **digest** against `SHA256SUMS` in-extension before exec — the cosign
+**signature** over `SHA256SUMS` is verified at the release boundary, not in the extension — and the
+version is confirmed via LSP `initialize` since Zed cannot preflight `--version`. The full resolution
+order and anti-patterns are pinned in [SWR-IDE-ZED].
 
 ### Package managers that redistribute the release binary — Homebrew, Scoop, Neovim
 

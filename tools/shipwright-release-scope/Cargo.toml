@@ -1,0 +1,26 @@
+[package]
+name = "shipwright-release-scope"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CLI: classify the file changes between two release tags and decide which deployment channels (binary, VSIX, website) must publish."
+documentation = "https://docs.rs/shipwright-release-scope"
+readme = "README.md"
+
+[[bin]]
+name = "shipwright-release-scope"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+glob = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

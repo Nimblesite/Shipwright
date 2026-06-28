@@ -173,7 +173,7 @@ pipeline can still have required controls outstanding. Cite the `SWR-SEC-*` / `S
 | VS Code Marketplace | per-VSIX provenance; bundled binary verified vs signed release (`SWR-VSIX-BUNDLE-VERIFY`); **Entra OIDC publish, no stored PAT** — `id-token: write`, publisher-member SP, in a protected env | SWR-VSIX-PUBLISH-OIDC / SWR-SEC-OIDC-PUBLISH |
 | Open VSX | `node-ovsx-sign`; a **separate** short-expiry PAT in a protected env | SWR-SEC-OIDC-PUBLISH |
 | JetBrains / Android Studio | `signPlugin` certificate signature; publish token in a protected env | SWR-SEC-OIDC-PUBLISH |
-| Zed | no committed `.wasm` drift; runtime `github-release` download verifies checksum + signature; version via LSP `initialize` | SWR-SEC-CHECKSUM |
+| Zed | no committed `.wasm` drift; the `github-release` download verifies the SHA-256 digest **in-extension** (cosign signature is a release-boundary check, not in the WASM sandbox); the download branch is reachable (no dead-download behind a never-true guard); no `~/.cargo/bin`/`worktree.which`/PATH default; reviewed-PR publish (submodule + `extensions.toml`); version via LSP `initialize` | SWR-SEC-CHECKSUM, SWR-IDE-ZED |
 | Homebrew / Scoop | `sha256`/`hash` sourced from the verified `SHA256SUMS`; scoped `tap_token`/`bucket_token` in a protected env | SWR-SEC-CHECKSUM |
 | Neovim | downloader verifies `SHA256SUMS` + cosign before exec; pins the resolved tag (never `/latest`) | SWR-SEC-CHECKSUM |
 | crates.io / npm / NuGet / pub.dev | OIDC trusted publishing — no long-lived token (npm also `--provenance`) | SWR-SEC-OIDC-PUBLISH |

@@ -60,7 +60,7 @@ bin/
 shipwright.json
 ```
 
-Zed extensions may download and cache release assets when marketplace packaging prevents bundling native binaries. In that case, the extension MUST validate the server version from LSP initialize before enabling product features.
+Zed extensions may download and cache release assets when marketplace packaging prevents bundling native binaries. In that case, the extension MUST validate the server version from LSP initialize before enabling product features. The canonical model — resolution order, integrity, and publishing — is [SWR-IDE-ZED].
 
 ## [SWR-IDE-TEST-ISOLATION] Extension Test Isolation
 
@@ -111,6 +111,43 @@ configured an absolute override. They MUST NOT inspect PATH, prepend or append t
 manager as a normal startup source.
 
 If the user explicitly configured a path and it mismatches, do not fall back. The user needs a precise error so they can fix the configured path.
+
+## [SWR-IDE-ZED] Zed Extension Deployment
+
+Zed extensions are WebAssembly published through a human-reviewed PR to the `zed-industries/extensions`
+registry; they cannot bundle a native binary (see [SWR-COMPAT-HOST-REQ] in the binary version contract).
+Every Shipwright product's Zed extension MUST follow one model so the user experience matches the
+bundled-VSIX flow: install the extension, get the matching binary, no manual steps.
+
+**Resolution order** (in `language_server_command`, via `shipwright-zed` on the pure `shipwright-host`
+resolver):
+
+1. Explicit user override — the Zed LSP `binary.path` setting (or a documented env override).
+2. A previously cached download in the extension's version-stamped work directory.
+3. A verified `github-release` download: `latest_github_release` (pinned repo, resolved tag — never
+   `/latest` drift) → `download_file` for the current platform → SHA-256 digest verified against
+   `SHA256SUMS` → `make_file_executable`.
+
+Then validate the running server's version from the LSP `initialize` `serverInfo` before enabling
+product features; a mismatch stops startup with a precise error ([SWR-IDE-ERROR]). Zed cannot preflight
+`--version`.
+
+**Forbidden as silent defaults.** `~/.cargo/bin`, a bare command name on `PATH`, and `worktree.which`
+MUST NOT be the unconfigured startup source. A preinstalled/PATH binary is honored only when the user
+explicitly opts into it (equivalent to an override), never as the default — the default is the verified
+`github-release` download.
+
+**Anti-pattern — dead download (FAIL).** A `github-release` download branch that is unreachable because
+it is gated behind a condition that never occurs (e.g. only when `$HOME` is unset), leaving
+`cargo install` / `~/.cargo/bin` or another package-manager path as the de-facto default, is a release
+blocker. The audit MUST confirm the download branch is actually reachable on a normal machine.
+
+**Integrity.** The digest is verified in-extension; the cosign signature over `SHA256SUMS` is verified at
+the release/CI boundary, not in the WASM sandbox ([SWR-SEC-CHECKSUM]).
+
+**Publishing.** Reviewed PR to `zed-industries/extensions`: add the extension as a git submodule under
+`extensions/<id>`, add an `extensions.toml` entry (`submodule`, `version`, optional `path`), and run
+`pnpm sort-extensions`. The `.wasm` is built reproducibly in CI and is never committed.
 
 ## [SWR-IDE-ERROR] Error Reporting
 

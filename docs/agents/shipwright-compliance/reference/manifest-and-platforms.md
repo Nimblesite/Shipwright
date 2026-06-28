@@ -71,10 +71,13 @@ fall back to a system binary. `[SWR-IDE-RESOLUTION]`. Valid sources:
 - `env` — a documented environment override (only if the host documents one).
 - `bundled` — the binary shipped inside the package (VSIX/plugin). Default for IDE extensions.
 - `github-release` — managed download/cache, allowed **only** where marketplace packaging prevents
-  bundling (e.g. Zed). Must verify version from LSP `initialize`.
+  bundling (e.g. Zed; the Zed `sources` cascade is `["user-setting", "github-release"]`). Verify the
+  SHA-256 digest in-extension before exec (the cosign signature is checked at the release boundary, not
+  the WASM sandbox), and verify version from LSP `initialize`. Full model: `[SWR-IDE-ZED]`.
 
-**Never** include PATH / Homebrew / Scoop / npm-global / cargo / dotnet-tool as a normal startup source.
-They are repair flows only, and only after an explicit prompt. `[SWR-IDE-PKG-REPAIR]`, `[SWR-SEC-CONTROLS]`.
+**Never** include PATH / Homebrew / Scoop / npm-global / cargo / dotnet-tool as a normal startup source
+— on Zed this also bars `worktree.which` and a `~/.cargo/bin` default. They are repair flows or explicit
+user overrides only, never the silent default. `[SWR-IDE-PKG-REPAIR]`, `[SWR-IDE-ZED]`, `[SWR-SEC-CONTROLS]`.
 
 ## Version output contract
 

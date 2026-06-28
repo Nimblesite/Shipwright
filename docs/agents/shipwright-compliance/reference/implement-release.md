@@ -207,7 +207,9 @@ own workflows, apply the same:
 4. **Provenance + SBOM** — `actions/attest-build-provenance` + a CycloneDX SBOM (`anchore/sbom-action` /
    `cargo cyclonedx`) attested per artifact; `cargo-auditable` for Rust. `[SWR-SEC-PROVENANCE]`, `[SWR-SEC-SBOM]`.
 5. **Signed checksums** — one `SHA256SUMS`, cosign keyless-signed; replace per-asset `.sha256`. The
-   host / brew / scoop / Neovim / Zed download path verifies digest **and** signature before exec. `[SWR-SEC-CHECKSUM]`.
+   host / brew / scoop / Neovim download path verifies digest **and** cosign signature before exec; the
+   Zed WASM extension verifies the **digest** in-extension (its cosign signature is a release-boundary
+   check — no cosign in the sandbox). `[SWR-SEC-CHECKSUM]`, `[SWR-IDE-ZED]`.
 6. **OIDC publishing** — move crates.io / NuGet / pub.dev **and the VS Code Marketplace** off
    long-lived tokens; npm keeps `--provenance`; the Marketplace uses Entra workload-identity
    federation (`azure/login` → `az account get-access-token` → `vsce`, no PAT — `[SWR-VSIX-PUBLISH-OIDC]`);
