@@ -1,40 +1,75 @@
-# Keeps SHA-pinned GitHub Actions (SWR-SEC-ACTION-PINNING) and lockfiles
-# (SWR-SEC-FROZEN-INSTALL) fresh so immutable pins do not rot into stale,
-# vulnerable dependencies. See docs/specs/supply-chain-security.md.
-# templates/gh-actions/dependabot.yml is the copy shipped to downstream products.
+# Dependabot — keep SHA-pinned actions (SWR-SEC-ACTION-PINNING) and frozen
+# lockfiles (SWR-SEC-FROZEN-INSTALL) fresh WITHOUT PR spam on `main` and WITHOUT
+# burning the build matrix on one-line bumps. See
+# docs/specs/supply-chain-security.md [SWR-SEC-DEPENDABOT-STAGING].
+# templates/gh-actions/dependabot.yml is the copy shipped to downstream products;
+# Basilisk is the reference implementation.
+#
+# Every bump ends up on the long-lived `dependabot-upgrades` STAGING branch,
+# swept there by .github/workflows/dependabot-automerge.yml (latest bump
+# clobbers previous). Review happens ONCE, at the `dependabot-upgrades -> main`
+# consolidation PR:
+#   * VERSION updates  -> `target-branch: dependabot-upgrades`; opened against
+#     the staging branch, so ci.yml (pull_request: [main]) never fires on them.
+#   * SECURITY updates -> GitHub IGNORES `target-branch` and always opens them
+#     against `main`; the auto-merge workflow also fires on `main` and folds the
+#     bump into the SAME staging branch, then retires the PR. The `*-security`
+#     groups (`applies-to: security-updates`) collapse CVE bumps one-per-ecosystem.
+#
+# REQUIREMENT: the `dependabot-upgrades` branch must exist, cut from `main` AFTER
+# this file + dependabot-automerge.yml are on `main` (the staging branch must
+# carry the auto-merge workflow; for pull_request it is read from the base ref).
 version: 2
 updates:
+  # Keep every `uses:` SHA pin current. Dependabot bumps the SHA while preserving
+  # the `# vX.Y.Z` comment. (GitHub Actions have no security-advisory feed, so a
+  # single version group — no `*-security` split — is correct here.)
   - package-ecosystem: github-actions
     directory: "/"
+    target-branch: "dependabot-upgrades"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
     groups:
       github-actions:
         patterns: ["*"]
-    open-pull-requests-limit: 5
 
+  # Rust dependency graph (Cargo.lock).
   - package-ecosystem: cargo
     directory: "/"
+    target-branch: "dependabot-upgrades"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
     groups:
       cargo:
+        applies-to: version-updates
         patterns: ["*"]
-    open-pull-requests-limit: 5
+      cargo-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
-  # npm lives in three independent trees: the root pnpm workspace ("/"
-  # covers every clients/ts/* package), the standalone Eleventy site
-  # (website/, own pnpm-lock.yaml), and the AJV validator
-  # (tools/validate-manifest/, own package-lock.json). "/" alone never
-  # touches the latter two, so their pins silently rot — list all three.
+  # npm lives in three independent trees: the root pnpm workspace ("/" covers
+  # every clients/ts/* package), the standalone Eleventy site (website/, own
+  # pnpm-lock.yaml), and the AJV validator (tools/validate-manifest/, own
+  # package-lock.json). "/" alone never touches the latter two, so their pins
+  # silently rot — list all three.
   - package-ecosystem: npm
     directories:
       - "/"
       - "/website"
       - "/tools/validate-manifest"
+    target-branch: "dependabot-upgrades"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
     groups:
       npm:
+        applies-to: version-updates
         patterns: ["*"]
-    open-pull-requests-limit: 5
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]

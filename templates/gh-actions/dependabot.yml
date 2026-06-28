@@ -1,49 +1,80 @@
 # dependabot.yml — Shipwright-shipped template.
 #
-# Copy verbatim to `.github/dependabot.yml` in every product repo.
+# Copy to `.github/dependabot.yml` in every product repo. Adjust the npm
+# `directories` list to the repo's actual package trees; everything else is
+# copied verbatim. Ship it alongside dependabot-automerge.yml (this template's
+# sibling) — the two are a pair.
 #
 # SHA-pinning GitHub Actions (SWR-SEC-ACTION-PINNING) and freezing lockfiles
 # (SWR-SEC-FROZEN-INSTALL) makes builds immutable — but immutable pins rot into
 # never-updated, vulnerable dependencies if nothing refreshes them. Dependabot
-# bumps the pinned SHAs and lockfiles with a reviewable PR, which is the
-# documented counter to the "pinning is too much maintenance" objection that
-# pushes teams back onto mutable `@v4` tags.
+# bumps the pinned SHAs and lockfiles; left unmanaged that is PR spam against
+# `main`, each PR burning the full matrix on a one-line bump.
 #
-# Every ecosystem is GROUPED (`patterns: ["*"]`) so each opens ONE combined PR
-# per run instead of one PR per package. Grouping is per-ecosystem — Dependabot
-# cannot merge across ecosystems, so a polyglot repo gets at most one PR each
-# for github-actions, cargo, and npm, never a single cross-ecosystem PR.
+# This config removes both. Every bump is collected on a long-lived
+# `dependabot-upgrades` STAGING branch (swept there by dependabot-automerge.yml,
+# latest bump clobbers previous) and reviewed ONCE, at a single
+# `dependabot-upgrades -> main` consolidation PR the maintainer opens
+# periodically. See docs/specs/supply-chain-security.md
+# [SWR-SEC-DEPENDABOT-STAGING]. Basilisk is the reference implementation.
 #
-# See docs/specs/supply-chain-security.md [SWR-SEC-ACTION-PINNING].
+#   * VERSION updates  -> `target-branch: dependabot-upgrades`; opened against
+#     the staging branch, so ci.yml/codeql.yml (pull_request: [main]) never fire.
+#   * SECURITY updates -> GitHub IGNORES `target-branch` and always opens them
+#     against `main`; dependabot-automerge.yml also fires on `main` and folds
+#     them into the SAME staging branch, then retires the PR. The `*-security`
+#     groups (`applies-to: security-updates`) collapse CVE bumps one-per-ecosystem.
+#
+# REQUIREMENT: the `dependabot-upgrades` branch must exist, cut from `main` AFTER
+# this file + dependabot-automerge.yml are on `main` (the staging branch must
+# carry the auto-merge workflow; for pull_request it is read from the base ref).
 version: 2
 updates:
-  # Keep every `uses:` SHA pin current. Dependabot understands SHA-pinned
-  # actions and bumps the SHA while preserving the `# vX.Y.Z` comment.
+  # Keep every `uses:` SHA pin current. Dependabot bumps the SHA while preserving
+  # the `# vX.Y.Z` comment. (GitHub Actions have no security-advisory feed, so a
+  # single version group — no `*-security` split — is correct here.)
   - package-ecosystem: github-actions
     directory: "/"
+    target-branch: "dependabot-upgrades"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
     groups:
       github-actions:
         patterns: ["*"]
-    open-pull-requests-limit: 5
 
   # Rust dependency graph (Cargo.lock).
   - package-ecosystem: cargo
     directory: "/"
+    target-branch: "dependabot-upgrades"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
     groups:
       cargo:
+        applies-to: version-updates
         patterns: ["*"]
-    open-pull-requests-limit: 5
+      cargo-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
-  # Node/npm dependency graph (package-lock.json / pnpm-lock.yaml).
+  # Node/npm dependency graph (package-lock.json / pnpm-lock.yaml). List EVERY
+  # independent tree — a repo whose site or tooling has its own lockfile rots
+  # silently if "/" is the only entry.
   - package-ecosystem: npm
-    directory: "/"
+    directories:
+      - "/"
+    target-branch: "dependabot-upgrades"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
     groups:
       npm:
+        applies-to: version-updates
         patterns: ["*"]
-    open-pull-requests-limit: 5
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
