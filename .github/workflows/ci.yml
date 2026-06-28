@@ -12,6 +12,10 @@ concurrency:
 jobs:
   ci:
     name: CI
+    # Dependabot PRs are swept into `dependabot-upgrades` and never merge into
+    # main directly, so the heavy matrix would only burn minutes on a bump we
+    # discard. CI runs once, on the consolidation PR. (SWR-SEC-DEPENDABOT-STAGING)
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -78,6 +82,9 @@ jobs:
 
   ts-tests:
     name: TypeScript tests (${{ matrix.os }})
+    # Skip Dependabot bumps — swept into `dependabot-upgrades`, tested once on
+    # the consolidation PR. (SWR-SEC-DEPENDABOT-STAGING)
+    if: github.actor != 'dependabot[bot]'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:

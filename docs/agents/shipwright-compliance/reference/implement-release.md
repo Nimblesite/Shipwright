@@ -201,6 +201,12 @@ own workflows, apply the same:
 1. **Pin every action** to a 40-char SHA (`# vX.Y.Z` comment); add `.github/dependabot.yml` (copy
    `templates/gh-actions/dependabot.yml` — every ecosystem grouped with `patterns: ["*"]` so each opens
    one combined PR per run, not one per package). `[SWR-SEC-ACTION-PINNING]`.
+1a. **Dependabot staging branch** — copy `templates/gh-actions/dependabot-automerge.yml` to
+   `.github/workflows/`, set `target-branch: dependabot-upgrades` + paired `version-updates`/
+   `security-updates` groups in `dependabot.yml`, add `if: github.actor != 'dependabot[bot]'` to
+   `ci.yml`/`codeql.yml` jobs, then cut the `dependabot-upgrades` branch from `main` AFTER both files
+   land. Bumps sweep into one staging branch, reviewed once at the consolidation PR; the auto-merge
+   trigger stays `pull_request` (never `pull_request_target`). `[SWR-SEC-DEPENDABOT-STAGING]`.
 2. **Top-level `permissions: contents: read`**; grant write/`id-token`/`attestations` per job only;
    `persist-credentials: false`. `[SWR-SEC-TOKEN-PRIVILEGE]`.
 3. **Frozen installs** — replace `npm install` with `npm ci`, add `--frozen-lockfile`/`--locked`. `[SWR-SEC-FROZEN-INSTALL]`.

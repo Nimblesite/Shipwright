@@ -148,6 +148,18 @@ pipeline can still have required controls outstanding. Cite the `SWR-SEC-*` / `S
 1. **Pinned actions** — every `uses:` and reusable-workflow ref is a full 40-char commit SHA (not
    `@v4`/`@stable`/`@master`). A committed `.github/dependabot.yml` covering github-actions and every
    language ecosystem, each grouped (`patterns: ["*"]`) into one combined PR per run, keeps pins fresh. `[SWR-SEC-ACTION-PINNING]`.
+1a. **Dependabot staging branch + auto-merge** — `.github/dependabot.yml` sets
+   `target-branch: dependabot-upgrades` on every ecosystem, with a parallel `*-security` group
+   (`applies-to: security-updates`) beside each `version-updates` group; a committed
+   `.github/workflows/dependabot-automerge.yml` sweeps every Dependabot PR into the
+   `dependabot-upgrades` branch (clobber-merge `-X theirs`) and retires it; that workflow triggers on
+   **both** `dependabot-upgrades` **and** `main` (security bumps ignore `target-branch` and land on
+   `main`); its trigger is `pull_request`, **never** `pull_request_target` (FAIL otherwise — RCE sink);
+   it gates on `github.actor == 'dependabot[bot]'` AND `startsWith(github.head_ref, 'dependabot/')`;
+   and `ci.yml`/`codeql.yml` skip Dependabot PRs (`github.actor != 'dependabot[bot]'`). The
+   `dependabot-upgrades` branch must exist. Missing branch, missing auto-merge workflow,
+   `pull_request_target`, or no `target-branch` = FAIL — bumps pile up on `main`. Basilisk is the
+   reference implementation. `[SWR-SEC-DEPENDABOT-STAGING]`.
 2. **Least-privilege token** — every workflow has a top-level `permissions:` block defaulting to
    `contents: read`; write/`id-token`/`attestations` are job-scoped, never top-level; `persist-credentials: false` off the push path. `[SWR-SEC-TOKEN-PRIVILEGE]`.
 3. **Frozen install** — `npm ci` / `pnpm install --frozen-lockfile` / `cargo --locked` everywhere (workflows AND scripts); no bare `npm install`; lockfiles committed. `[SWR-SEC-FROZEN-INSTALL]`.

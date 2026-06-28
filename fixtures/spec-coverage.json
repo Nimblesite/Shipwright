@@ -77,7 +77,8 @@
       "templates/rust-binary/release.yml",
       "fixtures/invalid-manifests/bad-supplychain.json",
       "templates/gh-actions/lint-supply-chain.yml",
-      "templates/gh-actions/dependabot.yml"
+      "templates/gh-actions/dependabot.yml",
+      "templates/gh-actions/dependabot-automerge.yml"
     ]
   },
   "docs/specs/vsix-platform-bundling.md": {

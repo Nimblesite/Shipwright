@@ -48,7 +48,7 @@ Shipwright Compliance Progress:
 - [ ] Phase B: Implement — manifest, version stamping, libraries, release.yml (see reference/implement-release.md)
 - [ ] Phase B: Wire GitHub Release + Homebrew + Scoop + per-platform VSIX + registries as applicable
 - [ ] Phase B: Add the release change-detection cost gate (release-scope.json + scope job + per-surface `if:`)
-- [ ] Phase B: Close the supply-chain holes — pinned actions, least-priv tokens, frozen installs, provenance, SBOM, signed checksums, OIDC publishing, per-channel verification
+- [ ] Phase B: Close the supply-chain holes — pinned actions, Dependabot staging branch + auto-merge sweep, least-priv tokens, frozen installs, provenance, SBOM, signed checksums, OIDC publishing, per-channel verification
 - [ ] Phase C: Verify locally (manifest validates, `--version` matches, CI gate green)
 - [ ] Emit the change summary
 ```
@@ -166,6 +166,14 @@ Prove the changes locally before declaring done:
   downloaded binary with no in-extension SHA-256 digest check (its cosign signature is a release-boundary
   check — the WASM sandbox cannot run cosign; `[SWR-IDE-ZED]`), or a long-lived registry/marketplace
   token outside a protected environment are all FAIL. `[SWR-SEC-*]`, `[SWR-SIGN-*]`.
+- **Dependabot must stage, not spam.** A repo whose Dependabot bumps land one-by-one on `main` — no
+  `target-branch: dependabot-upgrades`, no `dependabot-automerge.yml` sweep workflow, or no
+  `dependabot-upgrades` branch — is FAIL: pins rot or PRs pile up and every bump burns the full matrix.
+  Each ecosystem targets the staging branch with paired `version-updates`/`security-updates` groups; the
+  sweep workflow triggers on `pull_request` (NEVER `pull_request_target` — that is an RCE sink) for both
+  `dependabot-upgrades` and `main` (security bumps ignore `target-branch`), clobber-merges (`-X theirs`),
+  and retires the PR; `ci.yml`/`codeql.yml` skip Dependabot PRs. Review happens once, at the
+  `dependabot-upgrades → main` consolidation PR. Basilisk is the reference. `[SWR-SEC-DEPENDABOT-STAGING]`.
 - **No blind full-matrix releases.** A tag-triggered `release.yml` that rebuilds the macOS/Windows binary
   matrix on every tag — even a website-only change — is a cost FAIL. Gate the costly jobs on
   `release-change-detection.yml` outputs. The cascade is mandatory: a binary change releases EVERYTHING; an

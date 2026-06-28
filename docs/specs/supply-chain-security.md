@@ -144,7 +144,57 @@ branch refs are forbidden: a repointed tag is exactly how tj-actions and reviewd
 committed `.github/dependabot.yml` (github-actions plus every language ecosystem — cargo, npm — weekly)
 keeps pins fresh. Each ecosystem is grouped (`patterns: ["*"]`) so it opens one combined PR per run
 instead of one PR per package; grouping is per-ecosystem, so a polyglot repo gets at most one PR each
-for github-actions, cargo, and npm, never a single cross-ecosystem PR.
+for github-actions, cargo, and npm, never a single cross-ecosystem PR. Those bumps do not land on
+`main` one-by-one — they are swept into a staging branch and consolidated; see
+[SWR-SEC-DEPENDABOT-STAGING].
+
+**[SWR-SEC-DEPENDABOT-STAGING] Dependabot staging branch + auto-merge.** SHA-pinning
+(`SWR-SEC-ACTION-PINNING`) and frozen lockfiles (`SWR-SEC-FROZEN-INSTALL`) make builds immutable, and
+Dependabot keeps the pins from rotting — but left unmanaged that is a stream of PRs against `main`,
+each burning the full build/test matrix (`SWR-ACCEPT-*`) and CodeQL (`SWR-SEC-CODE-SCANNING`) on a
+one-line bump. The contract removes that spam **and** that wasted CI: every routine bump is collected
+on a long-lived `dependabot-upgrades` staging branch and reviewed **once**, at a single
+`dependabot-upgrades → main` consolidation PR that the maintainer opens periodically. The reference
+implementation is Basilisk (`.github/dependabot.yml` + `.github/workflows/dependabot-automerge.yml`);
+Shipwright ships both as `templates/gh-actions/dependabot.yml` and
+`templates/gh-actions/dependabot-automerge.yml`. The mechanism has four load-bearing parts:
+
+- **Version bumps target the staging branch.** Each ecosystem sets `target-branch: dependabot-upgrades`,
+  so routine `version-updates` PRs are opened against the staging branch, never against `main`. Because
+  `ci.yml`/`codeql.yml` trigger on `pull_request: [main]` (the filter matches the PR *base*), these
+  staging PRs run no matrix at all.
+- **Security bumps are the exception — GitHub ignores `target-branch` for them and always opens them
+  against the default branch (`main`).** This is not optional behaviour to design around; it is fixed.
+  So `dependabot-automerge.yml` triggers on **both** `dependabot-upgrades` and `main`, and folds a
+  security bump opened on `main` into the same staging branch, then retires the PR — a CVE bump never
+  sits on `main` waiting for a human either. Each ecosystem therefore declares a parallel
+  `*-security` group (`applies-to: security-updates`) alongside its `version-updates` group so CVE
+  bumps also collapse into one PR per ecosystem.
+- **The sweep clobber-merges, latest wins.** `dependabot-automerge.yml` checks out
+  `dependabot-upgrades` and merges the incoming bump with `git merge -X theirs`, so successive bumps of
+  the same lockfile never conflict-stall — the newest bump always wins. Concurrent Dependabot PRs race
+  to push, so the merge is wrapped in a fetch-reset-merge-push retry loop on the live staging tip. The
+  PR is then closed with `--delete-branch`; nothing is left for a human to merge by hand.
+- **CI runs once, on the consolidation PR.** `ci.yml` and `codeql.yml` (where present) skip Dependabot
+  PRs (`github.actor == 'dependabot[bot]'`) — the heavy matrix would only burn minutes on a bump that
+  is immediately swept away. Review and the expensive build/test/CodeQL run at the single
+  `dependabot-upgrades → main` PR, where major bumps get their one human review.
+
+**SECURITY INVARIANT (load-bearing).** The auto-merge trigger MUST stay `pull_request`, **never**
+`pull_request_target`. Under `pull_request` a fork PR runs with a read-only token and no secrets, so
+merging Dependabot-authored tree content is inert; `pull_request_target` would hand the write token and
+secrets to that content and turn the merge bot into an RCE/exfiltration sink — exactly the
+untrusted-checkout finding CodeQL guards against (`SWR-SEC-CODE-SCANNING`). The job gates on two
+independent, unforgeable conditions — `github.actor == 'dependabot[bot]'` **and**
+`startsWith(github.head_ref, 'dependabot/')` — and disables git hooks (`core.hooksPath /dev/null`) for
+every git op so merged tree content can never execute a hook.
+
+**Branch bootstrap (order matters).** The `dependabot-upgrades` branch MUST exist, and it must be cut
+from `main` **after** `dependabot.yml` and `dependabot-automerge.yml` are already on `main`. For a
+`pull_request` event the workflow file is read from the PR's **base** branch, so both `main` and the
+staging branch must carry `dependabot-automerge.yml` — cutting the branch after the workflow lands is
+what puts it there. A repo that adopts this contract without the staging branch present is non-compliant:
+Dependabot PRs pile up against `main` exactly as before.
 
 **[SWR-SEC-TOKEN-PRIVILEGE] Least-privilege `GITHUB_TOKEN`.** Every workflow declares top-level
 `permissions: contents: read`. Write, `id-token`, and `attestations` are granted per job only.
