@@ -18,7 +18,7 @@
   "version": "0.0.0-dev",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.7.0",
+    "eslint": "^10.8.0",
     "prettier": "^3.9.6",
     "typescript-eslint": "^8.60.1"
   }
