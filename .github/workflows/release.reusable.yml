@@ -63,6 +63,15 @@ on:
         type: string
         required: false
         default: ""
+      scoop_extract_dir:
+        description: >-
+          Top-level directory inside the Windows archive, when the archive nests
+          its payload. Scoop resolves `bin` from the app root, so a nested
+          archive without this fails at shim creation — after the download and
+          hash check have already passed. Leave empty for a flat archive.
+        type: string
+        required: false
+        default: ""
       homepage:
         description: "Homepage written to package-manager metadata."
         type: string
@@ -444,6 +453,7 @@ jobs:
         run: |
           node - <<'NODE'
           const { mkdirSync, writeFileSync } = require("node:fs");
+          const extractDir = process.env.EXTRACT_DIR;
           const manifest = {
             version: process.env.VERSION,
             description: process.env.DESCRIPTION,
@@ -452,7 +462,10 @@ jobs:
             architecture: {
               "64bit": {
                 url: process.env.URL,
-                hash: process.env.SHA256
+                hash: process.env.SHA256,
+                // Omitted entirely for a flat archive: Scoop treats an empty
+                // extract_dir as a directory named "", not as "no nesting".
+                ...(extractDir ? { extract_dir: extractDir } : {})
               }
             },
             bin: process.env.BIN
@@ -466,6 +479,7 @@ jobs:
           URL: ${{ steps.meta.outputs.url }}
           SHA256: ${{ steps.meta.outputs.sha256 }}
           BIN: ${{ inputs.bin_name }}.exe
+          EXTRACT_DIR: ${{ inputs.scoop_extract_dir }}
           HOMEPAGE: ${{ steps.meta.outputs.homepage }}
           DESCRIPTION: ${{ steps.meta.outputs.description }}
 

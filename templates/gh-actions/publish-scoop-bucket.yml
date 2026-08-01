@@ -21,6 +21,15 @@ on:
       bin:
         required: true
         type: string
+      # Scoop resolves `bin` from the app root. If the release archive nests its
+      # payload under a top-level directory (anything staged as a directory
+      # rather than zipped as bare files), name that directory here or shim
+      # creation fails after the download and hash check have already passed.
+      # Leave empty for a flat archive.
+      extract_dir:
+        required: false
+        type: string
+        default: ""
       homepage:
         required: true
         type: string
@@ -55,6 +64,7 @@ jobs:
         run: |
           node - <<'NODE'
           const { mkdirSync, writeFileSync } = require("node:fs");
+          const extractDir = process.env.EXTRACT_DIR;
           const manifest = {
             version: process.env.VERSION,
             description: process.env.DESCRIPTION,
@@ -63,7 +73,10 @@ jobs:
             architecture: {
               "64bit": {
                 url: process.env.URL,
-                hash: process.env.SHA256
+                hash: process.env.SHA256,
+                // Omitted entirely for a flat archive: Scoop treats an empty
+                // extract_dir as a directory named "", not as "no nesting".
+                ...(extractDir ? { extract_dir: extractDir } : {})
               }
             },
             bin: process.env.BIN
@@ -77,6 +90,7 @@ jobs:
           URL: ${{ inputs.url }}
           SHA256: ${{ inputs.sha256 }}
           BIN: ${{ inputs.bin }}
+          EXTRACT_DIR: ${{ inputs.extract_dir }}
           HOMEPAGE: ${{ inputs.homepage }}
           DESCRIPTION: ${{ inputs.description }}
       - name: Commit manifest

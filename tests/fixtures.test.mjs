@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -18,6 +19,16 @@ const trackedIdPattern = /^SWR-[A-Z]+(?:-[A-Z]+)+$/;
 const illegalNumericTrackedIdPattern = /\bSWR-[A-Z]+-\d+\b/g;
 const validKinds = new Set(["cli", "lsp", "mcp", "sidecar", "dap", "tool"]);
 const validLanguages = new Set(["rust", "dotnet", "dart", "typescript", "kotlin", "javascript"]);
+const scoopHeredoc = "node - <<'NODE'";
+const scoopWriterEnv = {
+  MANIFEST_NAME: "sampletool",
+  VERSION: "1.2.3",
+  DESCRIPTION: "Sample tool",
+  HOMEPAGE: "https://example.invalid/sampletool",
+  URL: "https://example.invalid/sampletool-1.2.3-win32-x64.zip",
+  SHA256: "d713ca72419bc535e6c64605381255e544553356290b900b6c3f1eed21bee735",
+  BIN: "sampletool.exe"
+};
 
 function json(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -46,6 +57,47 @@ function walkFiles(path) {
     return [child];
   });
 }
+
+// Runs a workflow's embedded Scoop-manifest writer the way the runner does: the
+// `node - <<'NODE'` heredoc is executed with the step's environment, and the file
+// it emits is parsed. Asserting on the emitted manifest rather than on workflow
+// text is what makes an undeclared field visible at all. `.cjs` because the
+// heredoc is CommonJS while this package is ESM.
+function runScoopManifestWriter(workflowPath, overrides) {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const opener = workflow.indexOf(scoopHeredoc);
+  assert.ok(opener >= 0, `${workflowPath}: no embedded Scoop manifest writer`);
+  const bodyStart = opener + scoopHeredoc.length;
+  const directory = mkdtempSync(join(tmpdir(), "shipwright-scoop-"));
+  const script = join(directory, "write-manifest.cjs");
+  writeFileSync(script, workflow.slice(bodyStart, workflow.indexOf("NODE", bodyStart)));
+  const environment = { ...process.env, ...scoopWriterEnv, ...overrides };
+  const result = spawnSync(process.execPath, [script], { cwd: directory, encoding: "utf8", env: environment });
+  assert.equal(result.status, 0, `${workflowPath}\n${result.stderr}`);
+  return json(join(directory, "bucket", `${environment.MANIFEST_NAME}.json`));
+}
+
+// SWR-REL-SCOOP: Scoop resolves `bin` from the app root, so a release archive
+// that nests its payload under a top-level directory needs that directory named
+// in `extract_dir` — without it the download and hash check pass and shim
+// creation then fails. Both writers must support it: the template downstream
+// products vendor, and Shipwright's own reusable release workflow. A single-file
+// archive is flat, so an empty value must omit the key rather than emit "".
+test("scoop manifest writers declare extract_dir for nested archives", () => {
+  for (const workflow of [
+    join(root, "templates", "gh-actions", "publish-scoop-bucket.yml"),
+    join(workflowDir, "release.reusable.yml")
+  ]) {
+    const nested = runScoopManifestWriter(workflow, { EXTRACT_DIR: "sampletool-1.2.3-win32-x64" });
+    assert.equal(nested.architecture["64bit"].url, scoopWriterEnv.URL, workflow);
+    assert.equal(nested.architecture["64bit"].hash, scoopWriterEnv.SHA256, workflow);
+    assert.equal(nested.bin, scoopWriterEnv.BIN, workflow);
+    assert.equal(nested.architecture["64bit"].extract_dir, "sampletool-1.2.3-win32-x64", workflow);
+
+    const flat = runScoopManifestWriter(workflow, { EXTRACT_DIR: "" });
+    assert.equal("extract_dir" in flat.architecture["64bit"], false, workflow);
+  }
+});
 
 test("all golden manifests pass schema validation", () => {
   const manifests = listJsonFiles(goldenDir);
