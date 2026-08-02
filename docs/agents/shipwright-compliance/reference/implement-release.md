@@ -170,6 +170,8 @@ bucket repo. Inputs:
       url: https://github.com/<owner>/<repo>/releases/download/v<version>/<prefix>-<version>-win32-x64.zip
       sha256: <sha256 of the win32-x64 archive>
       bin: <binary>.exe
+      # Only when the archive nests — see below. Omit for a flat archive.
+      extract_dir: <prefix>-<version>-win32-x64
       homepage: https://github.com/<owner>/<repo>
       description: <one line>
     secrets:
@@ -177,6 +179,27 @@ bucket repo. Inputs:
 ```
 
 Scoop consumes the Windows `.zip` asset. Create the `scoop-<bucket>` repo and `SCOOP_BUCKET_TOKEN`.
+
+**`extract_dir` MUST match the archive's top-level directory.** Scoop resolves `bin`
+from the app root, so the manifest and the packaging step form one contract: if the
+zip nests its payload under `<prefix>-<version>-win32-x64/`, the manifest has to name
+that directory, and if the zip is flat the key must be absent. Get this wrong and the
+download and SHA-256 check both *pass* before the install fails at shim creation with
+`Can't shim '<binary>.exe': File doesn't exist` — the partial success hides the cause.
+
+Products shipping one binary usually zip the bare `.exe` and stay flat. Anything that
+stages a directory first — multiple binaries, or a `README`/`LICENSE` alongside — nests,
+and PowerShell nests silently: `Compress-Archive -Path "dist/$stage"` makes `$stage` the
+archive root, while `Compress-Archive -Path "dist/$stage/*"` does not. Homebrew hides the
+same mistake because it auto-descends into a lone top-level directory, so a tap can be
+green while the bucket is broken. Verify with `unzip -l` on the published asset, not by
+reading the workflow.
+
+Carry `extract_dir` in the `autoupdate` block too, templated on `$version`. A manifest
+that declares it only under `architecture` reverts to a broken shim the first time Scoop
+auto-updates it. For the same reason every versioned segment of the autoupdate URL —
+**including the release tag** — stays a literal `$version` placeholder; interpolating one
+at generation time pins every future update to the release that produced the manifest.
 
 ## 8. Per-platform VSIX (IDE extensions)
 

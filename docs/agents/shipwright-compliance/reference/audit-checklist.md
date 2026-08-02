@@ -99,6 +99,9 @@ instead of using `@nimblesite/shipwright-core` path helpers. `[SWR-ARCH-LIBRARIE
 1. Is there a job that writes a Scoop manifest (`version`, `architecture.64bit.url`, `hash`, `bin`) to the bucket repo?
 2. Is the manifest written with a real JSON serializer (no string-concatenated JSON)?
 3. Is the bucket push authenticated with a dedicated `bucket_token` secret?
+4. Does `architecture.64bit.extract_dir` match the Windows archive's top-level directory — present and exact when the zip nests, absent when it is flat? Read the packaging step: `Compress-Archive -Path "dist/$stage"` nests, `"dist/$stage/*"` does not; anything that stages a directory (multiple binaries, or a bundled `README`/`LICENSE`) nests. A mismatch is FAIL even though download and hash verification pass — the install dies at shim creation, and a green Homebrew tap proves nothing because Homebrew auto-descends into a lone top-level directory.
+5. Does the `autoupdate` block carry the same `extract_dir`, templated on `$version`? Declaring it only under `architecture` is FAIL: the next auto-updated manifest drops it and the failure returns.
+6. Is every versioned segment of the autoupdate URL — **including the release tag** — a literal `$version` placeholder? A segment interpolated at generation time (`"${base}/tool-\$version-win32-x64.zip"`, where `base` already contains the tag) pins every future update to the release that generated the manifest. FAIL.
 
 ## 9. Language-registry publishing — `[SWR-REL-*]`
 
