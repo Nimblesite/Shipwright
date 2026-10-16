@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # ── toolchains ──────────────────────────────────────────────────────────
-      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
           toolchain: stable
           components: rustfmt, clippy, llvm-tools-preview
@@ -37,7 +37,7 @@ jobs:
       # Canonical npm OIDC trusted-publishing setup: registry-url so npm knows
       # the registry; npm >= 11.5.1 then mints a short-lived token from the
       # GitHub OIDC token. No NODE_AUTH_TOKEN secret. [SWR-SEC-OIDC-PUBLISH]
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
@@ -72,7 +72,7 @@ jobs:
       - uses: dart-lang/setup-dart@v1
 
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-llvm-cov
 
