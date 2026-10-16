@@ -129,7 +129,7 @@ jobs:
 
       - name: Install stable toolchain
         if: hashFiles('tools/shipwright-version-stamp/Cargo.toml') != ''
-        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
           toolchain: stable
 
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload build-info
         if: hashFiles('build-info.json') != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: build-info
           path: build-info.json
@@ -223,7 +223,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # stable
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.rust_target }}
@@ -232,7 +232,7 @@ jobs:
         if: matrix.cross
         run: cargo install cross --locked --version 0.2.5
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: hashFiles('tools/validate-manifest/package.json') != ''
         with:
           node-version: 24
@@ -294,7 +294,7 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 "dist/$stage.zip").Hash.ToLower()
           "$hash  $stage.zip" | Out-File -FilePath "dist/$stage.zip.sha256" -Encoding ascii
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.bin_name }}-${{ matrix.platform }}
           path: dist/*
@@ -308,7 +308,7 @@ jobs:
     permissions:
       contents: write   # SWR-SEC-TOKEN-PRIVILEGE: only this job creates the Release
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist
           pattern: ${{ inputs.bin_name }}-*
@@ -444,7 +444,7 @@ jobs:
           token: ${{ secrets.publish_token }}
           path: bucket-repo
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
