@@ -11,7 +11,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Code\\\\Shipwright\\\\docs\\\\specs\" -Filter \"*.md\")",
       "Bash(Select-Object Name)",
       "Bash(gh run *)",
-      "Bash(pnpm install *)"
+      "Bash(pnpm install *)",
+      "Bash(echo \"\\(exit $?\\)\")"
     ]
   },
   "autoMemoryEnabled": false
